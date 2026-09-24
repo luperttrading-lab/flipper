@@ -144,6 +144,20 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   pruefe(api.flucht.geholt === 0 && api.flucht.lit === 1, 'Nach allen sechs Feldern beginnt die Leiter von vorn');
 }
 
+// 2d. Jackpot: verdoppelt sich, Licht-Show (flackern, dunkel, heller Rückschlag)
+{
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  api.starteWahl(); api.wahlFertig();                 // Multiball
+  const s0 = api.score; api.jackpot(1000000); const d1 = api.score - s0;
+  const s1 = api.score; api.jackpot(1000000); const d2 = api.score - s1;
+  pruefe(d1 === 1000000 && d2 === 2000000 && api.jpMult === 4, `Jackpot verdoppelt sich (${d1} → ${d2}, nächster ${api.jpMult}X)`);
+  const verlauf = [];
+  for (let i = 0; i < 16; i++) { verlauf.push(api.grundLicht()); lauf(api, 0.1); }
+  const dunkel = verlauf.slice(7, 12).every(v => v === 0), flackern = verlauf.slice(0, 6).some(v => v === 1) && verlauf.slice(0, 6).some(v => v === 0);
+  pruefe(flackern && dunkel && verlauf.slice(12).some(v => v > 1), 'Jackpot-Licht: flackern, 0,6 s dunkel, Rückschlag [' + verlauf.map(v => v.toFixed(1)).join(' ') + ']');
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);

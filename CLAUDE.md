@@ -85,11 +85,19 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   belegtem Loch). Die Datei steht in der Cache-Liste von `sw.js`.
 - Stand 0.22: App-Icon ersetzt durch Nutzer-Entwurf mit Stahlplatten-Schädel (orange Augen), kleiner Chromkugel und zwei
   Flipperarmen, roter Ring; ohne Uhr. Quelle nur 512 px (reicht für alle drei Größen).
+- Stand 0.23 (nach dem Handy-Video): **Jackpot-Show** – Grundbeleuchtung flackert 3× (5 Hz), 0,6 s dunkel (Overlay über
+  dem Tisch, nur der Leuchtschein der Einsätze bleibt, Anzeige zeigt nur die Punktzahl), dann 0,3 s heller Rückschlag;
+  dabei Lauflicht die Sicherheits-Säulen hinauf (abwechselnd L/R) und die Fächer um RESCUE leuchten. **Jackpot verdoppelt
+  sich** im Multiball (1 → 2 → 4 … max. 16 Mio, `jpMult`, Anzeige „JP 2X“, danach Meldung „NÄCHSTER 2X JACKPOT“); gilt
+  für Rampen, Schädel, Wahl-Menü und Super Jackpot (5 Mio × jpMult). **Kurzer Lichteinbruch** (0,1 s) bei Kanonenschuss
+  und Kickback. **Ton:** Bumper jetzt mechanischer Schlag statt Dur-Akkord; **Sirene** (2,5 s steigend) bei
+  Multiball-Start und nach jedem Jackpot; **eigene Multiball-Musik** (a-Moll, 132 BPM, Bass-Achtel A–A–F–G + Kick + Snare,
+  Web-Audio-Sequenzer, läuft nur im Multiball und nicht im Pause-Schirm; nicht nach Gehör geprüft).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
   fest/wandernd, Sperre. Ergebnis 0.18: 14/14 OK, 3 × 10 min ohne Fehler. Ab 0.19 auch Escape Route (Umlauf → Mulde,
-  Weiterschalten, Neustart der Leiter); Ergebnis 0.19: 19/19 OK, 3 × 10 min ohne Fehler, Mulde im Autoplay 5–13× je 10 min. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
+  Weiterschalten, Neustart der Leiter); Ergebnis 0.23: 21/21 OK (inkl. Jackpot-Verdopplung und Lichtverlauf), 3 × 10 min ohne Fehler. Ergebnis 0.19: 19/19 OK, 3 × 10 min ohne Fehler, Mulde im Autoplay 5–13× je 10 min. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
   (= `RUND_LAGE` für das Fadenkreuz), 3 × 10 min ohne Fehler.
 
 ## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)

@@ -137,12 +137,12 @@
 </div>
 
 <script>
-const APP_VERSION = '0.22';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.23';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
 const sfx = (() => {
-  let ac = null, master = null, an = true;
+  let ac = null, master = null, an = true, musikTimer = null;
   try { an = localStorage.getItem('flipper.ton') !== 'aus'; } catch (_) {}
   const tonEl = document.getElementById('ton');
   const zeige = () => { tonEl.textContent = an ? 'Ton an' : 'Ton aus'; };
@@ -312,11 +312,60 @@ const sfx = (() => {
       [523, 659, 784, 1046].forEach((f, i) => ton('square', f, f, 0.14, 0.12, i * 0.1));
       ton('sawtooth', 1046, 1046, 0.4, 0.1, 0.4);
     }); },
+    // Pop-Bumper: kurzer mechanischer Schlag (Spule), wie am echten Automaten – kein Musikton
     bumper(i) { spiele(() => {
-      const b = BUMPER[i % BUMPER.length];
-      ton(b.typ, b.f, b.f * 1.02, 0.18, 0.22);
-      ton('sine', b.f * 2, b.f * 2, 0.08, 0.12);
+      const v = [1, 1.12, 0.9][i % 3];
+      rauschen(0.035, 0.7, 5000 * v, 1800 * v, 0.9);
+      ton('sine', 170 * v, 70, 0.07, 0.5);
+      ton('square', 95 * v, 60, 0.04, 0.12);
     }); },
+    // Ansteigende Sirene vor dem Jackpot (~2,5 s)
+    sirene() { spiele(() => {
+      const t = ac.currentTime, d = 2.5, lp = ac.createBiquadFilter(), g = ac.createGain();
+      lp.type = 'lowpass'; lp.frequency.value = 3000;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.3);
+      g.gain.setValueAtTime(0.07, t + d - 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      lp.connect(g).connect(master);
+      for (const [typ, m] of [['sawtooth', 1], ['square', 1.5]]) {
+        const o = ac.createOscillator(); o.type = typ;
+        o.frequency.setValueAtTime(500 * m, t); o.frequency.exponentialRampToValueAtTime(1200 * m, t + d);
+        o.connect(lp); o.start(t); o.stop(t + d + 0.05);
+      }
+    }); },
+    // Multiball-Musik: eigene Bass-Schleife (a-Moll, 132 BPM), Bass + Kick + Snare, alles tief
+    musik(ein) {
+      if (!ein || !an) { if (musikTimer) { clearInterval(musikTimer); musikTimer = null; } return; }
+      if (musikTimer || !ac) return;
+      const achtel = 60 / 132 / 2;
+      let naechste = ac.currentTime + 0.05, schritt = 0;
+      // 4 Takte à 8 Achtel: Grundtöne A – A – F – G, Muster Grund/Grund/Oktave/Grund/Grund/Quinte/Grund/Oktave
+      const GRUND = [55, 55, 43.65, 49], MUSTER = [1, 1, 2, 1, 1, 1.5, 1, 2];
+      musikTimer = setInterval(() => {
+        if (!ac || ac.state !== 'running' || !an) return;
+        while (naechste < ac.currentTime + 0.12) {
+          const takt = Math.floor(schritt / 8) % 4, k = schritt % 8, f = GRUND[takt] * MUSTER[k], t = naechste;
+          const o = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+          o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
+          lp.type = 'lowpass'; lp.frequency.setValueAtTime(700, t); lp.frequency.exponentialRampToValueAtTime(180, t + achtel);
+          g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + achtel * 0.95);
+          o.connect(lp).connect(g).connect(master); o.start(t); o.stop(t + achtel);
+          if (k % 2 === 0) {                                          // Kick auf jede Viertel
+            const kk = ac.createOscillator(), kg = ac.createGain();
+            kk.frequency.setValueAtTime(120, t); kk.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+            kg.gain.setValueAtTime(0.35, t); kg.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+            kk.connect(kg).connect(master); kk.start(t); kk.stop(t + 0.15);
+          }
+          if (k === 2 || k === 6) {                                   // Snare auf 2 und 4 (Rauschen)
+            const n = Math.floor(ac.sampleRate * 0.12), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+            for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+            const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), sg = ac.createGain();
+            src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8; sg.gain.value = 0.12;
+            src.connect(bp).connect(sg).connect(master); src.start(t);
+          }
+          naechste += achtel; schritt++;
+        }
+      }, 25);
+    },
   };
   return api;
 })();
@@ -539,6 +588,24 @@ const dmd = (() => {
   const MULTI = [1, 2, 4, 6, 8];
   const SCHAEDEL_WERT = [250000, 500000, 1000000, 3000000, 5000000];
   const JACKPOT = 1000000;
+  // Jackpot verdoppelt sich im Multiball („2X JACKPOT“), Licht-Show wie am Original (siehe CLAUDE.md, Handy-Video)
+  let jpMult = 1, jpShow = -99, giDip = 0, folge = null;
+  function jackpot(wert, titel = 'JACKPOT') {
+    const w = wert * jpMult;
+    punkte(w, 10000); melde(titel, fmt(w), 3.6);
+    jpMult = Math.min(16, jpMult * 2);
+    folge = { ab: zeit + 3.6, z1: 'NÄCHSTER', z2: jpMult + 'X JACKPOT' };
+    jpShow = zeit; sfx.multiball();
+    setTimeout(() => sfx.sirene(), 1500);
+  }
+  // Grundbeleuchtung 0…1: Jackpot = 3× flackern (5 Hz), 0,6 s dunkel, dann heller Rückschlag; Treffer = kurzer Einbruch
+  function grundLicht() {
+    const t = zeit - jpShow;
+    if (t >= 0 && t < 0.6) return Math.floor(t * 10) % 2 ? 1 : 0;
+    if (t >= 0.6 && t < 1.2) return 0;
+    if (t >= 1.2 && t < 1.5) return 1.35;
+    return zeit < giDip ? 0.35 : 1;
+  }
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
   let dropReset = 0, meldung = null, blitz = 0, paybackBis = 0, kickback = false;
@@ -652,7 +719,7 @@ const dmd = (() => {
       kanonenSchuss = 0;
       if (!multiball) neuesZiel();
       if (lit && !multiball) { startMultiball(); return; }
-      if (lit) { punkte(5000000, 20000); melde('SUPER JACKPOT', fmt(5000000), 2.4); blitzen(1); sfx.multiball(); return; }
+      if (lit) { jackpot(5000000, 'SUPER JACKPOT'); return; }
       punkte(25000, 1000); melde('DANEBEN', '25.000', 1.4); sfx.ziel(); return;
     }
     if (lit) { punkte(50000, 2000); melde('ZIEL', '50.000', 1.2); lampenBlitz(l => l.gruppe === 'rund', 0.5); }
@@ -676,11 +743,7 @@ const dmd = (() => {
       punkte(w, 10000); melde('HURRY UP', fmt(w), 2.2); blitzen(1); sfx.multiball();
     }
     sfx.rampe();
-    if (multiball) {
-      punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT), 2); blitzen(1);
-      lampenBlitz(() => true, 0.6); sfx.multiball();
-      return;
-    }
+    if (multiball) { jackpot(JACKPOT); return; }
     punkte(100000, 5000);
     // Jede Rampe knackt die nächste Sicherheitsstufe ihrer Säule; sind beide Säulen voll: „CPU“ → Payback
     if (r.name === 'links') sicherL = Math.min(5, sicherL + 1); else sicherR = Math.min(5, sicherR + 1);
@@ -724,9 +787,8 @@ const dmd = (() => {
       // Kugel wandert aus dem Schädel über die Drahtbahn in die Kanone; im Multiball = Super-Jackpot-Schuss
       ball.zurKanone = true; gunLit = false; sdrop.unten = multiball;
       melde('KANONE GELADEN', multiball ? 'SUPER JACKPOT!' : 'ABZUG!', 2.2);
-    } else if (multiball) {
-      punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT), 2); sfx.multiball();
-    } else melde('SCHÄDEL', fmt(n));
+    } else if (multiball) jackpot(JACKPOT);
+    else melde('SCHÄDEL', fmt(n));
   }
   function trefferSchaedelDrop() {
     sdrop.unten = true;
@@ -750,14 +812,16 @@ const dmd = (() => {
     k.vx = Math.cos(kanone.a) * K_V; k.vy = Math.sin(kanone.a) * K_V;
     k.fliegt = 0.05;
     kanonenSchuss = zeit + 1.3;
-    sfx.kanone(); blitzen(0.4);
+    sfx.kanone(); blitzen(0.4); giDip = zeit + 0.1;
   }
   function startMultiball() {
-    multiball = true; sdrop.unten = true;
+    multiball = true; sdrop.unten = true; jpMult = 1;
+    setTimeout(() => sfx.sirene(), 2600);
     nachschub += 2; nachschubBis = zeit + 1;
     saveBis = zeit + 12;
     punkte(500000, 10000);
     melde('MULTIBALL', 'RAMPEN = JACKPOT', 2.8);
+    folge = { ab: zeit + 2.8, z1: 'SCHIESS AUF', z2: 'JACKPOT' };
     lampenBlitz(() => true, 1.5); blitzen(1);
     sfx.multiball();
   }
@@ -772,6 +836,7 @@ const dmd = (() => {
       const da = target - f.a, maxd = A_SPEED * dt;
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
+    if (folge && zeit > folge.ab) { if (multiball) melde(folge.z1, folge.z2, 2.4); folge = null; }
     if (dropReset && zeit > dropReset) { drops.forEach(d => { d.unten = false; }); dropReset = 0; }
 
     // Kanone schwenkt, solange sie geladen ist; nach einigen Sekunden feuert sie selbst
@@ -925,7 +990,7 @@ const dmd = (() => {
 
     // Kickback in der rechten Ausgasse: schießt die Kugel zurück ins Spiel
     if (kickback && ball.x > 338 && ball.x < LANE_X && ball.y > 660 && ball.vy > 0) {
-      kickback = false; ball.vx = -40; ball.vy = -1250; sfx.kanone(); melde('KICKBACK', '', 1.2);
+      kickback = false; ball.vx = -40; ball.vy = -1250; sfx.kanone(); giDip = zeit + 0.1; melde('KICKBACK', '', 1.2);
     }
     if (ball.y > H + 20) ball.weg = true;
   }
@@ -973,7 +1038,7 @@ const dmd = (() => {
   // ---- Auswahlmenü: Flipper-Knöpfe wählen, Abzug bestätigt, nach 8 s automatisch ----
   let wahl = null;
   const WAHL = [
-    { t: 'MULTIBALL', f: () => { if (!multiball) startMultiball(); else { punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT)); } } },
+    { t: 'MULTIBALL', f: () => { if (!multiball) startMultiball(); else jackpot(JACKPOT); } },
     { t: 'BEL. EXTRA BALL', f: () => { extraBall = true; melde('EXTRA BALL', 'BELEUCHTET', 2); } },
     { t: '500.000', f: () => { punkte(500000, 5000); melde('500.000', '', 1.6); } },
     { t: 'PAYBACK ZEIT', f: () => { paybackBis = zeit + 25; melde('PAYBACK ZEIT', 'ALLES × 2', 2.4); } },
@@ -999,7 +1064,7 @@ const dmd = (() => {
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     gunLit = false; sdrop.unten = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0; rundTreffer = null;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
-    paybackBis = 0; kickback = false; sicherL = 0; sicherR = 0; wahl = null; hurryBis = 0;
+    paybackBis = 0; kickback = false; jpMult = 1; jpShow = -99; folge = null; sicherL = 0; sicherR = 0; wahl = null; hurryBis = 0;
     newBall();
   }
 
@@ -1066,9 +1131,9 @@ const dmd = (() => {
       z: () => schaedelIdx === k ? 2 : (schaedelIdx > k ? 1 : 0) }));
   // Sicherheits-Säulen (unten → oben): linke Rampe füllt links, rechte Rampe rechts; oben „CPU“
   ['CHECK', 'CODE', 'ALARM', 'KEY', 'CPU'].forEach((t, k) => {
-    L({ form: 'kreis', x: 130, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherL',
+    L({ form: 'kreis', x: 130, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherL', k,
       z: () => sicherL > k ? 1 : (sicherL === k ? 2 : 0) });
-    L({ form: 'kreis', x: 246, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherR',
+    L({ form: 'kreis', x: 246, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherR', k,
       z: () => sicherR > k ? 1 : (sicherR === k ? 2 : 0) });
   });
   // Obere Gassen
@@ -1111,6 +1176,12 @@ const dmd = (() => {
       if (attract) {
         // Lichtshow im Wartezustand: Wellen von unten nach oben
         ziel = (Math.sin(zeit * 4 - l.y * 0.03 + idx * 0.2) > 0.55) ? 1 : 0;
+      } else if (zeit - jpShow < 2.5 && (l.gruppe === 'sicherL' || l.gruppe === 'sicherR')) {
+        // Jackpot: Lauflicht die Säulen hinauf, abwechselnd links / rechts
+        const t = zeit - jpShow, seite = Math.floor(t / 0.5) % 2;
+        ziel = (seite === (l.gruppe === 'sicherR' ? 1 : 0) && l.k <= Math.floor((t % 0.5) / 0.1)) ? 1 : 0;
+      } else if (zeit - jpShow < 2.5 && (l.gruppe === 'multi' || l.gruppe === 'save')) {
+        ziel = 1;                                         // Fächer um RESCUE leuchten beim Jackpot mit
       } else if (zeit < l.flashBis) {
         ziel = (Math.floor(zeit * 16) % 2) ? 1 : 0;
       } else {
@@ -1443,7 +1514,14 @@ const dmd = (() => {
       ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 2 * PI); ctx.fill();
     }
 
+    // Grundbeleuchtung: dunkel = Tisch abdunkeln, nur Einsätze (Leuchtschein) glühen weiter; > 1 = heller Rückschlag
+    const gi = grundLicht();
+    if (gi < 1) { ctx.fillStyle = `rgba(2,3,6,${(1 - gi) * 0.82})`; ctx.fillRect(0, 0, W, H); }
     zeichneLeuchtschein();
+    if (gi > 1) {
+      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,240,220,${(gi - 1) * 0.35})`;
+      ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over';
+    }
     blitz = Math.max(0, blitz - dt * 3);
 
     if (gameOver) {
@@ -1455,7 +1533,11 @@ const dmd = (() => {
   function anzeige() {
     dmd.leer();
     const blink = Math.floor(zeit * 4) % 2;
-    if (meldung && zeit < meldung.bis) {
+    if (zeit - jpShow >= 0.6 && zeit - jpShow < 1.2) {
+      // Jackpot-Dunkelphase: nur die Punktzahl, groß
+      const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
+      dmd.mitte(t, s === 2 ? 9 : 13, s, 3);
+    } else if (meldung && zeit < meldung.bis) {
       const alter = zeit - meldung.von;
       dmd.rahmen(1);
       if (meldung.z2) {
@@ -1496,7 +1578,7 @@ const dmd = (() => {
       dmd.text('KUGEL ' + ballNo, 1, 24, 1, 2);
       if (zeit < hurryBis) dmd.mitte(fmt(hurryWert()), 24, 1, blink ? 3 : 2);
       else if (zeit < paybackBis) dmd.mitte('PB ' + Math.ceil(paybackBis - zeit), 24, 1, blink ? 3 : 2);
-      else dmd.mitte(multiball ? 'MB' : MULTI[multi] + 'X', 24, 1, 2);
+      else dmd.mitte(multiball ? 'JP ' + jpMult + 'X' : MULTI[multi] + 'X', 24, 1, 2);
       dmd.rechts('FLUCHT ' + fluchtGeholt, 24, 1, 2);
     }
     dmd.zeichne();
@@ -1561,6 +1643,7 @@ const dmd = (() => {
     if (wahl && !pause) { zeit += dt; if (zeit > wahl.bis) wahlFertig(); }
     else if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
     else zeit += pause ? 0 : dt;              // Lichtshow läuft auch bei Game over
+    sfx.musik(multiball && !pause && !gameOver);
     lampenZustand(dt);
     draw(dt);
     anzeige();
@@ -1571,7 +1654,7 @@ const dmd = (() => {
   // Nur für automatische Tests (Node), im Browser ohne Wirkung
   if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
-    get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
+    get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },
     get loaded() { return loaded; }, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
