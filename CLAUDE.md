@@ -77,6 +77,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   nicht mehr bei jeder Mittel-Bank), MULTIBALL = Kanone bereit (Klappziel fällt), EXTRA BALL, 10 MILLION. Rampen: 100.000
   und je eine Säulen-Stufe (Meldung CHECK/CODE/ALARM/KEY/CPU). Die Variable `stufe` ist entfallen: Uhrzeiger und Anzeige
   („FLUCHT n“) zeigen die kassierten Felder.
+- Stand 0.20: neues App-Icon vom Nutzer (per Bildprogramm nach unserer Beschreibung: Chromkugel mit rotem Fadenkreuz,
+  zwei Flipperarme, Uhr mit Zeiger auf 12, roter Ring). Quelle 1024 px, daraus icon-512, icon-192, apple-touch-icon (180).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
