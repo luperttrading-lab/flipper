@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.36';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.37';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -522,10 +522,12 @@ const dmd = (() => {
   const sdrop = { x0: 59, x1: 129, y: 300, unten: false };
 
   // Seitengassen unten
-  seg(40, 578, 40, 650);                  // links: Trennung Aus-/Rückkehrgasse
-  seg(40, 650, 117, 680);                 // links: Führung endet auf dem Flipper-Drehpunkt
-  seg(336, 578, 336, 650);                // rechts
-  seg(336, 650, 259, 680);
+  // Rückkehrgassen: die schräge Führung liegt genau auf der Verlängerung der Oberkante des ruhenden Flippers
+  // (gleicher Winkel 0,5 rad, kein Knick) und endet an dessen Drehpunkt
+  seg(40, 578, 40, 640.6);                  // links: Trennung Aus-/Rückkehrgasse
+  seg(40, 640.6, 115.4, 681.9);
+  seg(336, 578, 336, 640.6);                // rechts
+  seg(336, 640.6, 260.6, 681.9);
   // Schleudern (Dreiecke über den Flippern), Schlagseite = kick
   const slings = [
     { pts: [[70, 572], [70, 628], [104, 648]], seite: 1, flash: 0 },
@@ -575,10 +577,10 @@ const dmd = (() => {
   };
 
   // Flipper
-  const FL = 58;
+  const FL = 66;                // Flipperlänge (vorher 58); Drehpunkte so gesetzt, dass die Mittellücke gleich bleibt
   const flippers = [
-    { px: 119, py: 688, side: 1, a: 0.5, prev: null, on: false },
-    { px: 257, py: 688, side: -1, a: 0.5, prev: null, on: false },
+    { px: 112.1, py: 688, side: 1, a: 0.5, prev: null, on: false },
+    { px: 263.9, py: 688, side: -1, a: 0.5, prev: null, on: false },
   ];
   const A_REST = 0.5, A_UP = -0.45, A_SPEED = 22; // rad, rad/s
   const tip = f => ({ x: f.px + f.side * FL * Math.cos(f.a), y: f.py + FL * Math.sin(f.a) });
@@ -1534,13 +1536,21 @@ const dmd = (() => {
     ctx.fillStyle = '#9fb3c8'; ctx.fillRect(LANE_X + 5, SHOOT_Y + R, 392 - LANE_X - 10, 6);
 
     // Flipper: weißer Körper, rotes Gummi
+    const flipperForm = (f, t, r0, r1) => {
+      const dx = t.x - f.px, dy = t.y - f.py, l = Math.hypot(dx, dy), w = Math.atan2(dy, dx), s = Math.asin((r0 - r1) / l);
+      ctx.beginPath();
+      ctx.arc(f.px, f.py, r0, w + PI / 2 + s, w - PI / 2 - s);          // runder Kopf am Drehpunkt
+      ctx.arc(t.x, t.y, r1, w - PI / 2 - s, w + PI / 2 + s);            // schmale runde Spitze
+      ctx.closePath();
+    };
     for (const f of flippers) {
       const t = tip(f);
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#c21f2f'; ctx.lineWidth = 15;
-      ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
-      ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 10;
-      ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.save(); ctx.translate(3, 4); flipperForm(f, t, 9, 5.5); ctx.fill(); ctx.restore();
+      ctx.fillStyle = '#c21f2f'; flipperForm(f, t, 9, 5.5); ctx.fill();                          // rotes Gummi
+      const g = ctx.createLinearGradient(f.px, f.py - 7, f.px, f.py + 7);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d9d4c8');
+      ctx.fillStyle = g; flipperForm(f, t, 6.8, 3.6); ctx.fill();                                 // weißer Körper
+      ctx.fillStyle = '#9aa3ad'; ctx.beginPath(); ctx.arc(f.px, f.py, 2.2, 0, 2 * PI); ctx.fill(); // Achse
     }
 
     // Kugeln: Position (auf der Rampe entlang der Bahn), Schatten

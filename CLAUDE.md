@@ -161,6 +161,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Kanone größer (Sockel r 20, Kasten 28, Tipp-Radius 40), gestrichelte Ziellinie reicht jetzt bis zu den Rundzielen (300);
   Fadenkreuz/Klammern in Ruhe warm-orange statt blassgrau, dicker. Physik der Kanone unverändert (K_LAUF).
 - Stand 0.36: Schädel größer (66 statt 48 Einheiten breit, Augen-Leuchtschein 24 statt 18), weiter über dem Loch (Unterkante y 248).
+- Stand 0.37 (nach Foto des Originals): **Flipper länger** (FL 66 statt 58), Drehpunkte nach außen (112,1 / 263,9 statt 119 / 257),
+  sodass die Spitzen bei 170 / 206 bleiben → Mittellücke unverändert (Kugel fällt weiter durch die Mitte, geprüft). **Form wie
+  am Original/Startbild:** runder Kopf (r 9) am Drehpunkt, verjüngt zur Spitze (r 5,5), roter Gummiring, weißer Körper, Achse.
+  Kollision unverändert als Kapsel R+7. **Rückkehrgassen ohne Knick:** schräge Führung liegt exakt auf der Verlängerung der
+  Oberkante des ruhenden Flippers (Winkel 0,5 rad, um 7 zur Oberkante versetzt), von (40 / 640,6) bis (115,4 / 681,9) bzw.
+  gespiegelt. Gemessen: Kugel aus der Rückkehrgasse springt am Übergang nicht mehr hoch (vorher 119 Einheiten/s aufwärts).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

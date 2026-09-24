@@ -198,7 +198,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
     if (api.kanone.kugel && Math.random() < 0.002) { api.feuer(); schuesse++; }
     // Flipper: kurz schlagen, wenn eine Kugel darüber ist, dann loslassen (kein Festhalten)
     api.flippers.forEach((f, k) => {
-      const x0 = k ? 186 : 100, x1 = k ? 276 : 190;
+      const x0 = k ? 186 : 95, x1 = k ? 282 : 190;
       const da = api.balls.some(b => !b.kanone && !b.rampe && b.y > 640 && b.y < 700 && b.x > x0 && b.x < x1);
       if (f.bot > 0) { f.bot -= DT; if (f.bot < 0.25) f.on = false; }
       else if (da && Math.random() < 0.05) { f.on = true; f.bot = 0.4; }
