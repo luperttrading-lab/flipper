@@ -37,15 +37,21 @@
   }
   header {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    gap: 10px;
+    align-items: center;
     padding-block: calc(env(safe-area-inset-top, 0px) + 10px) 6px;
     font-variant-numeric: tabular-nums;
   }
-  .score { font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip); }
-  .balls { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; }
-  canvas { touch-action: none; display: block; border-radius: 14px; }
+  #dmd {
+    flex: 1; min-width: 0; display: block; border-radius: 6px;
+    background: #090402; box-shadow: 0 0 0 2px #1c1510, 0 0 18px rgba(255, 120, 30, .12);
+  }
+  #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; perspective: 1100px; }
+  #c {
+    touch-action: none; display: block; border-radius: 10px;
+    transform: rotateX(13deg); transform-origin: 50% 100%;
+    box-shadow: 0 0 0 3px #2a3140, 0 0 0 6px #0c0f15;
+  }
   .controls {
     display: flex;
     gap: 16px;
@@ -75,7 +81,7 @@
   @keyframes puls { 50% { box-shadow: 0 0 0 8px rgba(224, 52, 74, .35); } }
   @media (prefers-reduced-motion: reduce) { .controls #fire.bereit { animation: none; box-shadow: 0 0 0 4px rgba(224, 52, 74, .5); } }
   .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
-  .meta { display: flex; gap: 12px; align-items: baseline; }
+  .meta { display: flex; flex-direction: column; align-items: flex-end; }
   .ver {
     font-size: 13px; color: var(--muted); background: none; border: 0; padding: 8px 4px;
     text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer;
@@ -107,9 +113,8 @@
 </style>
 
 <header>
-  <span class="score" id="score">0</span>
+  <canvas id="dmd" aria-label="Punktestand"></canvas>
   <span class="meta">
-    <span class="balls" id="balls">Kugel 1 / 3</span>
     <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
   </span>
@@ -127,7 +132,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.10';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.11';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -302,8 +307,90 @@ const sfx = (() => {
 })();
 </script>
 <script>
+// ================= Punktmatrix-Anzeige (128 × 32 Punkte, orange wie 1991) =================
+const dmd = (() => {
+  const DW = 128, DH = 32;
+  const buf = new Uint8Array(DW * DH);
+  let alt = '';
+  const cv = document.getElementById('dmd');
+  const cx = cv.getContext('2d');
+
+  // 5×7-Schrift, jede Zeile als Bitmuster (5 Bit breit); schmale Zeichen mit eigener Breite
+  const F = {};
+  const def = (ch, rows, w = 5) => { F[ch] = { rows, w }; };
+  const G5 = {
+    '0': [14, 17, 19, 21, 25, 17, 14], '1': [4, 12, 4, 4, 4, 4, 14], '2': [14, 17, 1, 2, 4, 8, 31],
+    '3': [31, 2, 4, 2, 1, 17, 14], '4': [2, 6, 10, 18, 31, 2, 2], '5': [31, 16, 30, 1, 1, 17, 14],
+    '6': [6, 8, 16, 30, 17, 17, 14], '7': [31, 1, 2, 4, 8, 8, 8], '8': [14, 17, 17, 14, 17, 17, 14],
+    '9': [14, 17, 17, 15, 1, 2, 12],
+    A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14],
+    D: [28, 18, 17, 17, 17, 18, 28], E: [31, 16, 16, 30, 16, 16, 31], F: [31, 16, 16, 30, 16, 16, 16],
+    G: [14, 17, 16, 23, 17, 17, 15], H: [17, 17, 17, 31, 17, 17, 17], I: [14, 4, 4, 4, 4, 4, 14],
+    J: [7, 2, 2, 2, 2, 18, 12], K: [17, 18, 20, 24, 20, 18, 17], L: [16, 16, 16, 16, 16, 16, 31],
+    M: [17, 27, 21, 21, 17, 17, 17], N: [17, 17, 25, 21, 19, 17, 17], O: [14, 17, 17, 17, 17, 17, 14],
+    P: [30, 17, 17, 30, 16, 16, 16], Q: [14, 17, 17, 17, 21, 18, 13], R: [30, 17, 17, 30, 20, 18, 17],
+    S: [15, 16, 16, 14, 1, 1, 30], T: [31, 4, 4, 4, 4, 4, 4], U: [17, 17, 17, 17, 17, 17, 14],
+    V: [17, 17, 17, 17, 17, 10, 4], W: [17, 17, 17, 21, 21, 21, 10], X: [17, 17, 10, 4, 10, 17, 17],
+    Y: [17, 17, 17, 10, 4, 4, 4], Z: [31, 1, 2, 4, 8, 16, 31],
+    'Ä': [10, 0, 14, 17, 31, 17, 17], 'Ö': [10, 0, 14, 17, 17, 17, 14], 'Ü': [10, 0, 17, 17, 17, 17, 14],
+    '-': [0, 0, 0, 31, 0, 0, 0], '×': [0, 17, 10, 4, 10, 17, 0], '/': [1, 1, 2, 4, 8, 16, 16],
+    '?': [14, 17, 1, 2, 4, 0, 4], '+': [0, 4, 4, 31, 4, 4, 0],
+  };
+  for (const k in G5) def(k, G5[k]);
+  def(' ', [0, 0, 0, 0, 0, 0, 0], 3);
+  def('.', [0, 0, 0, 0, 0, 3, 3], 2);
+  def(',', [0, 0, 0, 0, 3, 1, 2], 2);
+  def('!', [1, 1, 1, 1, 1, 0, 1], 1);
+  def(':', [0, 3, 3, 0, 3, 3, 0], 2);
+
+  const glyph = ch => F[ch] || F['?'];
+  function breite(t, s = 1) { let w = 0; for (const ch of t) w += (glyph(ch).w + 1) * s; return Math.max(0, w - s); }
+  function punkt(x, y, v) { if (x >= 0 && x < DW && y >= 0 && y < DH) buf[y * DW + x] = Math.max(buf[y * DW + x], v); }
+  function text(t, x, y, s = 1, v = 3) {
+    for (const ch of t) {
+      const g = glyph(ch);
+      for (let r = 0; r < 7; r++) for (let c = 0; c < g.w; c++) {
+        if ((g.rows[r] >> (g.w - 1 - c)) & 1)
+          for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) punkt(x + c * s + dx, y + r * s + dy, v);
+      }
+      x += (g.w + 1) * s;
+    }
+  }
+  function mitte(t, y, s = 1, v = 3) { text(t, Math.floor((DW - breite(t, s)) / 2), y, s, v); }
+  function rechts(t, y, s = 1, v = 3) { text(t, DW - 1 - breite(t, s), y, s, v); }
+  function leer() { buf.fill(0); }
+  function rahmen(v = 1) { for (let x = 0; x < DW; x++) { punkt(x, 0, v); punkt(x, DH - 1, v); } for (let y = 0; y < DH; y++) { punkt(0, y, v); punkt(DW - 1, y, v); } }
+
+  function groesse() {
+    const w = cv.clientWidth, dpr = window.devicePixelRatio || 1;
+    cv.style.height = Math.round(w / 4) + 'px';
+    cv.width = Math.round(w * dpr); cv.height = Math.round(w / 4 * dpr);
+    alt = '';
+  }
+  window.addEventListener('resize', groesse);
+  groesse();
+
+  const FARBE = ['#2a1305', '#7a3a0c', '#c9661a', '#ff9a2a'];
+  function zeichne() {
+    const key = buf.join('');
+    if (key === alt) return;
+    alt = key;
+    const p = cv.width / DW, d = p * 0.8, o = (p - d) / 2;
+    cx.fillStyle = '#090402'; cx.fillRect(0, 0, cv.width, cv.height);
+    for (let v = 0; v < 4; v++) {
+      cx.fillStyle = FARBE[v];
+      cx.beginPath();
+      for (let y = 0; y < DH; y++) for (let x = 0; x < DW; x++)
+        if (buf[y * DW + x] === v) cx.rect(x * p + o, y * p + o, d, d);
+      cx.fill();
+    }
+  }
+  return { leer, text, mitte, rechts, breite, rahmen, zeichne, groesse };
+})();
+</script>
+<script>
 (() => {
-  // ================= Zero Hour – Tisch, Physik, Regeln =================
+  // ================= Zero Hour – Tisch, Physik, Regeln, Licht =================
   // Logische Tischgröße (px), wird auf den Bildschirm skaliert
   const W = 400, H = 760;
   const R = 9;                  // Kugelradius
@@ -313,11 +400,11 @@ const sfx = (() => {
   const LANE_X = 364;           // Trennwand Abschussrinne (rechts)
   const SHOOT_X = 378, SHOOT_Y = 750;
   const RAMP_T = 0.75;          // Fahrzeit über eine Rampe (s)
+  const SAVE_T = 8;             // Kugelrettung nach dem Abschuss (s)
+  const PI = Math.PI;
 
   const cv = document.getElementById('c');
   const ctx = cv.getContext('2d');
-  const scoreEl = document.getElementById('score');
-  const ballsEl = document.getElementById('balls');
 
   // ---------- Geometrie ----------
   // Wände: {x1,y1,x2,y2, nurRunter?: Einweg-Tor, kick?: Schleuder}
@@ -329,7 +416,6 @@ const sfx = (() => {
       seg(cx + r * Math.cos(b0), cy + r * Math.sin(b0), cx + r * Math.cos(b1), cy + r * Math.sin(b1));
     }
   }
-  const PI = Math.PI;
   // Gehäuse: Bogen oben, Seitenwände, Boden der Abschussrinne
   bogen(202, 200, 190, PI, 2 * PI, 30);
   seg(12, 200, 12, 760);
@@ -342,11 +428,11 @@ const sfx = (() => {
   // Umlauf links („Fluchtweg“): Innenführung
   seg(58, 200, 58, 470);
   bogen(202, 200, 144, PI, PI * 1.25, 6);
-  // Umlauf rechts („Verfolgungsschleife“): Innenführung + Abweiser ins Spielfeld
+  // Umlauf rechts („Schleife“): Innenführung + Abweiser ins Spielfeld
   seg(326, 200, 326, 420);
   bogen(202, 200, 124, PI * 1.75, PI * 2, 6);
   seg(364, 402, 330, 446);
-  // Unten am linken Umlauf: Kugel wird in die linke Rückkehrgasse geführt
+  // Unten am linken Umlauf: Kugel wird sanft in die linke Rückkehrgasse geführt
   seg(12, 470, 40, 574);
 
   // Obere Durchlaufgassen: vier Pfosten bilden drei Gassen
@@ -364,8 +450,8 @@ const sfx = (() => {
   seg(336, 650, 259, 680);
   // Schleudern (Dreiecke über den Flippern), Schlagseite = kick
   const slings = [
-    { pts: [[70, 572], [70, 628], [104, 648]], seite: 1 },
-    { pts: [[306, 572], [306, 628], [272, 648]], seite: -1 },
+    { pts: [[70, 572], [70, 628], [104, 648]], seite: 1, flash: 0 },
+    { pts: [[306, 572], [306, 628], [272, 648]], seite: -1, flash: 0 },
   ];
   for (const s of slings) {
     const [a, b, c] = s.pts;
@@ -394,9 +480,9 @@ const sfx = (() => {
 
   // Rampen (vorerst als Tunnel: Einfahrt → Fahrt über Bahn → Ausfahrt in die Rückkehrgasse)
   const ramps = [
-    { name: 'links', ein: { x0: 145, x1: 167, y: 405 },
+    { name: 'links', ein: { x0: 145, x1: 167, y: 405 }, flash: 0,
       pfad: [[156, 400], [150, 70], [380, 180], [321, 585]], aus: { x: 321, y: 585, vx: 0, vy: 140 } },
-    { name: 'rechts', ein: { x0: 267, x1: 289, y: 395 },
+    { name: 'rechts', ein: { x0: 267, x1: 289, y: 395 }, flash: 0,
       pfad: [[278, 390], [250, 60], [10, 190], [55, 585]], aus: { x: 55, y: 585, vx: 0, vy: 140 } },
   ];
   const bez = (p, t) => {
@@ -418,27 +504,25 @@ const sfx = (() => {
 
   // ---------- Zustand ----------
   let ball, score = 0, ballNo = 1, gameOver = false, loaded = true, zeit = 0;
-  let bonus = 0, multi = 0, stufe = 1;          // multi: Index in MULTI
+  let bonus = 0, multi = 0, stufe = 1, extraBall = false, extraVergeben = false;
+  let saveBis = 0, autoStart = 0, gestartet = false;
+  let schaedelIdx = 0, bankReihen = 0, orbits = 0, bumperTreffer = 0;
   const MULTI = [1, 2, 4, 6, 8];
+  const SCHAEDEL_WERT = [250000, 500000, 1000000, 3000000, 5000000];
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
-  let dropReset = 0, meldung = null;
+  let dropReset = 0, meldung = null, blitz = 0;
 
   function newBall() { ball = { x: SHOOT_X, y: SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0 }; loaded = true; }
   newBall();
 
-  function updateHud() {
-    scoreEl.textContent = score.toLocaleString('de-DE');
-    ballsEl.textContent = gameOver ? 'Game over' : `Kugel ${ballNo} / 3`;
-  }
-  updateHud();
-
-  function punkte(n, b = 1000) { score += n; bonus += b; updateHud(); }
-  function melde(text, sek = 1.6) { meldung = { text, bis: zeit + sek }; }
+  function punkte(n, b = 1000) { score += n; bonus += b; }
+  function melde(z1, z2 = '', sek = 1.8) { meldung = { z1, z2, von: zeit, bis: zeit + sek }; }
   function frei(key, sek) {                      // Schalter nur einmal je Abklingzeit
     if ((cool[key] || 0) > zeit) return false;
     cool[key] = zeit + sek; return true;
   }
+  const fmt = n => n.toLocaleString('de-DE');
 
   // ---------- Kollision ----------
   function collideSeg(x1, y1, x2, y2, rad, rest, svx = 0, svy = 0) {
@@ -477,7 +561,14 @@ const sfx = (() => {
     drops[i].unten = true;
     punkte(25000); sfx.ziel();
     if (drops.every(d => d.unten)) {
-      punkte(100000, 5000); melde('ZIELE KOMPLETT 100.000');
+      bankReihen++;
+      if (schaedelIdx < SCHAEDEL_WERT.length - 1) schaedelIdx++;
+      if (bankReihen >= 4) {
+        punkte(1000000, 10000); melde('CORE KOMPLETT', '1.000.000', 2.2); bankReihen = 0; blitzen(1);
+      } else {
+        punkte(100000, 5000); melde('ZIELE KOMPLETT', '100.000');
+      }
+      lampenBlitz(l => l.gruppe === 'core' || l.gruppe === 'schaedel', 0.8);
       dropReset = zeit + 1.2;
     }
   }
@@ -485,8 +576,9 @@ const sfx = (() => {
     standups[i].an = true;
     punkte(10000); sfx.ziel();
     if (standups.every(s => s.an)) {
-      punkte(50000, 5000); melde('STEHZIELE 50.000');
+      punkte(50000, 5000); melde('STEHZIELE', '50.000');
       standups.forEach(s => { s.an = false; });
+      lampenBlitz(l => l.gruppe === 'stand', 0.6);
     }
   }
   function topLane(i) {
@@ -494,23 +586,32 @@ const sfx = (() => {
     if (topLanes.every(Boolean)) {
       topLanes.fill(false);
       if (multi < MULTI.length - 1) multi++;
-      melde(`BONUS ${MULTI[multi]}X`);
+      melde('BONUS', MULTI[multi] + 'X');
+      lampenBlitz(l => l.gruppe === 'top' || l.gruppe === 'multi', 0.8);
     }
   }
   function rampe(r) {
-    if (stufe < 5) stufe++;
+    let extraJetzt = false;
+    if (stufe < 5) {
+      stufe++;
+      if (stufe === 5 && !extraVergeben) { extraBall = true; extraVergeben = true; extraJetzt = true; }
+    }
     punkte(50000 * stufe, 5000);
-    melde(`ALARMSTUFE ${stufe}`);
+    if (extraJetzt) melde('EXTRA BALL', 'ALARM 5', 2.4);
+    else melde('ALARMSTUFE ' + stufe, fmt(50000 * stufe));
+    r.flash = 1;
+    lampenBlitz(l => l.gruppe === 'leiter', 0.7);
     sfx.rampe();
     ball.rampe = { r, t: 0 };
   }
   function schaedel() {
-    const n = 50000 + 25000 * stufe;
-    punkte(n, 5000); melde(`SCHÄDEL ${n.toLocaleString('de-DE')}`);
-    sfx.loch();
+    const n = SCHAEDEL_WERT[schaedelIdx];
+    punkte(n, 5000); melde('SCHÄDEL', fmt(n));
+    sfx.loch(); blitzen(0.8);
     ball.x = SKULL.x; ball.y = SKULL.y; ball.vx = 0; ball.vy = 0;
     ball.halt = 1.2;
   }
+  function blitzen(st) { blitz = Math.max(blitz, st); }
 
   // ---------- Physik ----------
   function step(dt) {
@@ -522,6 +623,7 @@ const sfx = (() => {
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
     if (dropReset && zeit > dropReset) { drops.forEach(d => { d.unten = false; }); dropReset = 0; }
+    if (autoStart && zeit > autoStart) { autoStart = 0; abschuss(); }
 
     if (loaded) { ball.x = SHOOT_X; ball.y = SHOOT_Y; ball.vx = 0; ball.vy = 0; return; }
 
@@ -560,7 +662,11 @@ const sfx = (() => {
       const c = collideCircle(b.x, b.y, b.r, 1);
       if (c) {
         ball.vx += c.nx * 280; ball.vy += c.ny * 280;
-        if (frei('bumper' + bi, 0.08)) { punkte(5000, 500); sfx.bumper(bi); }
+        if (frei('bumper' + bi, 0.08)) {
+          punkte(5000, 500); sfx.bumper(bi);
+          bumperTreffer++;
+          if (bumperTreffer >= 50) { bumperTreffer = 0; punkte(250000, 5000); melde('BUMPER SERIE', '250.000'); }
+        }
         b.flash = 1;
       }
     }
@@ -596,7 +702,15 @@ const sfx = (() => {
     if ((cool.schaedel || 0) < zeit && Math.hypot(ball.x - SKULL.x, ball.y - SKULL.y) < 22) { schaedel(); return; }
     // Umlauf links hinauf
     if (ball.x < 58 && Math.abs(ball.y - 320) < 10 && ball.vy < -150 && frei('orbit', 1.5)) {
-      punkte(25000, 2000); melde('FLUCHTWEG 25.000'); sfx.gasse();
+      orbits++;
+      if (orbits >= 5) { orbits = 0; punkte(500000, 5000); melde('FLUCHT GELUNGEN', '500.000'); lampenBlitz(l => l.gruppe === 'orbit', 0.8); }
+      else { punkte(25000, 2000); melde('FLUCHTWEG', '25.000'); }
+      sfx.gasse();
+    }
+    // Rückkehrgassen: bei Alarmstufe 3+ beleuchtet
+    if (ball.vy > 0 && Math.abs(ball.y - 600) < 8) {
+      if (ball.x > 40 && ball.x < 70 && frei('inL', 0.8)) inlane();
+      if (ball.x > 306 && ball.x < 336 && frei('inR', 0.8)) inlane();
     }
 
     // Tempolimit gegen Durchtunneln
@@ -605,24 +719,41 @@ const sfx = (() => {
 
     if (ball.y > H + 20) drain();
   }
+  function inlane() {
+    if (stufe >= 3) { punkte(25000, 1000); sfx.gasse(); }
+    else punkte(1000, 500);
+  }
 
   function drain() {
+    // Kugelrettung: kurz nach dem Abschuss gibt es die Kugel zurück
+    if (zeit < saveBis) {
+      melde('KUGEL GERETTET', '', 1.6);
+      newBall(); autoStart = zeit + 0.8; saveBis = 0;
+      return;
+    }
     const b = bonus * MULTI[multi];
     score += b;
-    melde(`BONUS ${bonus.toLocaleString('de-DE')} × ${MULTI[multi]}`, 2.2);
-    bonus = 0; multi = 0;
-    if (ballNo >= 3) gameOver = true; else ballNo++;
+    melde('BONUS ' + fmt(bonus), '× ' + MULTI[multi] + ' = ' + fmt(b), 2.4);
+    bonus = 0;
+    if (stufe < 2) multi = 0;                 // ab Alarmstufe 2 bleibt der Multiplikator (Hold Bonus)
+    if (extraBall) { extraBall = false; melde('NOCHMAL', 'EXTRA BALL', 2); }
+    else if (ballNo >= 3) gameOver = true;
+    else ballNo++;
     newBall();
-    updateHud();
   }
 
   // Abzug: Kugel abschießen (wie der Pistolengriff im Original)
+  function abschuss() {
+    if (!loaded) return;
+    loaded = false; gestartet = true;
+    ball.vy = -(1880 + Math.random() * 80);
+    saveBis = zeit + SAVE_T;
+    sfx.schuss(1);
+  }
   function abzug() {
     if (gameOver) { restart(); return; }
-    if (!loaded) return;
-    loaded = false;
-    ball.vy = -(1880 + Math.random() * 80);
-    sfx.schuss(1);
+    if (autoStart) return;
+    abschuss();
   }
 
   // Für den Update-Mechanismus: automatisch neu laden nur, wenn kein Spiel läuft
@@ -630,156 +761,402 @@ const sfx = (() => {
 
   function restart() {
     score = 0; ballNo = 1; gameOver = false; bonus = 0; multi = 0; stufe = 1;
+    extraBall = false; extraVergeben = false; saveBis = 0; autoStart = 0;
+    schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
-    newBall(); updateHud();
+    newBall();
   }
 
-  // ---------- Zeichnen ----------
-  const C = {
-    feld: '#101c2e', rand: '#6fb6d3', chrom: '#c9d4df', rot: '#e0344a', amber: '#ffb347',
-    aus: '#2a3a52', gruen: '#3fd08a', text: '#e8eef5',
+  // ================= Licht =================
+  // Einsatzlampen im Spielfeld: Form, Farbe, Beschriftung und wann sie leuchten.
+  // Zustand: 0 aus · 1 an · 2 blinkt · 3 Lauflicht (Phase über .k)
+  const FARBE = {
+    rot: '#ff3040', gelb: '#ffd23a', gruen: '#2fe07a', weiss: '#eaf4ff', amber: '#ff9a2e', blau: '#46b0ff',
   };
-  function lampe(x, y, r, an, farbe) {
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * PI);
-    ctx.fillStyle = an ? farbe : C.aus; ctx.fill();
+  const lamps = [];
+  const L = o => { lamps.push(Object.assign({ i: 0, flashBis: 0, k: 0 }, o)); };
+  const chase = (k, n = 3, rate = 5) => (Math.floor(zeit * rate) % n) === k ? 1 : 0;
+
+  // Pfeile in der Schädel-Gasse (Lauflicht Richtung Loch)
+  [345, 318, 291].forEach((y, k) => L({ form: 'pfeil', x: 96, y, w: 16, h: 16, dir: -PI / 2 - 0.12, farbe: 'rot',
+    gruppe: 'schaedel', z: () => ball.halt > 0 ? 1 : 3, k: 2 - k }));
+  // Pfeile vor den Rampen: Lauflicht, solange die Rampe die Alarmstufe hebt
+  [[156, 462], [156, 438]].forEach(([x, y], k) => L({ form: 'pfeil', x, y, w: 16, h: 16, dir: -PI / 2, farbe: 'weiss',
+    gruppe: 'rampe', z: () => stufe < 5 ? 3 : 1, k }));
+  [[278, 452], [278, 428]].forEach(([x, y], k) => L({ form: 'pfeil', x, y, w: 16, h: 16, dir: -PI / 2, farbe: 'gelb',
+    gruppe: 'rampe', z: () => stufe < 5 ? 3 : 1, k }));
+  // Umlauf-Pfeil links
+  L({ form: 'pfeil', x: 35, y: 420, w: 16, h: 18, dir: -PI / 2, farbe: 'amber', gruppe: 'orbit', z: () => 2 });
+  // „LOCK“ links (für den späteren Multiball)
+  L({ form: 'pfeil', x: 92, y: 425, w: 22, h: 20, dir: -PI / 2, farbe: 'gruen', label: 'LOCK', gruppe: 'lock', z: () => 0 });
+
+  // Mittelsäule „CORE“: 4 Reihen × 2, jede komplette Klappziel-Reihe leuchtet eine Reihe auf
+  const CORE_FARBEN = ['gruen', 'rot', 'weiss', 'gelb'];
+  CORE_FARBEN.forEach((f, r) => [178, 198].forEach(x => L({ form: 'rechteck', x, y: 392 - r * 13, w: 17, h: 10, farbe: f,
+    gruppe: 'core', z: () => bankReihen > r ? 1 : (bankReihen === r ? 2 : 0) })));
+
+  // Leiter links: Belohnungen der Alarmstufen (unten → oben)
+  ['ACCESS', 'HOLD BONUS', 'LITE LANES', 'MULTIBALL', 'EXTRA BALL'].forEach((t, k) =>
+    L({ form: 'rechteck', x: 84, y: 552 - k * 24, w: 58, h: 17, farbe: 'rot', label: t, gruppe: 'leiter',
+      z: () => stufe > k ? 1 : (stufe === k ? 2 : 0) }));
+  // Leiter rechts: aktueller Schädel-Wert
+  ['250K', '500K', '1M', '3M', '5M'].forEach((t, k) =>
+    L({ form: 'rechteck', x: 294, y: 552 - k * 24, w: 54, h: 17, farbe: 'rot', label: t, gruppe: 'schaedel',
+      z: () => schaedelIdx === k ? 2 : (schaedelIdx > k ? 1 : 0) }));
+  // Rund-Einsätze: links Umlauf-Fortschritt, rechts Bumper-Serie
+  for (let k = 0; k < 5; k++) {
+    L({ form: 'kreis', x: 130, y: 548 - k * 22, r: 8, farbe: 'amber', gruppe: 'orbit', z: () => orbits > k ? 1 : 0 });
+    L({ form: 'kreis', x: 246, y: 548 - k * 22, r: 8, farbe: 'amber', gruppe: 'bumper', z: () => bumperTreffer >= (k + 1) * 10 ? 1 : 0 });
   }
-  function schrift(text, x, y, gr, farbe, ausr = 'center') {
-    ctx.font = `${gr}px Bungee, "Arial Black", sans-serif`;
-    ctx.textAlign = ausr; ctx.fillStyle = farbe; ctx.fillText(text, x, y);
+  // Obere Gassen
+  [166, 202, 238].forEach((x, i) => L({ form: 'kreis', x, y: 72, r: 6, farbe: 'gruen', gruppe: 'top', z: () => topLanes[i] ? 1 : 0 }));
+  // Stehziele: Pfeil daneben
+  standups.forEach((s, i) => L({ form: 'pfeil', x: 340, y: s.y, w: 12, h: 12, dir: 0, farbe: 'amber', gruppe: 'stand',
+    z: () => s.an ? 1 : 0 }));
+  // Rückkehrgassen
+  [55, 321].forEach(x => L({ form: 'kreis', x, y: 612, r: 6, farbe: 'weiss', gruppe: 'lanes', z: () => stufe >= 3 ? 1 : 0 }));
+  // Bonus-Fächer unten: 2X 4X HOLD 6X 8X
+  const FACH = [['2X', 1], ['4X', 2], ['HOLD', -1], ['6X', 3], ['8X', 4]];
+  FACH.forEach(([t, m], k) => {
+    const a0 = PI * 1.2 + k * PI * 0.12, a1 = a0 + PI * 0.105;
+    L({ form: 'keil', x: 188, y: 668, r0: 30, r1: 62, a0, a1, farbe: m < 0 ? 'gelb' : 'gruen', label: t,
+      gruppe: 'multi', z: () => m < 0 ? (stufe >= 2 ? 1 : 0) : (multi >= m ? 1 : (multi + 1 === m && topLanes.some(Boolean) ? 2 : 0)) });
+  });
+  // Kugelrettung und Extra-Ball
+  L({ form: 'rechteck', x: 188, y: 684, w: 44, h: 12, farbe: 'rot', label: 'RESCUE', gruppe: 'save',
+    z: () => (!loaded && zeit < saveBis) ? (saveBis - zeit < 2 ? 2 : 1) : 0 });
+  L({ form: 'kreis', x: 188, y: 738, r: 10, farbe: 'amber', label: 'AGAIN', gruppe: 'extra', z: () => extraBall ? 1 : 0 });
+
+  function lampenBlitz(filter, sek) { for (const l of lamps) if (filter(l)) l.flashBis = zeit + sek; }
+
+  // Leuchtschein als vorgerechnete Kreise (schneller als Verläufe pro Bild)
+  const glowCache = {};
+  function glow(farbe) {
+    if (glowCache[farbe]) return glowCache[farbe];
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, farbe); gr.addColorStop(0.35, farbe + '88'); gr.addColorStop(1, farbe + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    return (glowCache[farbe] = c);
   }
+  const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = C.feld; ctx.fillRect(0, 0, W, H);
-
-    // Beschriftung der Gassen (eigene Namen)
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.translate(35, 400); ctx.rotate(-PI / 2); schrift('FLUCHTWEG', 0, 4, 11, C.rand); ctx.restore();
-    ctx.save(); ctx.globalAlpha = 0.35;
-    ctx.translate(345, 330); ctx.rotate(PI / 2); schrift('SCHLEIFE', 0, 4, 11, C.rand); ctx.restore();
-
-    // Lampen: obere Gassen, Bonus-Multiplikator, Alarmstufe
-    [166, 202, 238].forEach((x, i) => lampe(x, 72, 6, topLanes[i], C.gruen));
-    MULTI.slice(1).forEach((m, i) => {
-      const x = 130 + i * 38, an = multi >= i + 1;
-      lampe(x, 600, 13, an, C.amber);
-      schrift(m + 'X', x, 604, 10, an ? '#1a1206' : '#6d7f95');
+  function lampenZustand(dt) {
+    const attract = gameOver || (!gestartet && loaded);
+    lamps.forEach((l, idx) => {
+      let ziel;
+      if (attract) {
+        // Lichtshow im Wartezustand: Wellen von unten nach oben
+        ziel = (Math.sin(zeit * 4 - l.y * 0.03 + idx * 0.2) > 0.55) ? 1 : 0;
+      } else if (zeit < l.flashBis) {
+        ziel = (Math.floor(zeit * 16) % 2) ? 1 : 0;
+      } else {
+        const z = l.z();
+        ziel = z === 1 ? 1 : z === 2 ? ((Math.floor(zeit * 4) % 2) ? 1 : 0.08) : z === 3 ? chase(l.k, 3, 6) : 0;
+      }
+      // Glühlampen glimmen an und aus (etwa 40 ms)
+      l.i += (ziel - l.i) * Math.min(1, dt * 28);
     });
-    for (let i = 0; i < 5; i++) lampe(188 + (i - 2) * 16, 440 - 0, 5, stufe > i, C.rot);
-    schrift('ALARM', 188, 462, 9, '#6d7f95');
+  }
 
-    // Wände
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = C.rand; ctx.lineWidth = 4;
+  function insertPfad(l) {
     ctx.beginPath();
-    for (const w of walls) { if (!w.kick) { ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); } }
-    ctx.stroke();
+    if (l.form === 'kreis') ctx.arc(l.x, l.y, l.r, 0, 2 * PI);
+    else if (l.form === 'rechteck') {
+      const r = 3, x = l.x - l.w / 2, y = l.y - l.h / 2;
+      ctx.moveTo(x + r, y); ctx.arcTo(x + l.w, y, x + l.w, y + l.h, r); ctx.arcTo(x + l.w, y + l.h, x, y + l.h, r);
+      ctx.arcTo(x, y + l.h, x, y, r); ctx.arcTo(x, y, x + l.w, y, r); ctx.closePath();
+    } else if (l.form === 'pfeil') {
+      const c = Math.cos(l.dir), s = Math.sin(l.dir), hx = l.h / 2, wx = l.w / 2;
+      ctx.moveTo(l.x + c * hx, l.y + s * hx);
+      ctx.lineTo(l.x - c * hx - s * wx, l.y - s * hx + c * wx);
+      ctx.lineTo(l.x - c * hx * 0.4, l.y - s * hx * 0.4);
+      ctx.lineTo(l.x - c * hx + s * wx, l.y - s * hx - c * wx);
+      ctx.closePath();
+    } else if (l.form === 'keil') {
+      ctx.arc(l.x, l.y, l.r1, l.a0, l.a1); ctx.arc(l.x, l.y, l.r0, l.a1, l.a0, true); ctx.closePath();
+    }
+  }
+  function mitteVon(l) {
+    if (l.form === 'keil') { const a = (l.a0 + l.a1) / 2, r = (l.r0 + l.r1) / 2; return [l.x + Math.cos(a) * r, l.y + Math.sin(a) * r]; }
+    return [l.x, l.y];
+  }
+  function zeichneEinsaetze() {
+    for (const l of lamps) {
+      const [r, g, b] = rgb(FARBE[l.farbe]);
+      insertPfad(l);
+      ctx.fillStyle = `rgb(${r * 0.22 | 0},${g * 0.22 | 0},${b * 0.22 | 0})`; ctx.fill();
+      if (l.i > 0.02) {
+        const [mx, my] = mitteVon(l);
+        const gr = ctx.createRadialGradient(mx, my, 0, mx, my, 28);
+        gr.addColorStop(0, `rgb(${Math.min(255, r + 120)},${Math.min(255, g + 120)},${Math.min(255, b + 120)})`);
+        gr.addColorStop(0.5, FARBE[l.farbe]);
+        gr.addColorStop(1, `rgb(${r * 0.7 | 0},${g * 0.7 | 0},${b * 0.7 | 0})`);
+        ctx.globalAlpha = l.i; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1.2; ctx.stroke();
+      if (l.label) {
+        const [mx, my] = mitteVon(l);
+        ctx.font = `700 ${l.form === 'keil' ? 7 : 6.5}px system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = l.i > 0.5 ? 'rgba(20,8,0,.85)' : 'rgba(255,255,255,.28)';
+        ctx.fillText(l.label, mx, my + 0.5);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+  }
+  function zeichneLeuchtschein() {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const l of lamps) {
+      if (l.i < 0.05) continue;
+      const [mx, my] = mitteVon(l);
+      const s = l.form === 'kreis' ? l.r * 5 : l.form === 'keil' ? 60 : Math.max(l.w || 16, l.h || 16) * 2.4;
+      ctx.globalAlpha = l.i * 0.5;
+      ctx.drawImage(glow(FARBE[l.farbe]), mx - s / 2, my - s / 2, s, s);
+    }
+    // Pop-Bumper: rote Kappen leuchten immer, beim Treffer grell
+    for (const b of bumpers) {
+      ctx.globalAlpha = 0.45 + 0.55 * b.flash;
+      const s = 70 + 40 * b.flash;
+      ctx.drawImage(glow('#ff2a36'), b.x - s / 2, b.y - s / 2, s, s);
+    }
+    // Rampen-Blitz
+    for (const r of ramps) {
+      if (r.flash <= 0.02) continue;
+      ctx.globalAlpha = r.flash * 0.8;
+      for (let t = 0.1; t <= 0.9; t += 0.2) { const [x, y] = bez(r.pfad, t); ctx.drawImage(glow('#ffffff'), x - 40, y - 40, 80, 80); }
+    }
+    // Schädel-Blitzer
+    const sb = Math.max(blitz, ball.halt > 0 ? 0.6 : 0);
+    if (sb > 0.02) {
+      ctx.globalAlpha = sb;
+      ctx.drawImage(glow('#ff3a2a'), SKULL.x - 70, SKULL.y - 100, 140, 140);
+      ctx.drawImage(glow('#ffffff'), SKULL.x - 35, SKULL.y - 65, 70, 70);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
 
-    // Schleudern
+  // ================= Spielfeld-Grund (einmal vorgerechnet) =================
+  let grund = null;
+  function baueGrund(px) {
+    const c = document.createElement('canvas'); c.width = W * px; c.height = H * px;
+    const g = c.getContext('2d'); g.scale(px, px);
+    // Grundfläche: dunkles Stahlblau, nach unten wärmer
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#1d2636'); gr.addColorStop(0.55, '#1a2130'); gr.addColorStop(1, '#231c22');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // Leiterplatten-Linien (eigenes Motiv, fester Zufall)
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    g.strokeStyle = 'rgba(80,190,220,.10)'; g.lineWidth = 1.2;
+    for (let i = 0; i < 70; i++) {
+      let x = 20 + rnd() * 360, y = 40 + rnd() * 640;
+      g.beginPath(); g.moveTo(x, y);
+      for (let j = 0; j < 4; j++) {
+        if (rnd() < 0.5) x += (rnd() - 0.5) * 60; else y += (rnd() - 0.5) * 60;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+      g.fillStyle = 'rgba(80,190,220,.16)'; g.beginPath(); g.arc(x, y, 1.8, 0, 2 * PI); g.fill();
+    }
+    // Rote Bänder hinter den Leitern (wie gedruckte Rahmen)
+    g.strokeStyle = 'rgba(200,40,50,.55)'; g.lineWidth = 2;
+    for (const x of [84, 294]) { g.strokeRect(x - 33, 446, 66, 118); }
+    g.strokeRect(166, 348, 44, 54);
+    // Umlauf-Gassen etwas dunkler
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(12, 200, 46, 280); g.fillRect(326, 200, 38, 220); g.fillRect(LANE_X, 300, 28, 460);
+    // Zifferblatt „Zero Hour“ in der Mitte (Zeiger wird live gezeichnet)
+    g.strokeStyle = 'rgba(160,200,230,.35)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(188, 500, 30, 0, 2 * PI); g.stroke();
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * 2 * PI - PI / 2, r0 = k === 0 ? 20 : 24;
+      g.beginPath(); g.moveTo(188 + Math.cos(a) * r0, 500 + Math.sin(a) * r0); g.lineTo(188 + Math.cos(a) * 28, 500 + Math.sin(a) * 28); g.stroke();
+    }
+    g.font = '11px Bungee, "Arial Black", sans-serif'; g.textAlign = 'center';
+    g.fillStyle = 'rgba(255,180,90,.55)'; g.fillText('ZERO HOUR', 188, 548);
+    g.font = '8px system-ui, sans-serif'; g.fillStyle = 'rgba(200,220,240,.35)';
+    g.save(); g.translate(35, 330); g.rotate(-PI / 2); g.fillText('FLUCHTWEG', 0, 3); g.restore();
+    g.save(); g.translate(345, 320); g.rotate(PI / 2); g.fillText('SCHLEIFE', 0, 3); g.restore();
+    // Grundbeleuchtung (warmweiß) an Schleudern, Seiten und oben
+    g.globalCompositeOperation = 'lighter';
+    const gi = (x, y, r, a) => { const q = g.createRadialGradient(x, y, 0, x, y, r); q.addColorStop(0, `rgba(255,230,190,${a})`); q.addColorStop(1, 'rgba(255,230,190,0)'); g.fillStyle = q; g.fillRect(x - r, y - r, 2 * r, 2 * r); };
+    gi(88, 610, 70, 0.22); gi(288, 610, 70, 0.22); gi(30, 380, 90, 0.10); gi(350, 360, 90, 0.10);
+    gi(202, 60, 120, 0.10); gi(110, 250, 80, 0.10); gi(188, 700, 80, 0.10);
+    g.globalCompositeOperation = 'source-over';
+    // Schürze unten
+    g.fillStyle = '#10141c'; g.fillRect(0, 722, LANE_X, 38);
+    return c;
+  }
+
+  // ================= Zeichnen =================
+  function chromLinie(x1, y1, x2, y2) {
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  }
+  function zeichneWaende() {
+    ctx.lineCap = 'round';
+    const pfad = () => { ctx.beginPath(); for (const w of walls) if (!w.kick) chromLinie(w.x1, w.y1, w.x2, w.y2); };
+    pfad(); ctx.strokeStyle = '#06080c'; ctx.lineWidth = 6; ctx.stroke();
+    pfad(); ctx.strokeStyle = '#8fa3b8'; ctx.lineWidth = 3.2; ctx.stroke();
+    pfad(); ctx.strokeStyle = 'rgba(240,248,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  function draw(dt) {
+    ctx.drawImage(grund, 0, 0, W, H);
+
+    // Uhrzeiger: wandert mit der Alarmstufe auf zwölf
+    const za = -PI / 2 - (5 - stufe) * 0.5;
+    ctx.strokeStyle = stufe >= 5 ? '#ff3a3a' : '#ffb347'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(188, 500); ctx.lineTo(188 + Math.cos(za) * 22, 500 + Math.sin(za) * 22); ctx.stroke();
+
+    zeichneEinsaetze();
+
+    // Schleudern: rote Kunststoffkappe, leuchtet beim Schlag
     for (const s of slings) {
-      s.flash = Math.max(0, (s.flash || 0) - 0.08);
+      s.flash = Math.max(0, s.flash - dt * 8);
       ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath();
-      ctx.fillStyle = s.flash > 0 ? '#ffd1d6' : '#7a1f2c'; ctx.fill();
-      ctx.strokeStyle = C.rot; ctx.lineWidth = 4;
+      ctx.fillStyle = s.flash > 0 ? '#ffe2e5' : '#8a1e2b'; ctx.fill();
+      ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
     }
+    zeichneWaende();
 
-    for (const p of posts) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2 * PI); ctx.fillStyle = C.chrom; ctx.fill(); }
+    for (const p of posts) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2 * PI); ctx.fillStyle = '#d8e2ec'; ctx.fill();
+      ctx.strokeStyle = '#1a1f27'; ctx.lineWidth = 1; ctx.stroke();
+    }
 
     // Klappziele + Stehziele
     for (const d of drops) {
-      ctx.fillStyle = d.unten ? '#26344a' : C.rot;
+      ctx.fillStyle = d.unten ? '#2a1a20' : '#e8303f';
       ctx.fillRect(d.x - d.w / 2 + 1, d.y - 5, d.w - 2, 8);
+      if (!d.unten) { ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(d.x - d.w / 2 + 2, d.y - 5, d.w - 4, 2); }
     }
     for (const s of standups) {
-      ctx.fillStyle = s.an ? C.amber : '#b5c6d6';
+      ctx.fillStyle = s.an ? '#ffe7b0' : '#e9eef4';
       ctx.fillRect(s.x - 3, s.y - s.h / 2, 6, s.h);
     }
 
-    // Pop-Bumper
+    // Pop-Bumper: Metallring, rote leuchtende Kappe
     for (const b of bumpers) {
-      b.flash = Math.max(0, b.flash - 0.06);
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 2 * PI);
-      ctx.fillStyle = b.flash > 0 ? '#ffe0e4' : C.rot; ctx.fill();
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.55, 0, 2 * PI);
-      ctx.fillStyle = C.chrom; ctx.fill();
+      b.flash = Math.max(0, b.flash - dt * 7);
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 2, 0, 2 * PI); ctx.fillStyle = '#c9d4df'; ctx.fill();
+      const g = ctx.createRadialGradient(b.x - 4, b.y - 5, 2, b.x, b.y, b.r);
+      g.addColorStop(0, b.flash > 0 ? '#ffffff' : '#ffb0b6'); g.addColorStop(0.5, '#ff3844'); g.addColorStop(1, '#8e0f1a');
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r - 1, 0, 2 * PI); ctx.fillStyle = g; ctx.fill();
     }
 
-    // Schädel über dem Loch (eigene, schlichte Form)
-    const sx = SKULL.x, sy = SKULL.y - 26;
-    ctx.fillStyle = C.chrom;
-    ctx.beginPath(); ctx.ellipse(sx, sy, 20, 17, 0, 0, 2 * PI); ctx.fill();
-    ctx.fillRect(sx - 12, sy + 8, 24, 12);
-    const glut = ball.halt > 0 ? 1 : 0.55 + 0.45 * Math.sin(zeit * 4);
-    ctx.fillStyle = `rgba(255, 40, 50, ${glut})`;
-    ctx.beginPath(); ctx.arc(sx - 7, sy + 1, 4, 0, 2 * PI); ctx.arc(sx + 7, sy + 1, 4, 0, 2 * PI); ctx.fill();
-    ctx.strokeStyle = C.feld; ctx.lineWidth = 1.5;
-    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(sx + k * 4.5, sy + 12); ctx.lineTo(sx + k * 4.5, sy + 19); ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(SKULL.x, SKULL.y, 10, 0, 2 * PI); ctx.fillStyle = '#05080d'; ctx.fill();
+    // Schädel über dem Loch (eigene, schlichte Chromform)
+    const sx = SKULL.x, sy = SKULL.y - 28;
+    const sg = ctx.createLinearGradient(sx - 20, sy - 18, sx + 20, sy + 20);
+    sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.45, '#8d99a6'); sg.addColorStop(0.7, '#e6edf4'); sg.addColorStop(1, '#5c6672');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(sx, sy, 21, 18, 0, 0, 2 * PI); ctx.fill();
+    ctx.fillRect(sx - 12, sy + 8, 24, 13);
+    const glut = ball.halt > 0 ? 1 : 0.6 + 0.4 * Math.sin(zeit * 3);
+    ctx.fillStyle = '#1a0000';
+    ctx.beginPath(); ctx.arc(sx - 7.5, sy + 1, 5, 0, 2 * PI); ctx.arc(sx + 7.5, sy + 1, 5, 0, 2 * PI); ctx.fill();
+    ctx.fillStyle = `rgba(255, 40, 40, ${glut})`;
+    ctx.beginPath(); ctx.arc(sx - 7.5, sy + 1, 3.2, 0, 2 * PI); ctx.arc(sx + 7.5, sy + 1, 3.2, 0, 2 * PI); ctx.fill();
+    ctx.strokeStyle = '#2a3038'; ctx.lineWidth = 1.2;
+    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(sx + k * 4.5, sy + 13); ctx.lineTo(sx + k * 4.5, sy + 20); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(SKULL.x, SKULL.y, 10, 0, 2 * PI); ctx.fillStyle = '#030406'; ctx.fill();
 
     // Abschussrinne: Kolben
     ctx.fillStyle = '#9fb3c8'; ctx.fillRect(LANE_X + 5, SHOOT_Y + R, 392 - LANE_X - 10, 6);
 
-    // Flipper
-    ctx.strokeStyle = C.amber; ctx.lineWidth = 13;
+    // Flipper: weißer Körper, rotes Gummi
     for (const f of flippers) {
       const t = tip(f);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#c21f2f'; ctx.lineWidth = 15;
+      ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
+      ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 10;
       ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
     }
 
-    // Rampen (halbtransparent über dem Feld)
+    // Kugel: Schatten, dann Chrom
+    let bx = ball.x, by = ball.y, auf = 0;
+    if (ball.rampe) { [bx, by] = bez(ball.rampe.r.pfad, Math.min(1, ball.rampe.t / RAMP_T)); auf = 1; }
+    if (!auf) {
+      ctx.fillStyle = 'rgba(0,0,0,.45)';
+      ctx.beginPath(); ctx.ellipse(bx + 3, by + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill();
+    }
+
+    // Rampen: klarer Kunststoff mit Drahtschienen
     for (const r of ramps) {
-      ctx.save();
-      ctx.globalAlpha = 0.22; ctx.strokeStyle = C.chrom; ctx.lineWidth = 22;
-      ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); ctx.stroke();
-      ctx.globalAlpha = 0.6; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); ctx.stroke();
+      r.flash = Math.max(0, r.flash - dt * 2.5);
+      const bahn = () => { ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); };
+      bahn(); ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 18; ctx.stroke();
+      bahn(); ctx.strokeStyle = 'rgba(190,225,255,.09)'; ctx.lineWidth = 15; ctx.stroke();
+      ctx.save(); ctx.setLineDash([]);
+      bahn(); ctx.strokeStyle = 'rgba(230,240,250,.35)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.restore();
     }
 
-    // Kugel (auf der Rampe entlang der Bahn)
-    let bx = ball.x, by = ball.y;
-    if (ball.rampe) [bx, by] = bez(ball.rampe.r.pfad, Math.min(1, ball.rampe.t / RAMP_T));
+    if (auf) {
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.beginPath(); ctx.ellipse(bx + 7, by + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill();
+    }
     const g = ctx.createRadialGradient(bx - 3, by - 3, 1, bx, by, R);
-    g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#8a97a6');
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(bx, by, R, 0, 2 * PI); ctx.fill();
 
-    // Meldung (wie die Punktmatrix-Anzeige)
-    if (meldung && zeit < meldung.bis) {
-      ctx.fillStyle = 'rgba(5, 8, 13, .8)'; ctx.fillRect(40, 488, W - 80 - 36, 34);
-      schrift(meldung.text, (W - 36) / 2, 511, 15, C.amber);
-    }
-
-    // Hinweis auf den Abzug
-    if (loaded && !gameOver) {
-      const a = 0.5 + 0.5 * Math.sin(performance.now() / 180);
-      ctx.globalAlpha = a; schrift('ABZUG!', 188, 540, 16, C.rot); ctx.globalAlpha = 1;
-    }
+    zeichneLeuchtschein();
+    blitz = Math.max(0, blitz - dt * 3);
 
     if (gameOver) {
-      ctx.fillStyle = 'rgba(11,20,32,.78)'; ctx.fillRect(0, 0, W, H);
-      schrift('GAME OVER', W / 2, H / 2 - 10, 34, C.amber);
-      ctx.font = '16px system-ui, sans-serif'; ctx.fillStyle = C.text;
-      ctx.fillText('Abzug drücken für ein neues Spiel', W / 2, H / 2 + 24);
+      ctx.fillStyle = 'rgba(8,10,16,.55)'; ctx.fillRect(0, 0, W, H);
     }
+  }
+
+  // ================= Punktmatrix-Inhalt =================
+  function anzeige() {
+    dmd.leer();
+    const blink = Math.floor(zeit * 4) % 2;
+    if (meldung && zeit < meldung.bis) {
+      const alter = zeit - meldung.von;
+      dmd.rahmen(1);
+      if (meldung.z2) {
+        dmd.mitte(meldung.z1, 4, 1, 3);
+        const s = dmd.breite(meldung.z2, 2) <= 124 ? 2 : 1;
+        if (alter > 0.6 || blink) dmd.mitte(meldung.z2, s === 2 ? 14 : 18, s, 3);
+      } else {
+        const s = dmd.breite(meldung.z1, 2) <= 124 ? 2 : 1;
+        dmd.mitte(meldung.z1, s === 2 ? 9 : 13, s, 3);
+      }
+    } else if (gameOver) {
+      if (Math.floor(zeit * 0.5) % 2 === 0) { dmd.mitte('GAME OVER', 3, 2, 3); dmd.mitte(fmt(score), 22, 1, 2); }
+      else { dmd.mitte('ABZUG DRÜCKEN', 8, 1, 3); dmd.mitte('FÜR NEUES SPIEL', 18, 1, 2); }
+    } else if (!gestartet && loaded) {
+      dmd.mitte('ZERO HOUR', 3, 2, 3);
+      if (blink) dmd.mitte('ABZUG DRÜCKEN', 22, 1, 2);
+    } else {
+      const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
+      dmd.mitte(t, s === 2 ? 2 : 6, s, 3);
+      dmd.text('KUGEL ' + ballNo, 1, 24, 1, 2);
+      dmd.mitte(MULTI[multi] + 'X', 24, 1, 2);
+      dmd.rechts('ALARM ' + stufe, 24, 1, 2);
+    }
+    dmd.zeichne();
   }
 
   // ---------- Skalierung ----------
   let scale = 1;
   function resize() {
     const st = document.getElementById('stage').getBoundingClientRect();
-    scale = Math.min(st.width / W, st.height / H);
+    scale = Math.min(st.width / W, st.height / (H * 0.97));
     const dpr = window.devicePixelRatio || 1;
     cv.style.width = W * scale + 'px';
     cv.style.height = H * scale + 'px';
     cv.width = Math.round(W * scale * dpr);
     cv.height = Math.round(H * scale * dpr);
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+    grund = baueGrund(Math.min(3, scale * dpr));
   }
   window.addEventListener('resize', resize);
   resize();
+  // Schrift „Bungee“ kann später nachladen: dann Grund neu zeichnen
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
 
   // ---------- Eingabe ----------
   function bindButton(el, f) {
@@ -817,17 +1194,20 @@ const sfx = (() => {
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    fire.classList.toggle('bereit', loaded && !gameOver);
+    fire.classList.toggle('bereit', (loaded && !autoStart) || gameOver);
     const pause = !document.getElementById('start').hidden;
     if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
-    draw();
+    else zeit += pause ? 0 : dt;              // Lichtshow läuft auch bei Game over
+    lampenZustand(dt);
+    draw(dt);
+    anzeige();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
   // Nur für automatische Tests (Node), im Browser ohne Wirkung
   if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return ball; }, get score() { return score; },
-    get loaded() { return loaded; }, flippers, get stufe() { return stufe; } };
+    get loaded() { return loaded; }, flippers, get stufe() { return stufe; }, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
 <script>
