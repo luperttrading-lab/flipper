@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.31';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.32';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -474,7 +474,7 @@ const dmd = (() => {
   // Spieltempo: 0,7 = Zeitskala eines echten Tisches (107 cm, 6,5° Neigung → rollend 0,79 m/s² ≈ 560 Einheiten/s²;
   // wir rechnen mit G = 1150, also √(1150/560) ≈ 1,43-mal zu schnell). Nur die Uhr läuft langsamer, die Physik bleibt gleich.
   const TEMPO = 0.7;
-  const EINROLL_T = 1.3, EINROLL_Y = 330;   // neue Kugel rollt oben in die Abschussrinne und herunter (s, Startlage)
+  const EINROLL_T = 2.0, EINROLL_Y = 330;   // neue Kugel rollt oben in die Abschussrinne und herunter (s, Startlage)
   const PI = Math.PI;
 
   const cv = document.getElementById('c');
@@ -737,6 +737,11 @@ const dmd = (() => {
     else punkte(10000, 500);
     sfx.ziel();
   }
+  // LANE CHANGE wie am Original: Flipper links/rechts schiebt die beleuchteten Gassen eine Stelle weiter
+  function gassenWechsel(d) {
+    if (gameOver || wahl || topLanes.every(Boolean) || !topLanes.some(Boolean)) return;
+    if (d < 0) topLanes.push(topLanes.shift()); else topLanes.unshift(topLanes.pop());
+  }
   function topLane(i) {
     if (!topLanes[i]) { topLanes[i] = true; punkte(10000); sfx.gasse(); }
     if (topLanes.every(Boolean)) {
@@ -889,7 +894,7 @@ const dmd = (() => {
         if (ball.einrollen >= 1) sfx.ziel();
       }
       const e = ball.einrollen;
-      ball.x = SHOOT_X; ball.y = EINROLL_Y + (SHOOT_Y - EINROLL_Y) * e * e; ball.vx = 0; ball.vy = 0; return;
+      ball.x = SHOOT_X; ball.y = EINROLL_Y + (SHOOT_Y - EINROLL_Y) * Math.pow(e, 2.6); ball.vx = 0; ball.vy = 0; return;
     }
     if (ball.kanone) return;                    // Position bestimmt die Kanone
 
@@ -1537,11 +1542,13 @@ const dmd = (() => {
     for (const r of ramps) {
       r.flash = Math.max(0, r.flash - dt * 2.5);
       const bahn = () => { ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); };
-      bahn(); ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 18; ctx.stroke();
-      bahn(); ctx.strokeStyle = 'rgba(190,225,255,.09)'; ctx.lineWidth = 15; ctx.stroke();
-      ctx.save(); ctx.setLineDash([]);
-      bahn(); ctx.strokeStyle = 'rgba(230,240,250,.35)'; ctx.lineWidth = 1; ctx.stroke();
+      // Die Rampe liegt ÜBER dem Spielfeld (auch über den Bumpern): Schatten, getönter Kunststoff, zwei helle Schienen
+      ctx.save(); ctx.translate(5, 7);
+      bahn(); ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 18; ctx.stroke();
       ctx.restore();
+      bahn(); ctx.strokeStyle = 'rgba(215,232,250,.55)'; ctx.lineWidth = 17; ctx.stroke();
+      bahn(); ctx.strokeStyle = 'rgba(24,40,62,.5)'; ctx.lineWidth = 14; ctx.stroke();
+      bahn(); ctx.strokeStyle = `rgba(150,200,255,${0.10 + 0.5 * r.flash})`; ctx.lineWidth = 9; ctx.stroke();
     }
 
     ctx.fillStyle = 'rgba(0,0,0,.35)';
@@ -1554,7 +1561,7 @@ const dmd = (() => {
       const g = ctx.createRadialGradient(p.x - 3, p.y - 3, 1, p.x, p.y, R);
       g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
       ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 2 * PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.hoch === 1 ? R * 1.2 : R, 0, 2 * PI); ctx.fill();
     }
 
     // Grundbeleuchtung: dunkel = Tisch abdunkeln, nur Einsätze (Leuchtschein) glühen weiter; > 1 = heller Rückschlag
@@ -1669,7 +1676,7 @@ const dmd = (() => {
     if (imAbzugFeld(e.clientX, e.clientY)) { abzugGedrueckt = zeit + 0.15; abzug(); return; }
     const seite = e.clientX < window.innerWidth / 2 ? 0 : 1;
     if (wahlBewegen(seite ? 1 : -1)) return;
-    if (!flippers[seite].on) sfx.flipper();
+    if (!flippers[seite].on) { sfx.flipper(); gassenWechsel(seite ? 1 : -1); }
     finger.set(e.pointerId, seite); halte(seite);
   }, { passive: false });
   const los = e => { if (!finger.has(e.pointerId)) return; const s = finger.get(e.pointerId); finger.delete(e.pointerId); halte(s); };
@@ -1698,8 +1705,8 @@ const dmd = (() => {
   // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
-    if (e.key === 'ArrowLeft' || e.key === 'z') { if (wahlBewegen(-1)) return; sfx.flipper(); flippers[0].on = true; }
-    if (e.key === 'ArrowRight' || e.key === 'm') { if (wahlBewegen(1)) return; sfx.flipper(); flippers[1].on = true; }
+    if (e.key === 'ArrowLeft' || e.key === 'z') { if (wahlBewegen(-1)) return; sfx.flipper(); gassenWechsel(-1); flippers[0].on = true; }
+    if (e.key === 'ArrowRight' || e.key === 'm') { if (wahlBewegen(1)) return; sfx.flipper(); gassenWechsel(1); flippers[1].on = true; }
     if (e.key === ' ') { e.preventDefault(); abzug(); }
   });
   window.addEventListener('keyup', e => {
@@ -1730,7 +1737,7 @@ const dmd = (() => {
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },
-    get loaded() { return loaded; }, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
+    get loaded() { return loaded; }, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
 <script>

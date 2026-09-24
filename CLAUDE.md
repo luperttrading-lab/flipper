@@ -140,6 +140,16 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   mit der Kurzanleitung, rote Leuchtschrift (Bungee); **Versionsnummer** dezent rechts unter dem Anzeige-Rahmen des Bildes
   (Tipp = Update-Prüfung). **Ton-Schalter nicht mehr auf dem Startschirm**, nur noch auf dem Pausenschirm (Nutzerwunsch;
   ganz weglassen geht nicht, weil die App bewusst auch bei Stummschalter spielt). `start.jpg` in der Cache-Liste von `sw.js`.
+- Stand 0.32 (Nutzer-Rückmeldung am Gerät): **Einrollen** 2,0 s Spielzeit (≈ 2,9 s real), Verlauf y ∝ e^2,6 (anfangs langsam,
+  am Ende schnell). **„Kugel geht durch die Bumper“** war keine Physik (gemessen: 10 min Autoplay, 0 Schritte mit Kugel im
+  Bumper), sondern die Rampen-Animation, deren Bahn über die Bumper führt und kaum zu sehen war → Rampen jetzt als
+  erhöhte, durchscheinende Klarsichtbahn (Schatten, zwei helle Schienen, getönter Kunststoff), Kugel darauf 1,2× größer.
+  **Obere Gassen schwer:** gemessen 0/60 Abschüsse laufen durch eine Gasse (Abschuss fliegt mit Mittelpunkt y≈21 über die
+  Pfosten, die bei y=52 beginnen), im Autoplay nur ~1,6 Durchläufe/min → für alle drei per Zufall im Schnitt 5,5 Durchläufe
+  ≈ 3,4 min. Neu: **Gassenwechsel (LANE CHANGE, wie am Original)** – jeder Flipperdruck schiebt die beleuchteten Gassen
+  (links/rechts), so zählt jeder Durchlauf. Verworfen: Abweiser links an den Gassen (lenkte den Abschuss zurück, Kugel hing
+  dann oben an der Abschussrinne bei x≈375, y≈270; ein schwacher Abschuss ~1300 landet dort ebenfalls – beim Rampenumbau
+  im Blick behalten). Test 24/24 OK, 3 × 10 min ohne Fehler.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

@@ -35,7 +35,7 @@ function lade() {
   for (const s of scripts) vm.runInContext(s, sandbox);
   const api = window.__TEST__.api;
   // Neue Kugel rollt erst die Rinne hinunter – warten, bis sie eingerastet ist
-  for (let i = 0; i < 3 * 720 && !api.abschussBereit(); i++) api.step(1 / 720);
+  for (let i = 0; i < 4 * 720 && !api.abschussBereit(); i++) api.step(1 / 720);
   return api;
 }
 
@@ -61,7 +61,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   const unterwegs = api.balls.find(x => x.ruht);
   api.abzug();
   const zuFrueh = unterwegs && unterwegs.ruht && unterwegs.y < 700 && !api.abschussBereit();
-  lauf(api, 1.5);
+  lauf(api, 2.2);
   pruefe(zuFrueh && api.abschussBereit(), 'Abzug während des Einrollens wirkt nicht; danach bereit');
 }
 
@@ -171,6 +171,17 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   for (let i = 0; i < 16; i++) { verlauf.push(api.grundLicht()); lauf(api, 0.1); }
   const dunkel = verlauf.slice(7, 12).every(v => v === 0), flackern = verlauf.slice(0, 6).some(v => v === 1) && verlauf.slice(0, 6).some(v => v === 0);
   pruefe(flackern && dunkel && verlauf.slice(12).some(v => v > 1), 'Jackpot-Licht: flackern, 0,6 s dunkel, Rückschlag [' + verlauf.map(v => v.toFixed(1)).join(' ') + ']');
+}
+
+// 2e. Gassenwechsel: Flipper schiebt die beleuchteten oberen Gassen weiter
+{
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  api.topLanes[0] = true; api.topLanes[1] = false; api.topLanes[2] = false;
+  api.gassenWechsel(1); const a = api.topLanes.join();
+  api.gassenWechsel(1); const b = api.topLanes.join();
+  api.gassenWechsel(-1); const c = api.topLanes.join();
+  pruefe(a === 'false,true,false' && b === 'false,false,true' && c === 'false,true,false', `Gassenwechsel rechts/links (${a} | ${b} | ${c})`);
 }
 
 // 3. Autoplay
