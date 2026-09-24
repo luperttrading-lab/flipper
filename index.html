@@ -137,7 +137,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.15';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.16';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -531,7 +531,8 @@ const dmd = (() => {
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
   let dropReset = 0, meldung = null, blitz = 0, paybackBis = 0, kickback = false;
-  let sicherL = 0, sicherR = 0;                  // Sicherheits-Säulen: Stufen je Rampe (0…5)
+  let sicherL = 0, sicherR = 0, hurryBis = 0;
+  const hurryWert = () => Math.max(500000, Math.round((500000 + 2500000 * (hurryBis - zeit) / 20) / 10000) * 10000);                  // Sicherheits-Säulen: Stufen je Rampe (0…5)
 
   // Kanone links: schwenkt geladen hin und her, der Abzug feuert (wie im Original)
   const kanone = { x: 44, y: 440, a: 0.1, phase: 0, kugel: null, feuerBis: 0, ziel: 1 };
@@ -613,6 +614,7 @@ const dmd = (() => {
         punkte(100000, 5000); melde('ZIELE KOMPLETT', '100.000');
       }
       lampenBlitz(l => l.gruppe === 'core' || l.gruppe === 'schaedel', 0.8);
+      if (zeit >= hurryBis) hurryBis = zeit + 20;
       dropReset = zeit + 1.2;
     }
   }
@@ -640,6 +642,10 @@ const dmd = (() => {
   function rampe(r) {
     r.flash = 1;
     ball.rampe = { r, t: 0 };
+    if (r.name === 'rechts' && zeit < hurryBis) {
+      const w = hurryWert(); hurryBis = 0;
+      punkte(w, 10000); melde('HURRY UP', fmt(w), 2.2); blitzen(1); sfx.multiball();
+    }
     sfx.rampe();
     if (multiball) {
       punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT), 2); blitzen(1);
@@ -677,6 +683,8 @@ const dmd = (() => {
       // Kugel wandert aus dem Schädel in die Kanone
       ball.zurKanone = true; gunLit = false; skullZahl = 0;
       melde('KANONE GELADEN', 'ABZUG!', 2.2);
+    } else if (multiball) {
+      punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT), 2); sfx.multiball();
     } else {
       melde('SCHÄDEL', fmt(n));
       if (!multiball && ++skullZahl >= 2) { gunLit = true; melde('SCHÄDEL ' + fmt(n), 'KANONE BEREIT', 2); }
@@ -919,7 +927,7 @@ const dmd = (() => {
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     skullZahl = 0; gunLit = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
-    paybackBis = 0; kickback = false; sicherL = 0; sicherR = 0; wahl = null;
+    paybackBis = 0; kickback = false; sicherL = 0; sicherR = 0; wahl = null; hurryBis = 0;
     newBall();
   }
 
@@ -934,8 +942,14 @@ const dmd = (() => {
   const chase = (k, n = 3, rate = 5) => (Math.floor(zeit * rate) % n) === k ? 1 : 0;
 
   // Pfeile in der Schädel-Gasse (Lauflicht Richtung Loch)
-  [345, 318, 291].forEach((y, k) => L({ form: 'pfeil', x: 96, y, w: 16, h: 16, dir: -PI / 2 - 0.12, farbe: 'rot',
-    gruppe: 'schaedel', z: () => haelt() ? 1 : 3, k: 2 - k }));
+  [
+    ['amber', () => zeit < paybackBis ? 2 : 0],                                  // SUPER: Payback läuft
+    ['gruen', () => kanone.kugel ? 1 : (gunLit ? 2 : 0)],                         // LOAD GUN
+    ['rot', () => extraBall ? 1 : 0],                                              // EXTRA BALL
+    ['blau', () => multiball ? 2 : 0],                                             // JACKPOT im Multiball
+    ['weiss', () => haelt() ? 1 : 3],                                              // TIMER: Lauflicht zum Loch
+  ].forEach(([farbe, z], k) => L({ form: 'pfeil', x: 97 - k * 1.5, y: 352 - k * 20, w: 17, h: 17, dir: -PI / 2 - 0.12,
+    farbe, gruppe: 'schaedel', z, k: 0 }));
   // Pfeile vor den Rampen: Lauflicht, solange die Rampe die Alarmstufe hebt
   [[156, 462], [156, 438]].forEach(([x, y], k) => L({ form: 'pfeil', x, y, w: 16, h: 16, dir: -PI / 2, farbe: 'weiss',
     gruppe: 'rampe', z: () => stufe < 6 ? 3 : 1, k }));
@@ -955,6 +969,9 @@ const dmd = (() => {
   // „LOAD GUN“: nächster Schädel-Treffer lädt die Kanone
   L({ form: 'rechteck', x: 100, y: 380, w: 44, h: 11, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
     z: () => kanone.kugel ? 1 : (gunLit ? 2 : 0) });
+  // HURRY UP vor der rechten Rampe: blinkt, solange der Countdown-Wert läuft
+  L({ form: 'pfeil', x: 313, y: 425, w: 16, h: 22, dir: -PI / 2, farbe: 'weiss', label: 'HURRY', gruppe: 'hurry',
+    z: () => zeit < hurryBis ? 2 : 0 });
   // Jackpot während des Multiballs
   L({ form: 'rechteck', x: 218, y: 418, w: 44, h: 11, farbe: 'rot', label: 'JACKPOT', gruppe: 'jackpot',
     z: () => multiball ? 2 : 0 });
@@ -1363,7 +1380,8 @@ const dmd = (() => {
       const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
       dmd.mitte(t, s === 2 ? 2 : 6, s, 3);
       dmd.text('KUGEL ' + ballNo, 1, 24, 1, 2);
-      if (zeit < paybackBis) dmd.mitte('PB ' + Math.ceil(paybackBis - zeit), 24, 1, blink ? 3 : 2);
+      if (zeit < hurryBis) dmd.mitte(fmt(hurryWert()), 24, 1, blink ? 3 : 2);
+      else if (zeit < paybackBis) dmd.mitte('PB ' + Math.ceil(paybackBis - zeit), 24, 1, blink ? 3 : 2);
       else dmd.mitte(multiball ? 'MB' : MULTI[multi] + 'X', 24, 1, 2);
       dmd.rechts('ALARM ' + stufe, 24, 1, 2);
     }
