@@ -63,4 +63,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   sich sichtbar. Vermutlich das eigentliche Ziel der Kanone; derzeit sind es die 3 Stehziele.
 - **Einsätze ohne Regel bisher:** „MILLION WHEN FLASHING“ (links neben der Schädel-Gasse und rechts vor der
   rechten Rampe), „BILLIONS PLUS“ (rechts), LOCK + DATABASE (links), VIDEO MODE (links, Minispiel in der Anzeige).
+- **5 weiße Klappziele links:** eine Reihe von 5 weißen runden Zielen direkt unter der Kanone, längs der
+  Fluchtweg-Gasse. Fehlen im Spiel noch.
+- **Regelkarte (deutsch, nur teilweise lesbar):** „… Rampen schießen, um Security Level zu erreichen“ (passt),
+  „… wechselndes Targetlicht treffen“, „… Drop Target wird Pistole geladen“, „… beleuchtetes Target zu
+  schießen“, „… Schüsse zählt 5 Mio“. Folgerung [Vermutung]: Die Kanone wird über ein Klappziel geladen (bei
+  uns über den Schädel) und das beleuchtete Ziel wechselt. Beim Umbau abgleichen.
 - **Ton:** Rückmeldung des Nutzers zu 0.9–0.16 steht aus (iOS-Freischaltung über Start-/Pause-Schirm).
