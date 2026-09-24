@@ -79,6 +79,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   („FLUCHT n“) zeigen die kassierten Felder.
 - Stand 0.20: neues App-Icon vom Nutzer (per Bildprogramm nach unserer Beschreibung: Chromkugel mit rotem Fadenkreuz,
   zwei Flipperarme, Uhr mit Zeiger auf 12, roter Ring). Quelle 1024 px, daraus icon-512, icon-192, apple-touch-icon (180).
+- Stand 0.21: Schädel im Spiel ist jetzt ein Bild vom Nutzer (`schaedel.png`, Stahlplatten-Schädel mit Nieten und orangen
+  Augen, bewusst **kein** Endoskelett-Look: keine roten Augen, keine Kolben/Kabel). Schwarzer Hintergrund per Helligkeit
+  freigestellt, 144 px breit, im Spiel 48 px breit über dem Loch. Die Augen glühen per Leuchtschein (pulsierend, voll bei
+  belegtem Loch). Die Datei steht in der Cache-Liste von `sw.js`.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
