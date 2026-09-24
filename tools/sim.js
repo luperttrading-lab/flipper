@@ -33,7 +33,10 @@ function lade() {
   };
   vm.createContext(sandbox);
   for (const s of scripts) vm.runInContext(s, sandbox);
-  return window.__TEST__.api;
+  const api = window.__TEST__.api;
+  // Neue Kugel rollt erst die Rinne hinunter – warten, bis sie eingerastet ist
+  for (let i = 0; i < 3 * 720 && !api.abschussBereit(); i++) api.step(1 / 720);
+  return api;
 }
 
 const DT = 1 / 60 / 12;
@@ -48,6 +51,18 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   const b = api.balls[0];
   const drin = lauf(api, 1.5, () => b.x < 360);
   pruefe(drin, 'Abschuss: Kugel verlässt die Abschussrinne');
+}
+
+// 1b. Einrollen: Abzug wirkt erst, wenn die Kugel unten eingerastet ist
+{
+  const api = lade();
+  pruefe(api.abschussBereit(), 'Kugel ist nach dem Einrollen abschussbereit');
+  api.restart(); lauf(api, 0.2);                                   // neues Spiel: Kugel rollt gerade ein
+  const unterwegs = api.balls.find(x => x.ruht);
+  api.abzug();
+  const zuFrueh = unterwegs && unterwegs.ruht && unterwegs.y < 700 && !api.abschussBereit();
+  lauf(api, 1.5);
+  pruefe(zuFrueh && api.abschussBereit(), 'Abzug während des Einrollens wirkt nicht; danach bereit');
 }
 
 // 2. Kanone: für jede Schwenklage schießen und notieren, welches Rundziel getroffen wird

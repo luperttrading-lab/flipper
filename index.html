@@ -121,7 +121,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.29';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.30';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -451,6 +451,10 @@ const dmd = (() => {
   const SHOOT_X = 378, SHOOT_Y = 750;
   const RAMP_T = 0.75;          // Fahrzeit über eine Rampe (s)
   const SAVE_T = 8;             // Kugelrettung nach dem Abschuss (s)
+  // Spieltempo: 0,7 = Zeitskala eines echten Tisches (107 cm, 6,5° Neigung → rollend 0,79 m/s² ≈ 560 Einheiten/s²;
+  // wir rechnen mit G = 1150, also √(1150/560) ≈ 1,43-mal zu schnell). Nur die Uhr läuft langsamer, die Physik bleibt gleich.
+  const TEMPO = 0.7;
+  const EINROLL_T = 1.3, EINROLL_Y = 330;   // neue Kugel rollt oben in die Abschussrinne und herunter (s, Startlage)
   const PI = Math.PI;
 
   const cv = document.getElementById('c');
@@ -606,8 +610,9 @@ const dmd = (() => {
   const RUND_LAGE = [0.31, 0.4, 0.51, 0.62, 0.72];               // Schwenklage, die Ziel k trifft (per Simulation)
   let rundTreffer = null;                                        // zuletzt getroffenes Rundziel (für Tests)
 
-  const neueKugel = ruht => ({ x: SHOOT_X, y: SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0, ruht,
-    kanone: false, fliegt: 0, zurKanone: false, weg: false });
+  const neueKugel = ruht => ({ x: SHOOT_X, y: ruht ? EINROLL_Y : SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0, ruht,
+    einrollen: ruht ? 0 : 1, kanone: false, fliegt: 0, zurKanone: false, weg: false });
+  const abschussBereit = () => balls.some(b => b.ruht && b.einrollen >= 1);
   function newBall() { balls = [neueKugel(true)]; ball = balls[0]; loaded = true; }
   newBall();
   const haelt = () => balls.some(b => b.halt > 0 && !b.mulde);        // Schädel belegt
@@ -857,7 +862,15 @@ const dmd = (() => {
   }
 
   function kugelSchritt(dt) {
-    if (ball.ruht) { ball.x = SHOOT_X; ball.y = SHOOT_Y; ball.vx = 0; ball.vy = 0; return; }
+    if (ball.ruht) {
+      // Einrollen: von oben die Rinne hinunter (beschleunigt), unten rastet sie ein – erst dann ist Abschuss möglich
+      if (ball.einrollen < 1) {
+        ball.einrollen = Math.min(1, ball.einrollen + dt / EINROLL_T);
+        if (ball.einrollen >= 1) sfx.ziel();
+      }
+      const e = ball.einrollen;
+      ball.x = SHOOT_X; ball.y = EINROLL_Y + (SHOOT_Y - EINROLL_Y) * e * e; ball.vx = 0; ball.vy = 0; return;
+    }
     if (ball.kanone) return;                    // Position bestimmt die Kanone
 
     // Auf der Rampe: Kugel folgt der Bahn, keine Physik
@@ -1014,7 +1027,7 @@ const dmd = (() => {
 
   // Abzug: Kugel abschießen oder Kanone feuern (wie der Pistolengriff im Original)
   function abschuss() {
-    const b = balls.find(x => x.ruht);
+    const b = balls.find(x => x.ruht && x.einrollen >= 1);
     if (!b) return;
     b.ruht = false; loaded = false; gestartet = true;
     b.vy = -(1880 + Math.random() * 80);
@@ -1359,7 +1372,7 @@ const dmd = (() => {
   // Abzug in der Abschussrinne: senkrechte Beschriftung, pulsiert, wenn der Abzug etwas tut
   let abzugGedrueckt = 0;
   function zeichneAbzug() {
-    const bereit = loaded || !!wahl, x = (LANE_X + 392) / 2;
+    const bereit = abschussBereit() || !!wahl, x = (LANE_X + 392) / 2;
     const puls = bereit ? 0.55 + 0.45 * Math.sin(zeit * 6) : 0.25, an = zeit < abzugGedrueckt;
     ctx.save();
     ctx.translate(x, 660); ctx.rotate(-PI / 2);
@@ -1367,7 +1380,7 @@ const dmd = (() => {
     ctx.fillStyle = an ? '#ffffff' : `rgba(255, 90, 80, ${puls})`;
     ctx.fillText('ABZUG', 0, 0);
     ctx.restore();
-    if (loaded) {
+    if (abschussBereit()) {
       ctx.beginPath(); ctx.arc(SHOOT_X, SHOOT_Y, R + 3 + 2 * puls, 0, 2 * PI);
       ctx.strokeStyle = `rgba(255, 70, 60, ${puls})`; ctx.lineWidth = 2; ctx.stroke();
     }
@@ -1659,7 +1672,7 @@ const dmd = (() => {
     const p = tischPunkt(cx, cy), nah = (x, y, r) => Math.hypot(p.x - x, p.y - y) < r;
     if (wahl) return nah(SHOOT_X, SHOOT_Y, 30);
     if (kanone.kugel && nah(kanone.x, kanone.y, 32)) return true;
-    return loaded && nah(SHOOT_X, SHOOT_Y, 26);
+    return abschussBereit() && nah(SHOOT_X, SHOOT_Y, 26);
   }
 
   // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
@@ -1680,9 +1693,10 @@ const dmd = (() => {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
     const pause = !document.getElementById('start').hidden;
-    if (wahl && !pause) { zeit += dt; if (zeit > wahl.bis) wahlFertig(); }
-    else if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
-    else zeit += pause ? 0 : dt;              // Lichtshow läuft auch bei Game over
+    const sdt = dt * TEMPO;                     // Spielzeit (Zeitlupe auf echte Tischzeit)
+    if (wahl && !pause) { zeit += sdt; if (zeit > wahl.bis) wahlFertig(); }
+    else if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(sdt / STEPS);
+    else zeit += pause ? 0 : sdt;             // Lichtshow läuft auch bei Game over
     sfx.musik(multiball && !pause && !gameOver);
     lampenZustand(dt);
     draw(dt);
@@ -1696,7 +1710,7 @@ const dmd = (() => {
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },
-    get loaded() { return loaded; }, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
+    get loaded() { return loaded; }, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
 <script>

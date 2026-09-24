@@ -127,6 +127,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Radius 32 um den Drehpunkt; Wahl-Menü Radius 30 in der Rinne; sonst Flipper (vorher schluckte die ganze Rinne jeden Tipp).
   Anzeige im Kanonen-Modus wechselt „FEUER FREI“ / „KANONE ANTIPPEN“. Seitenrand 4 px statt 10 → Tisch 419×743 (430×932).
   Platz gemessen: unten 0 px frei (bis Home-Leiste), seitlich je ~6 px, über der Anzeige 6–20 px → praktisch ausgereizt.
+- Stand 0.30 (Nutzer: „Ball viel zu schnell“): **`TEMPO = 0.7`** – die Spielzeit läuft in `frame()` mit 0,7 × Echtzeit
+  (Physik unverändert, nur die Uhr). Begründung: echter Tisch 107 cm, 6,5° → rollend g·sin(6,5°)·5/7 ≈ 0,79 m/s² ≈ 560
+  Einheiten/s²; wir rechnen G = 1150 → Zeitskala √(1150/560) ≈ 1,43 zu schnell. Alle Spielzeiten (Hurry Up, Kanone 7 s,
+  Payback …) dauern dadurch real ×1,43. **Einrollen:** neue Kugel startet oben in der Abschussrinne (y 330) und rollt in
+  1,3 s Spielzeit (≈ 1,9 s real) beschleunigt hinunter, rastet mit Klick ein; erst dann Ring/„ABZUG“ und Abschuss möglich
+  (`abschussBereit()`). Multiball-Nachschub und Kugelrettung schießen weiter sofort automatisch. `tools/sim.js` wartet in
+  `lade()` das Einrollen ab und prüft es (23/23 OK, 3 × 10 min ohne Fehler).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
