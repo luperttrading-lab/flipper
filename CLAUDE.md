@@ -57,6 +57,14 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 
 ## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)
 
+- **WICHTIGSTE KORREKTUR – Kanone ist auf der falschen Seite:** Die Kanone des Originals ist der **Kasten auf
+  dem drehbaren Sockel rechts** (blauer Ring, rechts neben der rechten Rampe/Seitengasse). Das Chrom-Flugobjekt
+  links ist **keine Kanone, sondern das Ziel** (Flugobjekt über den 5 weißen Rundzielen an der Fluchtweg-Gasse).
+  Laut Quellen: „load the swinging cannon and shoot the HK-Aerial across the playfield to start multiball“.
+  Umbau: Kanone nach rechts (schwenkt, Abzug feuert nach links über das Feld), Ziele = 5 weiße Rundziele links
+  unter dem Flugobjekt, eins davon beleuchtet und wechselnd („wechselndes Targetlicht treffen“). Die 3 orangen
+  Stehziele rechts bleiben nur für den Kickback. Winkel-Lampen (gelbe Trapeze links) zeigen vermutlich das Ziel.
+
 - **Echte Rampen (Stufe 3):** große Klarsichtrampe oben rechts über den Bumpern; Drahtrampen laufen seitlich
   herunter in die Rückkehrgassen (rechte Rampe → linke Rückkehrgasse, linke → rechte). Derzeit Tunnel.
 - **Drehbares Ziel rechts:** ein Kasten auf einem drehbaren Sockel (blauer Ring) an der rechten Seite, er dreht
