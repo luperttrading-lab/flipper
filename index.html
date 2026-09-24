@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.38';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.39';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1367,12 +1367,30 @@ const dmd = (() => {
   function chromLinie(x1, y1, x2, y2) {
     ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
   }
+  // Führungsbleche aus Metall: Schatten aufs Spielfeld, dunkle Kanten, stählerner Körper, heller Glanzstreifen
+  // (Licht von links oben), an freien Enden ein kleiner Chrom-Pfosten
+  let freieEnden = null;
   function zeichneWaende() {
-    ctx.lineCap = 'round';
-    const pfad = () => { ctx.beginPath(); for (const w of walls) if (!w.kick) chromLinie(w.x1, w.y1, w.x2, w.y2); };
-    pfad(); ctx.strokeStyle = '#06080c'; ctx.lineWidth = 6; ctx.stroke();
-    pfad(); ctx.strokeStyle = '#8fa3b8'; ctx.lineWidth = 3.2; ctx.stroke();
-    pfad(); ctx.strokeStyle = 'rgba(240,248,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
+    if (!freieEnden) {
+      const n = new Map(), key = (x, y) => Math.round(x) + ',' + Math.round(y);
+      for (const w of walls) if (!w.kick) for (const [x, y] of [[w.x1, w.y1], [w.x2, w.y2]]) {
+        const k = key(x, y); n.set(k, (n.get(k) || { x, y, c: 0 })); n.get(k).c++;
+      }
+      freieEnden = [...n.values()].filter(e => e.c === 1 && e.x > 14 && e.x < 390 && e.y < 758);
+    }
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const pfad = (dx = 0, dy = 0) => { ctx.beginPath(); for (const w of walls) if (!w.kick) chromLinie(w.x1 + dx, w.y1 + dy, w.x2 + dx, w.y2 + dy); };
+    pfad(2.2, 3); ctx.strokeStyle = 'rgba(0,0,0,.42)'; ctx.lineWidth = 6.5; ctx.stroke();         // Schatten
+    pfad(); ctx.strokeStyle = '#1c232c'; ctx.lineWidth = 6; ctx.stroke();                          // Kante
+    pfad(); ctx.strokeStyle = '#6f7d8c'; ctx.lineWidth = 4.4; ctx.stroke();                        // Stahl
+    pfad(-0.6, -0.7); ctx.strokeStyle = '#c9d5e1'; ctx.lineWidth = 2; ctx.stroke();                // Glanz
+    pfad(-0.9, -1); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 0.7; ctx.stroke();  // Spitzlicht
+    for (const e of freieEnden) {
+      const g = ctx.createRadialGradient(e.x - 1.2, e.y - 1.4, 0.3, e.x, e.y, 4.2);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#aab6c2'); g.addColorStop(1, '#3a4450');
+      ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.arc(e.x + 2, e.y + 2.6, 4.2, 0, 2 * PI); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, 4.2, 0, 2 * PI); ctx.fill();
+    }
   }
 
   // Kanone rechts: Kasten auf drehbarem Sockel mit blauem Ring, Ziellinie solange geladen

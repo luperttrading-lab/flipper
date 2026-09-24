@@ -173,6 +173,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (Kugel prallt immer ab), getroffen leuchten sie (`drops[i].an`); Treffer zählt nur mit Aufprall > 40 und 0,25 s Abklingzeit;
   schon beleuchtet = 5.000; alle drei → wie bisher Reihe komplett (CORE, Schädel-Wert, Escape Route), nach 1,2 s aus.
   Variable heißt weiter `drops`. Test 25/25 (neu: Stehziel bleibt stehen), 3 × 10 min ohne Fehler.
+- Stand 0.39: **Führungslinien als Metallbleche** (`zeichneWaende`): Schatten (versetzt 2,2/3), dunkle Kante, Stahlkörper,
+  Glanzstreifen und Spitzlicht nach links oben; an **freien Enden** (einmal vorkommende Endpunkte, einmalig berechnet in
+  `freieEnden`) kleine Chrom-Pfosten r 4,2 – dadurch auch an den Schleuder-Ecken. Schleudern selbst noch alt (rotes Dreieck):
+  Bild-Auftrag an den Nutzer (Gemini), Einbau per Beschnitt auf die Dreiecksform geplant.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
