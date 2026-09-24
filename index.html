@@ -106,6 +106,7 @@
   }
   // Trennwand Abschussrinne
   seg(LANE_X, 240, LANE_X, 700);
+  seg(LANE_X, 700, 380, 700);      // Boden der Rinne (Sicherung)
   // Schrägen zu den Flippern
   seg(20, 520, 100, 585);
   seg(LANE_X, 520, 265, 585);
@@ -126,9 +127,10 @@
 
   // ---------- Zustand ----------
   let ball, score = 0, ballNo = 1, pull = 0, dragging = null, gameOver = false;
-  function newBall() { ball = { x: 362, y: PLUNGER_Y - R, vx: 0, vy: 0 }; }
+  let loaded = true;        // Kugel liegt fest auf der Feder
+  let snapBack = false;     // Feder schnellt nach dem Schuss zurück (nur Optik)
+  function newBall() { ball = { x: 362, y: PLUNGER_Y - R, vx: 0, vy: 0 }; loaded = true; }
   newBall();
-  const inLane = () => ball.x > LANE_X && ball.y > 240;
 
   function updateHud() {
     scoreEl.textContent = score.toLocaleString('de-DE');
@@ -170,6 +172,12 @@
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
 
+    // Kugel auf der Feder: fest verbunden, bewegt sich mit der Feder
+    if (loaded) {
+      ball.x = 362; ball.y = PLUNGER_Y + pull * PULL_MAX - R; ball.vx = 0; ball.vy = 0;
+      return;
+    }
+
     ball.vy += G * dt;
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
@@ -177,8 +185,11 @@
     for (const w of walls) collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
 
     // Feder-Oberkante als Boden der Rinne
-    const py = PLUNGER_Y + pull * PULL_MAX;
-    if (ball.x > LANE_X) collideSeg(LANE_X, py, 380, py, R, 0.1);
+    // Rückkehr in die Rinne: Kugel landet auf der Feder und ist wieder geladen
+    if (ball.x > LANE_X && ball.vy >= 0 && ball.y + R >= PLUNGER_Y) {
+      snapBack = false; pull = 0; newBall();
+      return;
+    }
 
     for (const b of bumpers) {
       const dx = ball.x - b.x, dy = ball.y - b.y, d = Math.hypot(dx, dy), min = b.r + R;
@@ -292,22 +303,29 @@
   resize();
 
   // ---------- Eingabe: Feder ----------
+  // Schuss: Mindeststärke reicht immer bis oben raus, voll gespannt = deutlich schneller
+  const V_MIN = 1350, V_MAX = 2150;
   function releasePlunger() {
-    const onPlunger = inLane() && ball.y + R >= PLUNGER_Y + pull * PULL_MAX - 3;
-    if (onPlunger && pull > 0.05) ball.vy = -(500 + pull * 1300);
-    pull = 0;
+    if (loaded && pull > 0.08) {
+      loaded = false;
+      ball.vy = -(V_MIN + pull * (V_MAX - V_MIN));
+      snapBack = true;          // Feder schnellt optisch zurück
+    } else {
+      pull = 0;
+    }
   }
   cv.addEventListener('pointerdown', e => {
     if (gameOver) { restart(); return; }
     const r = cv.getBoundingClientRect();
-    if ((e.clientX - r.left) / scale > W / 2) {
+    if (loaded && (e.clientX - r.left) / scale > W / 2) {
+      snapBack = false;
       dragging = { id: e.pointerId, y0: e.clientY };
       cv.setPointerCapture(e.pointerId);
     }
   });
   cv.addEventListener('pointermove', e => {
     if (!dragging || e.pointerId !== dragging.id) return;
-    pull = Math.max(0, Math.min(1, (e.clientY - dragging.y0) / (140)));
+    pull = Math.max(0, Math.min(1, (e.clientY - dragging.y0) / 110));
   });
   const endDrag = e => {
     if (!dragging || e.pointerId !== dragging.id) return;
@@ -337,7 +355,7 @@
     if (e.repeat) return;
     if (e.key === 'ArrowLeft' || e.key === 'z') { flippers[0].on = true; bl.classList.add('on'); }
     if (e.key === 'ArrowRight' || e.key === 'm') { flippers[1].on = true; br.classList.add('on'); }
-    if (e.key === ' ') { e.preventDefault(); if (gameOver) restart(); else spaceHeld = true; }
+    if (e.key === ' ') { e.preventDefault(); if (gameOver) restart(); else if (loaded) { snapBack = false; spaceHeld = true; } }
   });
   window.addEventListener('keyup', e => {
     if (e.key === 'ArrowLeft' || e.key === 'z') { flippers[0].on = false; bl.classList.remove('on'); }
@@ -351,6 +369,7 @@
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
     if (spaceHeld) pull = Math.min(1, pull + dt * 1.5);
+    if (snapBack) { pull = Math.max(0, pull - dt * 12); if (pull === 0) snapBack = false; }
     if (!gameOver) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
     draw();
     requestAnimationFrame(frame);
