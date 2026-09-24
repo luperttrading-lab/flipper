@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.33';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.34';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1128,7 +1128,7 @@ const dmd = (() => {
   rund.forEach((r, k) => L({ form: 'trapez', x: 81, y: r.y, w: 16, h: 6, farbe: 'gelb', gruppe: 'rund', rand: true,
     z: () => kanone.ziel === k ? (kanone.kugel ? 2 : 1) : 0 }));
   // „LOAD GUN“: nächster Schädel-Treffer lädt die Kanone
-  L({ form: 'rechteck', x: 112, y: 372, w: 44, h: 10, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
+  L({ form: 'rechteck', x: 117, y: 372, w: 42, h: 10, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
     z: () => kanone.kugel ? 1 : (gunLit ? 2 : 0) });
   // Mulde oben rechts: Pfeil blinkt, solange ein Fluchtweg-Feld zum Kassieren bereitsteht
   L({ form: 'pfeil', x: 345, y: 280, w: 14, h: 16, dir: -PI / 2, farbe: 'gruen', gruppe: 'leiter',
@@ -1422,7 +1422,7 @@ const dmd = (() => {
   function zeichneZielmarke() {
     const geladen = !!kanone.kugel, p = geladen ? 0.55 + 0.45 * Math.sin(zeit * 8) : 0;
     const farbe = a => geladen ? `rgba(255, 70, 55, ${a})` : `rgba(210, 225, 240, ${a * 0.45})`;
-    const x0 = 50, x1 = 93, y0 = 375, y1 = 457, l = 9;
+    const x0 = 50, x1 = 93, y0 = 371, y1 = 447, l = 7;          // unten frei vor der Leiter („10 MILLION“ ab y 448)
     ctx.save();
     ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = farbe(0.5 + 0.5 * p);
     ctx.beginPath();
@@ -1431,7 +1431,7 @@ const dmd = (() => {
     }
     ctx.stroke();
     // Fadenkreuz über den Zielen
-    const cx = 71, cy = 358, r = 8;
+    const cx = 71, cy = 355, r = 8;
     ctx.lineWidth = 1.6; ctx.strokeStyle = farbe(0.6 + 0.4 * p);
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * PI);
     ctx.moveTo(cx - r - 5, cy); ctx.lineTo(cx - 3, cy); ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + r + 5, cy);
