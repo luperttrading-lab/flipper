@@ -77,21 +77,38 @@
     background: rgba(11, 20, 32, .72);
   }
   .start[hidden] { display: none; }
-  /* Beim ersten Start: Startbild (start.jpg; fehlt es, das App-Icon) über den ganzen Schirm */
-  .start.splash {
-    background: url(start.jpg) center / cover no-repeat, url(icon-512.png) center 38% / min(70vw, 360px) no-repeat, var(--bg);
-    align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  /* Beim ersten Start: Startbild über den ganzen Schirm („cover“). Texte sitzen in Prozent der BILDFLÄCHE,
+     damit sie auf jedem Gerät an derselben Stelle im Bild liegen (Bild 768 × 1376). */
+  .start.splash { background: #0b131d; overflow: hidden; }
+  .splash-bild { display: none; }
+  .start.splash .splash-bild {
+    display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100vw, calc(100vh * 768 / 1376)); aspect-ratio: 768 / 1376;
+    background: url(start.jpg) center / 100% 100% no-repeat;
   }
+  .start.splash > #start-text, .start.splash > .start-leiste { display: none; }
+  /* „Antippen zum Starten“ an der Stelle des (übermalten) Ladetextes, im Wechsel mit der Kurzanleitung – rote Leuchtschrift */
+  .splash-text {
+    position: absolute; left: 0; right: 0; top: 94.3%; transform: translateY(-50%);
+    height: 1.6em; text-align: center; font-family: "Bungee", "Arial Black", sans-serif;
+    font-size: clamp(13px, 3.9vw, 19px); letter-spacing: .08em; color: #ff5a46;
+    text-shadow: 0 0 4px rgba(255, 70, 50, .9), 0 0 14px rgba(255, 40, 20, .55);
+  }
+  .splash-text span { position: absolute; left: 0; right: 0; animation: wechsel 6s infinite; }
+  .splash-text span + span { animation-delay: -3s; font-size: .62em; line-height: 2.6; letter-spacing: .04em; }
+  @keyframes wechsel { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+  /* Versionsnummer dezent unter dem Anzeige-Rahmen des Bildes, rechtsbündig, gleiche Leuchtschrift */
+  .splash-ver {
+    position: absolute; top: 20.6%; right: 11.5%; background: none; border: 0; padding: 6px 2px;
+    font-family: "Bungee", "Arial Black", sans-serif; font-size: 10px; letter-spacing: .18em;
+    color: rgba(255, 96, 76, .55); text-shadow: 0 0 6px rgba(255, 50, 30, .45);
+  }
+  @media (prefers-reduced-motion: reduce) { .splash-text span { animation: none; } .splash-text span + span { display: none; } }
   .start-leiste {
     position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
     display: flex; justify-content: center; gap: 22px;
   }
   .start-leiste .ver { color: rgba(232, 238, 245, .7); }
-  .start-hilfe {
-    position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px);
-    margin: 0; text-align: center; font-size: 13px; color: rgba(232, 238, 245, .75);
-  }
-  .start:not(.splash) .start-hilfe { display: none; }
   .start > span {
     font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip);
     padding: 18px 26px; border: 2px solid var(--flip); border-radius: 16px;
@@ -107,8 +124,11 @@
   <canvas id="dmd" aria-label="Punktestand"></canvas>
 </header>
 <div class="start splash" id="start">
-  <span id="start-text">Antippen zum Starten</span>
-  <p class="start-hilfe">Linke / rechte Hälfte tippen = Flipper · Kugel rechts unten antippen = Abzug</p>
+  <div class="splash-bild">
+    <button class="splash-ver" id="ver-splash" type="button" aria-label="Auf Update prüfen"></button>
+    <div class="splash-text"><span>Antippen zum Starten</span><span>Hälften tippen = Flipper · Kugel antippen = Abzug</span></div>
+  </div>
+  <span id="start-text">Pause – antippen</span>
   <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
@@ -121,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.30';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.31';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1719,6 +1739,9 @@ const dmd = (() => {
   const updateEl = document.getElementById('update');
   const verEl = document.getElementById('ver');
   verEl.textContent = 'v' + APP_VERSION;
+  const verSplash = document.getElementById('ver-splash');
+  verSplash.textContent = 'v' + APP_VERSION;
+  verSplash.addEventListener('click', e => { e.stopPropagation(); checkForUpdate(true); });
 
   let ausTimer = null, infoTimer = null;
   function einblenden() {

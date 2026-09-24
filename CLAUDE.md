@@ -134,6 +134,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   1,3 s Spielzeit (≈ 1,9 s real) beschleunigt hinunter, rastet mit Klick ein; erst dann Ring/„ABZUG“ und Abschuss möglich
   (`abschussBereit()`). Multiball-Nachschub und Kugelrettung schießen weiter sofort automatisch. `tools/sim.js` wartet in
   `lade()` das Einrollen ab und prüft es (23/23 OK, 3 × 10 min ohne Fehler).
+- Stand 0.31: **Startbild** vom Nutzer (Gemini) als `start.jpg` (768×1376; der fehlerhafte Schriftzug „LOADIND…“ unten wurde
+  mit der Hintergrundfarbe #0b131d übermalt). `.splash-bild` bildet „cover“ nach (`width: max(100vw, 100vh·768/1376)`,
+  `aspect-ratio`), Texte in % der Bildfläche: „Antippen zum Starten“ bei 94,3 % (Stelle des alten Ladetextes) im 6-s-Wechsel
+  mit der Kurzanleitung, rote Leuchtschrift (Bungee); **Versionsnummer** dezent rechts unter dem Anzeige-Rahmen des Bildes
+  (Tipp = Update-Prüfung). **Ton-Schalter nicht mehr auf dem Startschirm**, nur noch auf dem Pausenschirm (Nutzerwunsch;
+  ganz weglassen geht nicht, weil die App bewusst auch bei Stummschalter spielt). `start.jpg` in der Cache-Liste von `sw.js`.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
