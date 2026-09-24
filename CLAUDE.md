@@ -23,8 +23,9 @@ Eigener Tisch mit den Funktionen von Williams „Terminator 2“ (1991), aber **
 Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Name: **Zero Time** (bis 0.17 „Zero Hour“; vom Nutzer in 0.18 umbenannt. „Fighting Machine“ als Alternative
   verworfen – zu lang für die Anzeige in großer Schrift, max. 10 Zeichen)
-- Abschuss per **Abzug** – seit 0.28 **kein Knopf mehr**: Tipp auf die Abschussrinne/Kugel rechts unten im Tisch (dort steht
-  „ABZUG“, Ring pulsiert um die Kugel); feuert auch die Kanone und bestätigt das Wahl-Menü. Keine Wisch-Feder.
+- Abschuss per **Abzug** – kein Knopf: Tipp **genau auf die wartende Kugel** rechts unten (Ring pulsiert, „ABZUG“ in der
+  Rinne); **Kanone feuert per Tipp auf die Kanone selbst** (roter Ring, „FEUER“); Wahl-Menü bestätigt per Tipp auf die Rinne.
+  Jeder andere Tipp ist ein Flipper-Tipp (seit 0.29, gegen versehentliches Abschießen). Keine Wisch-Feder.
   **Flipper seit 0.26 per Tipp auf die linke/rechte Bildschirmhälfte** (keine Flipper-Knöpfe mehr, Mehrfinger möglich)
 - **Kanone** wie im Original: schwenkt nach dem Laden automatisch hin und her, Abzug feuert,
   Treffer aufs beleuchtete Ziel startet Multiball; nach einigen Sekunden feuert sie selbst
@@ -119,6 +120,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (`#stage` unten nur `safe-area-inset-bottom` frei – sonst schneiden die runden Bildschirmecken die Kugel ab). Anzeige-Texte
   „KUGEL ANTIPPEN“ / „ANTIPPEN FÜR NEUES SPIEL“. Gemessen (Status- und Home-Leiste simuliert): 430×932 → Tisch 729 px,
   393×852 → 663 px, 375×667 → 551 px; Anzeige frei; Tipp rechts auf den Tisch = Flipper, Tipp auf die Kugel = Abschuss.
+- Stand 0.29 (versehentliches Abschießen verhindert): `tischPunkt(cx, cy)` rechnet Bildschirm → Tisch **exakt** für die
+  schräge Ansicht um (rotateX 10° um die Unterkante, Perspektive 1300 px ab Bühnenmitte; `NEIGUNG`/`PERSP` im Skript müssen
+  zu `#c`/`#stage` im CSS passen!). Eichung gegen `getBoundingClientRect`: oben Mitte → (200, 0), unten links → (0, 760) auf
+  0,1 genau. `imAbzugFeld`: Kugel nur im Radius 26 um (SHOOT_X, SHOOT_Y) und nur wenn eine Kugel wartet; Kanone nur im
+  Radius 32 um den Drehpunkt; Wahl-Menü Radius 30 in der Rinne; sonst Flipper (vorher schluckte die ganze Rinne jeden Tipp).
+  Anzeige im Kanonen-Modus wechselt „FEUER FREI“ / „KANONE ANTIPPEN“. Seitenrand 4 px statt 10 → Tisch 419×743 (430×932).
+  Platz gemessen: unten 0 px frei (bis Home-Leiste), seitlich je ~6 px, über der Anzeige 6–20 px → praktisch ausgereizt.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
