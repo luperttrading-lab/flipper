@@ -105,7 +105,7 @@
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
   </span>
 </header>
-<div class="start" id="start"><span>Antippen zum Starten</span></div>
+<div class="start" id="start"><span id="start-text">Antippen zum Starten</span></div>
 <div class="update" id="update" hidden>
   <span id="update-text"></span>
   <button class="btn" id="update-go" type="button">Jetzt laden</button>
@@ -117,7 +117,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.8';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.9';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -153,15 +153,44 @@ const sfx = (() => {
   ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, unlock, { capture: true, passive: true }));
 
-  // Start-Schirm: beim Öffnen und wenn der Ton nach dem Hintergrund hängt
+  // Stilles HTML-Audio in Schleife: stellt iOS auf „Medienwiedergabe“ um,
+  // damit Web Audio auch bei Stummschalter und nach Unterbrechungen hörbar bleibt
+  function stilleWav() {
+    const rate = 8000, n = rate / 2, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+    str(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+    let bin = ''; for (const x of b) bin += String.fromCharCode(x);
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+  const medien = new Audio(stilleWav());
+  medien.loop = true; medien.setAttribute('playsinline', '');
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { try { medien.pause(); } catch (_) {} }
+  });
+
+  // Start-/Pause-Schirm: beim Öffnen und nach jedem Zurückholen aus dem Hintergrund.
+  // Der Tipp darauf baut den Tonkanal frisch auf (iOS meldet nach Unterbrechungen oft
+  // 'running', spielt aber nichts mehr).
   const startEl = document.getElementById('start');
+  let frisch = true;
   startEl.addEventListener('click', () => {
-    unlock();
+    if (an) {
+      try { const p = medien.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+      if (frisch) { neu(); frisch = false; }
+      unlock();
+      setTimeout(() => api.bumper(2), 80);
+    }
     startEl.hidden = true;
-    setTimeout(() => api.bumper(2), 60);
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && an && (!ac || ac.state !== 'running')) startEl.hidden = false;
+    if (document.visibilityState === 'visible') {
+      frisch = true;
+      document.getElementById('start-text').textContent = 'Pause – antippen';
+      startEl.hidden = false;
+    }
   });
 
   // Umschalten mit Rückmeldung: Probeton + Zustand im Banner (hilft auch bei der Fehlersuche)
@@ -171,7 +200,8 @@ const sfx = (() => {
     if (!an) { window.showInfo && window.showInfo('Ton aus', 2); return; }
     setTimeout(() => {
       const st = ac ? ac.state : 'nicht verfügbar';
-      if (st === 'running') { api.bumper(0); window.showInfo && window.showInfo('Ton an', 2); }
+      try { const p = medien.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+      if (st === 'running') { api.bumper(0); window.showInfo && window.showInfo('Ton an · Kanal ' + st, 2); }
       else window.showInfo && window.showInfo('Ton blockiert (' + st + ') – einmal auf den Tisch tippen', 4);
     }, 150);
   });
@@ -546,7 +576,8 @@ const sfx = (() => {
     last = now;
     if (spaceHeld) pull = Math.min(1, pull + dt * 1.5);
     if (snapBack) { pull = Math.max(0, pull - dt * 12); if (pull === 0) snapBack = false; }
-    if (!gameOver) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
+    const pause = !document.getElementById('start').hidden;
+    if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
     draw();
     requestAnimationFrame(frame);
   }
