@@ -91,10 +91,20 @@ Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
   LOAD GUN, dann lädt der nächste Schädel-Treffer.
 - **Kanonen-Schwierigkeit in 3 Phasen:** 1. feststehendes Ziel, 2. wanderndes Ziel, 3. im Multiball schnell und mehrere
   Ziele. Bei uns wandert das Ziel immer. Umbauen: erster Kanonenschuss je Spiel mit festem Ziel.
-- **Kickback links** (bestätigt), neu beleuchtet über die Ziele rechts. Bei uns sitzt er rechts (Umlauf-Zuführung).
-- **Escape Route:** 3 Ziele rechts → Belohnung leuchtet (Multiball, Extra Ball, Bonus behalten) → linken Umlauf schießen →
-  Kugel landet in der hinteren rechten Mulde und kassiert. Widerspruch im Dossier: Dieselben 3 Ziele rechts sollen auch
-  den Kickback beleuchten. Klären.
+- **Geklärt per Recherche (Regelblatt von Dean St. Antoine, Zusammenfassungen via Websuche; Direktabruf gesperrt):**
+  - **Kickback:** sitzt in der **linken** Ausgasse. Ihn beleuchten die **3 orangen Stehziele rechts** direkt unter der
+    Einmündung der Abschussrinne. Unsere Stehziele stimmen also, nur der Kickback gehört nach links.
+  - **Escape Route:** Sie wird über eine **eigene rote 3er-Bank Stehziele in der Spielfeldmitte** vorgeschaltet, **nicht**
+    über die orangen rechts. Jede komplette Bank schaltet die 6 Rechteck-Einsätze links unten weiter (blinken). Man kassiert
+    in der **Mulde oben rechts**, dabei gibt es das unterste blinkende Feature. Die 3. Stufe beleuchtet Hurry Up. Das
+    Dossier hat beide Bänke verwechselt. [Vermutung] Unsere „runden roten Klappziele unter den Bumpern“ sind in
+    Wahrheit diese rote 3er-Bank.
+  - **Kanone laden:** Das Klappziel steht **direkt vor dem Schädel**. Ist es umgeworfen, geht die Kugel in den Schädel,
+    ein Auswerfer schießt sie über eine Drahtbahn in die Kanone (rechts, auf halber Höhe). Umbauen: Klappziel vor unser
+    Schädel-Loch setzen, statt „2 Schädel-Treffer“.
+  - **Kanonenziel:** Man feuert, wenn die Kanone am **beleuchteten weißen Stehziel** vorbeischwenkt. Treffer = Multiball.
+    Im Multiball wandert das beleuchtete Ziel über die Fünferbank unter dem Flugobjekt (Super Jackpot). Das bestätigt
+    die 3 Phasen aus dem Dossier: erst festes Ziel, im Multiball wanderndes.
 - **CPU-Säulen:** Die Rampen zählen nur **abwechselnd** (L/R/L/R). Bei uns zählt jede Rampe für sich.
 - **Payback Time:** 20 s Modus, 6 bestimmte Schüsse leuchten, jeder Treffer bringt Millionen. Bei uns sind es 25 s mit
   doppelten Punkten.
