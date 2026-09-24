@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.35';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.36';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1521,11 +1521,11 @@ const dmd = (() => {
 
     // Schädel über dem Loch: Stahlplatten-Schädel (Bild schaedel.png), Augen glühen orange
     if (schaedelBild && schaedelBild.complete && schaedelBild.naturalWidth) {
-      const sw = 48, sh = sw * schaedelBild.naturalHeight / schaedelBild.naturalWidth, sx = SKULL.x - sw / 2, sy = SKULL.y - 8 - sh;
+      const sw = 66, sh = sw * schaedelBild.naturalHeight / schaedelBild.naturalWidth, sx = SKULL.x - sw / 2, sy = SKULL.y - 8 - sh;
       ctx.drawImage(schaedelBild, sx, sy, sw, sh);
       const glut = haelt() ? 1 : 0.35 + 0.3 * Math.sin(zeit * 3);
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = glut;
-      for (const ax of [0.268, 0.723]) ctx.drawImage(glow('#ff9a2e'), sx + ax * sw - 9, sy + 0.597 * sh - 9, 18, 18);
+      for (const ax of [0.268, 0.723]) ctx.drawImage(glow('#ff9a2e'), sx + ax * sw - 12, sy + 0.597 * sh - 12, 24, 24);
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     }
     ctx.beginPath(); ctx.arc(SKULL.x, SKULL.y, 10, 0, 2 * PI); ctx.fillStyle = '#030406'; ctx.fill();

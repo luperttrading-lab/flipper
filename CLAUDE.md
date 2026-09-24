@@ -160,6 +160,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   zwei kräftigen Schienen (Hilfsebene `schienen`, Mitte per `destination-out` ausgestanzt) und kaum getönter Fläche;
   Kanone größer (Sockel r 20, Kasten 28, Tipp-Radius 40), gestrichelte Ziellinie reicht jetzt bis zu den Rundzielen (300);
   Fadenkreuz/Klammern in Ruhe warm-orange statt blassgrau, dicker. Physik der Kanone unverändert (K_LAUF).
+- Stand 0.36: Schädel größer (66 statt 48 Einheiten breit, Augen-Leuchtschein 24 statt 18), weiter über dem Loch (Unterkante y 248).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
