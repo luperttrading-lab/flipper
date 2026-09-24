@@ -154,6 +154,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Eckklammern um die fünf Rundziele (x 50–93, y 371–447; 0.34: unten frei vor „10 MILLION“, LOAD GUN auf x 117 gerückt)
   und ein Fadenkreuz darüber (71/355). Ruhig gedämpft grau; bei
   geladener Kanone pulsieren beide rot, und ein Visier-Ring sitzt auf dem beleuchteten Ziel (`zeichneZielmarke()`).
+- Stand 0.35: **Rampen leichter zu treffen:** Einlaufpfosten auseinander (links 134/178, rechts 256/300 statt 140/172 und
+  262/294; Einlauf 34 statt 22 breit, bei Kugel-Ø 18 also ±8 statt ±2 Spiel), Einfahrtsbereiche angepasst. Gemessen 10 min
+  Autoplay: 65 statt 22 Rampentreffer. Kanonen-Scan danach unverändert (Ziel 1–5 bei denselben Lagen). **Optik:** Rampen mit
+  zwei kräftigen Schienen (Hilfsebene `schienen`, Mitte per `destination-out` ausgestanzt) und kaum getönter Fläche;
+  Kanone größer (Sockel r 20, Kasten 28, Tipp-Radius 40), gestrichelte Ziellinie reicht jetzt bis zu den Rundzielen (300);
+  Fadenkreuz/Klammern in Ruhe warm-orange statt blassgrau, dicker. Physik der Kanone unverändert (K_LAUF).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
