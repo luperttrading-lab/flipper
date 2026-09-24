@@ -191,6 +191,14 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Die zwei Außenkanten der Schleuder sind als `schleuder: true` markiert → keine Metallbleche/Pfosten/weiße Kante mehr darüber,
   solange das Bild geladen ist (`schleuderBildOk()`); sonst Rückfall auf das alte rote Dreieck. 0.42: roter Lichtschein
   außerhalb des Gummis an der langen Seite weggeschnitten (alles > 14,5 px = 2,9 Einheiten außerhalb der Kante).
+- Stand 0.43: **Chase Loop** (rechter Umlauf, wie am Original): Kugel läuft den rechten Umlauf hinauf (Schalter x 330…LANE_X−2,
+  y 340, vy < −150; die Abschussrinne liegt rechts davon und zählt nicht) → 250.000; innerhalb von 5 s Spielzeit erneut =
+  Kombo 1 / 2 / 3 Mio („CHASE LOOP 2X“ …). Zwei blaue Pfeile im Umlauf (Lauflicht, schnell blinkend im Kombo-Fenster).
+  **Befund dabei:** Der rechte Umlauf war vom Spielfeld aus praktisch unerreichbar – Öffnung zwischen Führungsende (326/420)
+  und Abweiser nur 19 Einheiten bei Kugel-Ø 18. Führung jetzt bis y 382 (Öffnung ≈ 43). Gemessen: Schuss vom linken Flipper
+  (175/670, 1700) trifft bei 59–62° (4 von 16 Winkeln); Kugel läuft über den Bogen und den linken Umlauf zurück.
+  Abweiser (364/402–330/446) bleibt, damit Kugeln von oben nicht in die rechte Ausgasse fallen. Test 26/26, 11 × 10 min
+  Autoplay ohne Fehler (einmal 3,4 s Stillstand, nicht reproduzierbar, sonst ≤ 1,3 s).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

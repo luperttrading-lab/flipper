@@ -195,6 +195,20 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   pruefe(y1 > 262 && y2 > 262 && an1 && nochAn, `Stehziel bleibt stehen (Kugel kommt nur bis y ${Math.round(Math.min(y1, y2))}), leuchtet nach Treffer`);
 }
 
+// 2g. Chase Loop: rechter Umlauf hinauf zählt, schnell wiederholt = Kombo
+{
+  const PI3 = 60 * Math.PI / 180;
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  const b = api.balls[0];
+  // echter Schuss vom linken Flipper, 60° steil (Fenster 59–62° trifft den rechten Umlauf)
+  const schuss = () => { b.halt = 0; b.mulde = false; b.rampe = null; b.x = 175; b.y = 670; b.vx = Math.cos(PI3) * 1700; b.vy = -Math.sin(PI3) * 1700; lauf(api, 1.5); };
+  const s0 = api.score; schuss(); const k1 = api.chase.kette;
+  schuss(); const k2 = api.chase.kette; const plus = api.score - s0;
+  const ende = []; for (let i = 0; i < 2.5 * 720; i++) { api.step(1 / 720); if (i % 180 === 0) ende.push(Math.round(b.x) + ',' + Math.round(b.y)); }
+  pruefe(k1 === 1 && k2 === 2 && plus >= 1250000, `Chase Loop zählt und bildet Kombo (Kette ${k1} → ${k2}, +${plus})`);
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);
@@ -224,7 +238,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
       if (b.x < 0 || b.x > W || b.y < -20 || b.y > H + 30) { ok = false; console.log('  Kugel außerhalb', b.x.toFixed(1), b.y.toFixed(1)); }
       const s = still.get(b);
       if (!s || Math.hypot(b.x - s.x, b.y - s.y) > 30) still.set(b, { x: b.x, y: b.y, t: 0 });
-      else { s.t += DT; max = Math.max(max, s.t); if (s.t > 8) { ok = false; console.log('  Kugel hängt bei', b.x.toFixed(1), b.y.toFixed(1)); s.t = -1e9; } }
+      else { s.t += DT; if (s.t > 2.5 && !s.gemeldet) { s.gemeldet = true; if (process.env.STILL) console.log('  Stillstand >2,5 s bei', b.x.toFixed(0), b.y.toFixed(0)); } max = Math.max(max, s.t); if (s.t > 8) { ok = false; console.log('  Kugel hängt bei', b.x.toFixed(1), b.y.toFixed(1)); s.t = -1e9; } }
     }
   }
   console.log(`  ${min} min: ${spiele} Spiele beendet, Kanonenschüsse ${schuesse}, Rundziel-Treffer ${rundT}, Multibälle ${mb}, Mulde ${muldeT}, längster Stillstand ${max.toFixed(1)} s`);

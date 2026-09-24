@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.42';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.43';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -507,7 +507,7 @@ const dmd = (() => {
   seg(58, 200, 58, 470);
   bogen(202, 200, 144, PI, PI * 1.25, 6);
   // Umlauf rechts („Schleife“): Innenführung + Abweiser ins Spielfeld
-  seg(326, 200, 326, 420);
+  seg(326, 200, 326, 382);               // bis 0.42: 420 – Öffnung zum Abweiser war nur 19 breit (Kugel 18)
   bogen(202, 200, 124, PI * 1.75, PI * 2, 6);
   seg(364, 402, 330, 446);
   // Unten am linken Umlauf: Kugel wird sanft in die linke Rückkehrgasse geführt
@@ -780,6 +780,19 @@ const dmd = (() => {
     melde(['CHECK', 'CODE', 'ALARM', 'KEY', 'CPU'][lv - 1] + (r.name === 'links' ? ' LINKS' : ' RECHTS'), '100.000');
     lampenBlitz(l => l.gruppe === (r.name === 'links' ? 'sicherL' : 'sicherR'), 0.7);
   }
+  // Chase Loop (rechter Umlauf): 250.000, innerhalb von CHASE_T Spielzeit wiederholt = Kombo 1 / 2 / 3 Mio
+  const CHASE_T = 5;
+  let chaseKette = 0, chaseBis = 0;
+  function chaseLoop() {
+    chaseKette = zeit < chaseBis ? chaseKette + 1 : 1;
+    chaseBis = zeit + CHASE_T;
+    if (chaseKette === 1) { punkte(250000, 5000); melde('CHASE LOOP', '250.000', 1.6); sfx.gasse(); }
+    else {
+      const w = Math.min(3, chaseKette - 1) * 1000000;
+      punkte(w, 10000); melde('CHASE LOOP ' + chaseKette + 'X', fmt(w), 2.2); blitzen(0.7); sfx.rampe();
+      lampenBlitz(l => l.gruppe === 'chase', 1);
+    }
+  }
   // Mulde oben rechts: kassiert das unterste blinkende Feld der Escape Route
   function mulde() {
     ball.x = MULDE.x; ball.y = MULDE.y; ball.vx = 0; ball.vy = 0;
@@ -1007,6 +1020,9 @@ const dmd = (() => {
       ball.fluchtBis = zeit + 3;
       sfx.gasse();
     }
+    // Chase Loop: rechter Umlauf hinauf (nicht die Abschussrinne, die liegt rechts von LANE_X).
+    // Die Kugel läuft über den Bogen und den linken Umlauf zurück zum linken Flipper; schnell wiederholt = Kombo
+    if (ball.x > 330 && ball.x < LANE_X - 2 && Math.abs(ball.y - 340) < 10 && ball.vy < -150 && frei('chase', 1.2)) chaseLoop();
     // Aus dem linken Umlauf über den Bogen in die Mulde oben rechts
     if (ball.fluchtBis > zeit && ball.vy > 0 && ball.x > 326 && Math.abs(ball.y - MULDE.y) < 14 &&
       (cool.mulde || 0) < zeit && !balls.some(b => b.mulde)) { mulde(); return; }
@@ -1093,7 +1109,7 @@ const dmd = (() => {
     score = 0; ballNo = 1; gameOver = false; bonus = 0; multi = 0;
     fluchtLit = 1; fluchtGeholt = 0; holdBonus = false; lanesLit = false;
     extraBall = false; extraVergeben = false; saveBis = 0;
-    schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
+    schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false; chaseKette = 0; chaseBis = 0;
     gunLit = false; sdrop.unten = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0; rundTreffer = null;
     topLanes.fill(false); drops.forEach(d => { d.an = false; }); standups.forEach(s => { s.an = false; });
     paybackBis = 0; kickback = false; jpMult = 1; jpShow = -99; folge = null; sicherL = 0; sicherR = 0; wahl = null; hurryBis = 0;
@@ -1126,6 +1142,9 @@ const dmd = (() => {
     gruppe: 'rampe', z: () => sicherR < 5 ? 3 : 1, k }));
   // Umlauf-Pfeil links
   L({ form: 'pfeil', x: 35, y: 420, w: 16, h: 18, dir: -PI / 2, farbe: 'amber', gruppe: 'orbit', z: () => 2 });
+  // Chase Loop rechts: Pfeil im rechten Umlauf – Lauflicht, blinkt schnell, solange die Kombo-Zeit läuft
+  [0, 1].forEach(k => L({ form: 'pfeil', x: 345, y: 372 - k * 20, w: 15, h: 16, dir: -PI / 2, farbe: 'blau', label: k ? '' : 'CHASE',
+    gruppe: 'chase', z: () => zeit < chaseBis ? 2 : 3, k }));
   // Kleine rote Pfeile unter den Klappzielen
   drops.forEach((d, i) => L({ form: 'pfeil', x: d.x, y: 292, w: 12, h: 14, dir: -PI / 2, farbe: 'rot', gruppe: 'drop',
     z: () => d.an ? 1 : 3, k: i }));
@@ -1341,7 +1360,7 @@ const dmd = (() => {
     g.strokeRect(84 - 33, 443, 66, 124); g.strokeRect(294 - 33, 446, 66, 118);
     g.strokeRect(166, 348, 44, 54);
     // Umlauf-Gassen etwas dunkler
-    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(12, 200, 46, 280); g.fillRect(326, 200, 38, 220); g.fillRect(LANE_X, 300, 28, 460);
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(12, 200, 46, 280); g.fillRect(326, 200, 38, 182); g.fillRect(LANE_X, 300, 28, 460);
     // Zifferblatt „Zero Time“ in der Mitte (Zeiger wird live gezeichnet)
     g.strokeStyle = 'rgba(160,200,230,.35)'; g.lineWidth = 2;
     g.beginPath(); g.arc(188, 500, 30, 0, 2 * PI); g.stroke();
@@ -1819,7 +1838,7 @@ const dmd = (() => {
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },
-    get loaded() { return loaded; }, drops, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
+    get loaded() { return loaded; }, get chase() { return { kette: chaseKette, bis: chaseBis }; }, drops, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
 <script>
