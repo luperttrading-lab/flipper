@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.32';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.33';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1417,22 +1417,33 @@ const dmd = (() => {
       ctx.fillText('FEUER', kanone.x, kanone.y + 36);
     }
   }
-  // Chrom-Flugobjekt über den Rundzielen (nur gezeichnet, eigene Form)
-  function zeichneFlugobjekt() {
-    const x = 42, y = 360;
+  // Zielmarkierung der Kanone: Eckklammern um die fünf Rundziele und ein Fadenkreuz darüber.
+  // Ruhig und gedämpft; pulsiert rot, sobald die Kanone geladen ist (dann wandert ein Visier auf das beleuchtete Ziel).
+  function zeichneZielmarke() {
+    const geladen = !!kanone.kugel, p = geladen ? 0.55 + 0.45 * Math.sin(zeit * 8) : 0;
+    const farbe = a => geladen ? `rgba(255, 70, 55, ${a})` : `rgba(210, 225, 240, ${a * 0.45})`;
+    const x0 = 50, x1 = 93, y0 = 375, y1 = 457, l = 9;
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.ellipse(x + 7, y + 10, 30, 9, 0, 0, 2 * PI); ctx.fill();
-    const g = ctx.createLinearGradient(x, y - 12, x, y + 10);
-    g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#8d99a6'); g.addColorStop(0.7, '#e6edf4'); g.addColorStop(1, '#4c5662');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.moveTo(x - 32, y + 2); ctx.lineTo(x - 12, y - 6); ctx.lineTo(x + 18, y - 6); ctx.lineTo(x + 34, y + 3);
-    ctx.lineTo(x + 18, y + 8); ctx.lineTo(x - 12, y + 8); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(x + 2, y - 7, 10, 6, 0, PI, 2 * PI); ctx.fill();         // Kanzel
-    ctx.fillRect(x - 30, y - 12, 8, 4); ctx.fillRect(x + 22, y - 12, 8, 4);                // Triebwerke
-    const an = Math.floor(zeit * 3) % 2;
-    ctx.fillStyle = an ? '#ff3a3a' : '#5a1a1a';
-    ctx.beginPath(); ctx.arc(x - 26, y + 3, 2, 0, 2 * PI); ctx.arc(x + 26, y + 3, 2, 0, 2 * PI); ctx.fill();
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = farbe(0.5 + 0.5 * p);
+    ctx.beginPath();
+    for (const [x, y, dx, dy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) {
+      ctx.moveTo(x + dx * l, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * l);
+    }
+    ctx.stroke();
+    // Fadenkreuz über den Zielen
+    const cx = 71, cy = 358, r = 8;
+    ctx.lineWidth = 1.6; ctx.strokeStyle = farbe(0.6 + 0.4 * p);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * PI);
+    ctx.moveTo(cx - r - 5, cy); ctx.lineTo(cx - 3, cy); ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + r + 5, cy);
+    ctx.moveTo(cx, cy - r - 5); ctx.lineTo(cx, cy - 3); ctx.moveTo(cx, cy + 3); ctx.lineTo(cx, cy + r + 5);
+    ctx.stroke();
+    ctx.fillStyle = farbe(0.8); ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, 2 * PI); ctx.fill();
+    // Geladene Kanone: Visier-Ring auf dem beleuchteten Ziel
+    if (geladen) {
+      const z = rund[kanone.ziel];
+      ctx.lineWidth = 1.5; ctx.strokeStyle = farbe(0.7 + 0.3 * p);
+      ctx.beginPath(); ctx.arc(z.x + 3, z.y, 9 + 2 * p, 0, 2 * PI); ctx.stroke();
+    }
     ctx.restore();
   }
   // Fünf weiße Rundziele; das beleuchtete glüht
@@ -1554,7 +1565,7 @@ const dmd = (() => {
     ctx.fillStyle = 'rgba(0,0,0,.35)';
     for (const p of lage) if (p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 7, p.y + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
 
-    zeichneFlugobjekt();
+    zeichneZielmarke();
     zeichneKanone();
     zeichneAbzug();
     for (const p of lage) {

@@ -150,6 +150,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (links/rechts), so zählt jeder Durchlauf. Verworfen: Abweiser links an den Gassen (lenkte den Abschuss zurück, Kugel hing
   dann oben an der Abschussrinne bei x≈375, y≈270; ein schwacher Abschuss ~1300 landet dort ebenfalls – beim Rampenumbau
   im Blick behalten). Test 24/24 OK, 3 × 10 min ohne Fehler.
+- Stand 0.33: Das gezeichnete **Chrom-Flugobjekt ist ersetzt** (war als Form unverständlich) durch eine **Zielmarkierung**:
+  Eckklammern um die fünf Rundziele (x 50–93, y 375–457) und ein Fadenkreuz darüber (71/358). Ruhig gedämpft grau; bei
+  geladener Kanone pulsieren beide rot, und ein Visier-Ring sitzt auf dem beleuchteten Ziel (`zeichneZielmarke()`).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
