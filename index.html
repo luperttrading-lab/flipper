@@ -55,40 +55,9 @@
     box-shadow: 0 0 0 3px #2a3140, 0 0 0 6px #0c0f15;
   }
   html, body { touch-action: none; }      /* ganzer Schirm ist Steuerfläche: kein Zoomen/Scrollen */
-  /* Abzug: klein, in einer schmalen Zeile unter dem Tisch (verdeckt nichts) */
-  .controls {
-    display: flex; justify-content: center;
-    padding-block: 5px calc(env(safe-area-inset-bottom, 0px) + 2px);
-  }
-  .controls button {
-    flex: 1;
-    height: 54px;
-    border: 0;
-    border-radius: 27px;
-    background: var(--btn);
-    color: var(--ink);
-    font: 600 15px system-ui, sans-serif;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .controls button.on { background: var(--btn-on); color: #1a1206; }
-  .controls { align-items: center; }
-  .controls #fire {
-    flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border-radius: 50%;
-    background:
-      repeating-linear-gradient(45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
-      repeating-linear-gradient(-45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
-      radial-gradient(circle at 35% 30%, #ffffff, #b9c3cd 45%, #6b7682 80%, #3a424c);
-    color: #1c2128; font-size: 8px; letter-spacing: 0; font-weight: 800;
-    border: 2px solid #d8dee5;
-  }
-  .controls #fire.on { background: radial-gradient(circle at 50% 50%, #ff8a8a, #c21f2f); color: #fff; border-color: #ff5566; }
-  .controls #fire.bereit { animation: puls 1s ease-in-out infinite; }
-  @keyframes puls { 50% { box-shadow: 0 0 0 7px rgba(255, 70, 60, .45), 0 0 22px rgba(255, 70, 60, .5); } }
-  @media (prefers-reduced-motion: reduce) { .controls #fire.bereit { animation: none; box-shadow: 0 0 0 4px rgba(224, 52, 74, .5); } }
-  .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
+  /* Kein Knopf mehr: Abzug = Tipp auf die Abschussrinne (rechts unten im Tisch); der Tisch reicht bis ganz unten,
+     unten bleibt nur der Streifen der Home-Leiste frei (sonst schneiden die runden Bildschirmecken die Kugel ab) */
+  #stage { padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
   .ver {
     font-size: 13px; color: var(--muted); background: none; border: 0; padding: 8px 4px;
     text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer;
@@ -139,7 +108,7 @@
 </header>
 <div class="start splash" id="start">
   <span id="start-text">Antippen zum Starten</span>
-  <p class="start-hilfe">Linke / rechte Bildschirmhälfte tippen = Flipper · Knopf unten = Abzug</p>
+  <p class="start-hilfe">Linke / rechte Hälfte tippen = Flipper · Kugel rechts unten antippen = Abzug</p>
   <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
@@ -150,12 +119,9 @@
   <button class="btn" id="update-go" type="button">Jetzt laden</button>
 </div>
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
-<div class="controls">
-  <button id="fire" type="button" aria-label="Abzug">Abzug</button>
-</div>
 
 <script>
-const APP_VERSION = '0.27';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.28';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1390,6 +1356,22 @@ const dmd = (() => {
     ctx.fillStyle = kanone.kugel ? '#ff3a3a' : '#5a1a1a'; ctx.fillRect(-7, -3, 6, 6);
     ctx.restore();
   }
+  // Abzug in der Abschussrinne: senkrechte Beschriftung, pulsiert, wenn der Abzug etwas tut
+  let abzugGedrueckt = 0;
+  function zeichneAbzug() {
+    const bereit = loaded || !!kanone.kugel || !!wahl, x = (LANE_X + 392) / 2;
+    const puls = bereit ? 0.55 + 0.45 * Math.sin(zeit * 6) : 0.25, an = zeit < abzugGedrueckt;
+    ctx.save();
+    ctx.translate(x, 660); ctx.rotate(-PI / 2);
+    ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = an ? '#ffffff' : `rgba(255, 90, 80, ${puls})`;
+    ctx.fillText('ABZUG', 0, 0);
+    ctx.restore();
+    if (loaded) {
+      ctx.beginPath(); ctx.arc(SHOOT_X, SHOOT_Y, R + 3 + 2 * puls, 0, 2 * PI);
+      ctx.strokeStyle = `rgba(255, 70, 60, ${puls})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
   // Chrom-Flugobjekt über den Rundzielen (nur gezeichnet, eigene Form)
   function zeichneFlugobjekt() {
     const x = 42, y = 360;
@@ -1527,6 +1509,7 @@ const dmd = (() => {
 
     zeichneFlugobjekt();
     zeichneKanone();
+    zeichneAbzug();
     for (const p of lage) {
       const g = ctx.createRadialGradient(p.x - 3, p.y - 3, 1, p.x, p.y, R);
       g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
@@ -1588,10 +1571,10 @@ const dmd = (() => {
       if (blink) dmd.mitte('FEUER FREI', 24, 1, 3);
     } else if (gameOver) {
       if (Math.floor(zeit * 0.5) % 2 === 0) { dmd.mitte('GAME OVER', 3, 2, 3); dmd.mitte(fmt(score), 22, 1, 2); }
-      else { dmd.mitte('ABZUG DRÜCKEN', 8, 1, 3); dmd.mitte('FÜR NEUES SPIEL', 18, 1, 2); }
+      else { dmd.mitte('ANTIPPEN', 8, 1, 3); dmd.mitte('FÜR NEUES SPIEL', 18, 1, 2); }
     } else if (!gestartet && loaded) {
       dmd.mitte('ZERO TIME', 3, 2, 3);
-      if (blink) dmd.mitte('ABZUG DRÜCKEN', 22, 1, 2);
+      if (blink) dmd.mitte('KUGEL ANTIPPEN', 22, 1, 2);
     } else {
       const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
       dmd.mitte(t, s === 2 ? 2 : 6, s, 3);
@@ -1640,8 +1623,9 @@ const dmd = (() => {
   const finger = new Map();                       // pointerId → 0 (links) / 1 (rechts)
   const halte = seite => { flippers[seite].on = [...finger.values()].includes(seite); };
   window.addEventListener('pointerdown', e => {
-    if (e.target.closest && e.target.closest('#fire, #start, #update')) return;
+    if (e.target.closest && e.target.closest('#start, #update')) return;
     e.preventDefault();
+    if (imAbzugFeld(e.clientX, e.clientY)) { abzugGedrueckt = zeit + 0.15; abzug(); return; }
     const seite = e.clientX < window.innerWidth / 2 ? 0 : 1;
     if (wahlBewegen(seite ? 1 : -1)) return;
     if (gameOver) { restart(); return; }
@@ -1651,11 +1635,12 @@ const dmd = (() => {
   const los = e => { if (!finger.has(e.pointerId)) return; const s = finger.get(e.pointerId); finger.delete(e.pointerId); halte(s); };
   ['pointerup', 'pointercancel'].forEach(ev => window.addEventListener(ev, los));
   window.addEventListener('contextmenu', e => e.preventDefault());
-  const fire = document.getElementById('fire');
-  fire.addEventListener('pointerdown', e => { e.preventDefault(); fire.classList.add('on'); abzug(); });
-  fire.addEventListener('pointerup', () => fire.classList.remove('on'));
-  fire.addEventListener('pointercancel', () => fire.classList.remove('on'));
-  fire.addEventListener('contextmenu', e => e.preventDefault());
+  // Abzug-Feld: Abschussrinne unten rechts (großzügig; unten ist die schräge Ansicht fast unverzerrt)
+  function imAbzugFeld(cx, cy) {
+    const r = cv.getBoundingClientRect();
+    const tx = (cx - r.left) / r.width * W, ty = H - (r.bottom - cy) / r.height * H;
+    return tx >= LANE_X - 12 && ty >= 560 && cy <= r.bottom + 30;
+  }
 
   // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
   window.addEventListener('keydown', e => {
@@ -1674,7 +1659,6 @@ const dmd = (() => {
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    fire.classList.toggle('bereit', loaded || gameOver || !!kanone.kugel || !!wahl);
     const pause = !document.getElementById('start').hidden;
     if (wahl && !pause) { zeit += dt; if (zeit > wahl.bis) wahlFertig(); }
     else if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
@@ -1688,7 +1672,7 @@ const dmd = (() => {
   requestAnimationFrame(frame);
 
   // Nur für automatische Tests (Node), im Browser ohne Wirkung
-  if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },
+  if (window.__TEST__) window.__TEST__.api = { step, abzug, imAbzugFeld, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },

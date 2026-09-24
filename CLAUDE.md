@@ -23,7 +23,8 @@ Eigener Tisch mit den Funktionen von Williams „Terminator 2“ (1991), aber **
 Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Name: **Zero Time** (bis 0.17 „Zero Hour“; vom Nutzer in 0.18 umbenannt. „Fighting Machine“ als Alternative
   verworfen – zu lang für die Anzeige in großer Schrift, max. 10 Zeichen)
-- Abschuss per **Abzug-Knopf** (seit 0.27 klein, 42 px, mittig in einer schmalen Zeile **unter** dem Tisch), keine Wisch-Feder mehr.
+- Abschuss per **Abzug** – seit 0.28 **kein Knopf mehr**: Tipp auf die Abschussrinne/Kugel rechts unten im Tisch (dort steht
+  „ABZUG“, Ring pulsiert um die Kugel); feuert auch die Kanone und bestätigt das Wahl-Menü. Keine Wisch-Feder.
   **Flipper seit 0.26 per Tipp auf die linke/rechte Bildschirmhälfte** (keine Flipper-Knöpfe mehr, Mehrfinger möglich)
 - **Kanone** wie im Original: schwenkt nach dem Laden automatisch hin und her, Abzug feuert,
   Treffer aufs beleuchtete Ziel startet Multiball; nach einigen Sekunden feuert sie selbst
@@ -112,6 +113,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   den Tisch schrittweise, bis seine **sichtbare** Oberkante 6 px unter der Anzeige liegt (nie darüber, max. Breite); Abzug
   42 px in eigener Zeile unter dem Tisch (Nutzerwunsch). Gemessen mit simulierter Status-/Home-Leiste: 430×932 → Tisch
   694 px, 393×852 → 614 px, 375×667 → 502 px; Anzeige überall frei, Abzug unter dem Tisch.
+- Stand 0.28 (Nutzerwunsch): Knopfzeile entfernt, **Abzug = Tipp auf die Abschussrinne** (`imAbzugFeld`: Tischkoordinaten
+  x ≥ LANE_X−12, y ≥ 560, aus dem sichtbaren Rechteck des Canvas umgerechnet; unten ist die Perspektive fast unverzerrt).
+  Senkrechte Beschriftung „ABZUG“ in der Rinne, pulsierender Ring um die ruhende Kugel. Tisch reicht bis zur Home-Leiste
+  (`#stage` unten nur `safe-area-inset-bottom` frei – sonst schneiden die runden Bildschirmecken die Kugel ab). Anzeige-Texte
+  „KUGEL ANTIPPEN“ / „ANTIPPEN FÜR NEUES SPIEL“. Gemessen (Status- und Home-Leiste simuliert): 430×932 → Tisch 729 px,
+  393×852 → 663 px, 375×667 → 551 px; Anzeige frei; Tipp rechts auf den Tisch = Flipper, Tipp auf die Kugel = Abschuss.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
