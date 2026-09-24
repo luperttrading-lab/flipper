@@ -105,7 +105,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.6';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.7';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -117,26 +117,47 @@ const sfx = (() => {
   zeige();
 
   // iOS erlaubt Ton erst nach einer Berührung: Kontext beim ersten Antippen starten
+  function neu() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { if (ac) ac.close(); } catch (_) {}
+    ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+  }
   function unlock() {
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
-    if (!ac) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
-    }
-    if (ac.state !== 'running') {
-      ac.resume();
-      // stiller Mini-Ton: schaltet die Ausgabe auf iOS zuverlässig frei
-      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
-      src.buffer = b; src.connect(ac.destination); src.start(0);
-    }
+    try {
+      // iOS lässt einen Kontext nach Hintergrund/Neustart gern hängen ('interrupted'/'closed'): dann neu anlegen
+      if (!ac || ac.state === 'closed' || ac.state === 'interrupted') neu();
+      if (!ac) return;
+      if (ac.state !== 'running') {
+        const p = ac.resume();
+        if (p && p.catch) p.catch(() => {});
+        // stiller Mini-Ton: schaltet die Ausgabe auf iOS zuverlässig frei
+        const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
+        src.buffer = b; src.connect(ac.destination); src.start(0);
+      }
+    } catch (_) { ac = null; }
   }
+  // Nach dem Zurückholen aus dem Hintergrund: hängenden Kontext verwerfen, nächster Tipp baut neu auf
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && ac && ac.state !== 'running') {
+      try { ac.close(); } catch (_) {}
+      ac = null;
+    }
+  });
   ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, unlock, { capture: true, passive: true }));
 
+  // Umschalten mit Rückmeldung: Probeton + Zustand im Banner (hilft auch bei der Fehlersuche)
   tonEl.addEventListener('click', () => {
     an = !an; zeige();
     try { localStorage.setItem('flipper.ton', an ? 'an' : 'aus'); } catch (_) {}
+    if (!an) { window.showInfo && window.showInfo('Ton aus', 2); return; }
+    setTimeout(() => {
+      const st = ac ? ac.state : 'nicht verfügbar';
+      if (st === 'running') { api.bumper(0); window.showInfo && window.showInfo('Ton an', 2); }
+      else window.showInfo && window.showInfo('Ton blockiert (' + st + ') – einmal auf den Tisch tippen', 4);
+    }, 150);
   });
 
   const bereit = () => an && ac && ac.state === 'running';
@@ -173,7 +194,7 @@ const sfx = (() => {
     { typ: 'sawtooth', f: 783.99 },   // G5
   ];
 
-  return {
+  const api = {
     // Flipper: kurzes mechanisches Klacken, tief und trocken
     flipper() {
       if (!bereit()) return;
@@ -193,6 +214,7 @@ const sfx = (() => {
       ton('sine', b.f * 2, b.f * 2, 0.08, 0.12);
     },
   };
+  return api;
 })();
 </script>
 <script>
@@ -530,6 +552,7 @@ const sfx = (() => {
     updateEl.classList.remove('an'); clearTimeout(ausTimer);
     ausTimer = setTimeout(() => { if (!updateEl.classList.contains('an')) updateEl.hidden = true; }, 380);
   }
+  window.showInfo = showInfo;
   function showInfo(text, sekunden = 2) {
     updateEl.className = 'update info';
     document.getElementById('update-text').textContent = text;
