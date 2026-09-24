@@ -39,7 +39,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding-block: 8px 6px;
+    padding-block: calc(env(safe-area-inset-top, 0px) + 10px) 6px;
     font-variant-numeric: tabular-nums;
   }
   .score { font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip); }
@@ -49,7 +49,7 @@
   .controls {
     display: flex;
     gap: 16px;
-    padding-block: 10px 12px;
+    padding-block: 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
   }
   .controls button {
     flex: 1;
@@ -68,7 +68,7 @@
   .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
   .meta { display: flex; gap: 12px; align-items: baseline; }
   .ver {
-    font-size: 12px; color: var(--muted); background: none; border: 0; padding: 0;
+    font-size: 13px; color: var(--muted); background: none; border: 0; padding: 8px 4px;
     text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer;
   }
   /* Update-Banner: überlagert (fixed), schiebt nichts */
@@ -84,7 +84,6 @@
   .update.info { background: #2d2d33; color: #f2f2f7; font-weight: 500; }
   .update .btn { border: 0; border-radius: 10px; padding: 8px 14px; font: 600 15px system-ui, sans-serif; background: #06240e; color: #fff; }
   @media (prefers-reduced-motion: reduce) { .update { transition: none; } }
-  .hint { font-size: 12px; color: var(--muted); text-align: center; padding-bottom: 4px; }
 </style>
 
 <header>
@@ -100,14 +99,13 @@
   <button class="btn" id="update-go" type="button">Jetzt laden</button>
 </div>
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
-<div class="hint" id="hint">Rechts nach unten wischen = Feder spannen · loslassen = Schuss</div>
 <div class="controls">
   <button id="bl" type="button">Links</button>
   <button id="br" type="button">Rechts</button>
 </div>
 
 <script>
-const APP_VERSION = '0.5';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.6';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -120,14 +118,20 @@ const sfx = (() => {
 
   // iOS erlaubt Ton erst nach einer Berührung: Kontext beim ersten Antippen starten
   function unlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
     if (!ac) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state !== 'running') {
+      ac.resume();
+      // stiller Mini-Ton: schaltet die Ausgabe auf iOS zuverlässig frei
+      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
+      src.buffer = b; src.connect(ac.destination); src.start(0);
+    }
   }
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+  ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, unlock, { capture: true, passive: true }));
 
   tonEl.addEventListener('click', () => {
@@ -207,7 +211,6 @@ const sfx = (() => {
   const ctx = cv.getContext('2d');
   const scoreEl = document.getElementById('score');
   const ballsEl = document.getElementById('balls');
-  const hintEl = document.getElementById('hint');
 
   // ---------- Geometrie ----------
   const walls = [];
@@ -252,8 +255,6 @@ const sfx = (() => {
   function updateHud() {
     scoreEl.textContent = score.toLocaleString('de-DE');
     ballsEl.textContent = gameOver ? 'Game over' : `Kugel ${ballNo} / 3`;
-    hintEl.textContent = gameOver ? 'Tippen zum Neustart'
-      : 'Rechts nach unten wischen = Feder spannen · loslassen = Schuss';
   }
   updateHud();
 
@@ -389,6 +390,20 @@ const sfx = (() => {
     for (const f of flippers) {
       const t = tip(f);
       ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
+    }
+
+    // Hinweis-Pfeil: solange die Kugel auf der Feder liegt und nicht gespannt wird
+    if (loaded && !gameOver && pull === 0) {
+      const t = performance.now() / 1000;
+      const cx = (LANE_X + 380) / 2;
+      for (let k = 0; k < 3; k++) {
+        const ph = (t * 1.2 + k / 3) % 1;          // wandert nach unten, blendet aus
+        const y = 520 + ph * 90;
+        ctx.globalAlpha = Math.sin(ph * Math.PI);
+        ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(cx - 10, y - 6); ctx.lineTo(cx, y + 4); ctx.lineTo(cx + 10, y - 6); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     }
 
     // Kugel
