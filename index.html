@@ -79,6 +79,17 @@
     padding: 12px 14px; border-radius: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.5);
     opacity: 0; transition: opacity .35s ease; pointer-events: none;
   }
+  /* Start-Schirm: ein Tipp darauf schaltet auf iOS den Ton frei */
+  .start {
+    position: fixed; inset: 0; z-index: 25;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(11, 20, 32, .72);
+  }
+  .start[hidden] { display: none; }
+  .start span {
+    font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip);
+    padding: 18px 26px; border: 2px solid var(--flip); border-radius: 16px;
+  }
   .update.an { opacity: 1; pointer-events: auto; }
   .update[hidden] { display: none; }
   .update.info { background: #2d2d33; color: #f2f2f7; font-weight: 500; }
@@ -94,6 +105,7 @@
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
   </span>
 </header>
+<div class="start" id="start"><span>Antippen zum Starten</span></div>
 <div class="update" id="update" hidden>
   <span id="update-text"></span>
   <button class="btn" id="update-go" type="button">Jetzt laden</button>
@@ -105,7 +117,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.7';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.8';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -126,8 +138,7 @@ const sfx = (() => {
   function unlock() {
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
     try {
-      // iOS lässt einen Kontext nach Hintergrund/Neustart gern hängen ('interrupted'/'closed'): dann neu anlegen
-      if (!ac || ac.state === 'closed' || ac.state === 'interrupted') neu();
+      if (!ac || ac.state === 'closed') neu();
       if (!ac) return;
       if (ac.state !== 'running') {
         const p = ac.resume();
@@ -138,15 +149,20 @@ const sfx = (() => {
       }
     } catch (_) { ac = null; }
   }
-  // Nach dem Zurückholen aus dem Hintergrund: hängenden Kontext verwerfen, nächster Tipp baut neu auf
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && ac && ac.state !== 'running') {
-      try { ac.close(); } catch (_) {}
-      ac = null;
-    }
-  });
-  ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'].forEach(ev =>
+  // iOS zählt nur Loslassen/Klick/Taste als Nutzeraktion – nur dort freischalten
+  ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev =>
     window.addEventListener(ev, unlock, { capture: true, passive: true }));
+
+  // Start-Schirm: beim Öffnen und wenn der Ton nach dem Hintergrund hängt
+  const startEl = document.getElementById('start');
+  startEl.addEventListener('click', () => {
+    unlock();
+    startEl.hidden = true;
+    setTimeout(() => api.bumper(2), 60);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && an && (!ac || ac.state !== 'running')) startEl.hidden = false;
+  });
 
   // Umschalten mit Rückmeldung: Probeton + Zustand im Banner (hilft auch bei der Fehlersuche)
   tonEl.addEventListener('click', () => {
@@ -160,7 +176,12 @@ const sfx = (() => {
     }, 150);
   });
 
-  const bereit = () => an && ac && ac.state === 'running';
+  function spiele(fn) {
+    if (!an || !ac) return;
+    if (ac.state === 'running') { fn(); return; }
+    const p = ac.resume();
+    if (p && p.then) p.then(() => { if (ac.state === 'running') fn(); }).catch(() => {});
+  }
 
   function ton(typ, f0, f1, dauer, laut, start = 0) {
     const t = ac.currentTime + start;
@@ -196,23 +217,20 @@ const sfx = (() => {
 
   const api = {
     // Flipper: kurzes mechanisches Klacken, tief und trocken
-    flipper() {
-      if (!bereit()) return;
+    flipper() { spiele(() => {
       rauschen(0.05, 0.5, 2500, 800, 2);
       ton('sine', 140, 60, 0.08, 0.6);
-    },
+    }); },
     // Abschuss: aufsteigendes Zischen, lauter und höher je stärker gespannt
-    schuss(staerke) {
-      if (!bereit()) return;
+    schuss(staerke) { spiele(() => {
       rauschen(0.35, 0.25 + 0.35 * staerke, 400, 3000 + 3000 * staerke, 0.8);
       ton('sine', 180, 420 + 400 * staerke, 0.3, 0.3);
-    },
-    bumper(i) {
-      if (!bereit()) return;
+    }); },
+    bumper(i) { spiele(() => {
       const b = BUMPER[i % BUMPER.length];
       ton(b.typ, b.f, b.f * 1.02, 0.18, 0.22);
       ton('sine', b.f * 2, b.f * 2, 0.08, 0.12);
-    },
+    }); },
   };
   return api;
 })();
