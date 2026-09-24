@@ -140,3 +140,17 @@ Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
   Jackpot vervielfacht.
 - **Video-Modus:** Die Flipper-Knöpfe steuern ein Fadenkreuz nach links und rechts, 3 Ziele vor Ablauf der Zeit treffen.
 - **Skill Shot:** Wert steigt von Kugel 1 zu Kugel 3. **Mittelpfosten** zwischen den Flippern (fehlt bei uns).
+
+## Aus dem Handy-Video des Nutzers (13 s, echter Automat im Multiball, blaue LED-Grundbeleuchtung; Messung per ffmpeg)
+
+- **Jackpot-Lichtshow** [Sicher, gemessen]: Die Grundbeleuchtung flackert 3× mit 5 Hz (je 0,1 s aus/an), dann
+  **~0,6 s komplett dunkel** – nur die Einsätze glühen, die Anzeige zeigt die Punktzahl (11.700.000). Danach kommt sie
+  heller zurück (Blitzer), und „JACKPOT“ blinkt in der Anzeige.
+- **Kurzer Einbruch der Grundbeleuchtung** (~0,1 s) bei einem starken Treffer (8,25 s), dazu passt ein lauter Schlag im Ton.
+- **Anzeige:** Vor dem Jackpot steht „SHOOT FOR 2X JACKPOT“ → der Jackpot verdoppelt sich im Multiball (bei uns fest 1 Mio).
+- **V-Säulen** (unsere Sicherheits-Säulen): Beim Jackpot laufen Lauflichter die Ovale hinauf, abwechselnd links/rechts.
+  Die farbigen Fächer-Einsätze um „AUTO-FIRE BALL RESCUE“ unten leuchten beim Jackpot mit.
+- **Ton** [Wahrscheinlich, aus dem Spektrogramm]: Im Multiball läuft **durchgehend Musik** (Energie fast nur unter
+  800 Hz, Bass-lastig). Wir haben keine Musik. Mechanische Schläge sind sehr kurze Breitband-Klicks (30–50 ms, bis
+  über 5 kHz). Vor dem Jackpot kommt ein **ansteigender Sirenen-Sweep** (~2,5 s, Obertöne von 1.000 auf 2.400 Hz).
+  Die Sprachausgabe lässt sich nicht trennen und wäre ohnehin geschützt.
