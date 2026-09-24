@@ -28,6 +28,7 @@
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     display: flex;
     flex-direction: column;
+    margin: 0;
     padding-inline: 10px;
     box-sizing: border-box;
     overflow: hidden;
@@ -54,13 +55,11 @@
     box-shadow: 0 0 0 3px #2a3140, 0 0 0 6px #0c0f15;
   }
   html, body { touch-action: none; }      /* ganzer Schirm ist Steuerfläche: kein Zoomen/Scrollen */
-  /* Abzug schwebt rechts unten über der Abschussrinne (dort liegt die Kugel, wie der Pistolengriff am Original) */
+  /* Abzug: klein, in einer schmalen Zeile unter dem Tisch (verdeckt nichts) */
   .controls {
-    position: fixed; right: 4px; z-index: 5;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
     display: flex; justify-content: center;
+    padding-block: 5px calc(env(safe-area-inset-bottom, 0px) + 2px);
   }
-  #stage { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); }
   .controls button {
     flex: 1;
     height: 54px;
@@ -77,13 +76,13 @@
   .controls button.on { background: var(--btn-on); color: #1a1206; }
   .controls { align-items: center; }
   .controls #fire {
-    flex: 0 0 52px; width: 52px; height: 52px; padding: 0; border-radius: 50%;
+    flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border-radius: 50%;
     background:
       repeating-linear-gradient(45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
       repeating-linear-gradient(-45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
       radial-gradient(circle at 35% 30%, #ffffff, #b9c3cd 45%, #6b7682 80%, #3a424c);
-    color: #1c2128; font-size: 10px; letter-spacing: .02em; font-weight: 800;
-    border: 3px solid #d8dee5;
+    color: #1c2128; font-size: 8px; letter-spacing: 0; font-weight: 800;
+    border: 2px solid #d8dee5;
   }
   .controls #fire.on { background: radial-gradient(circle at 50% 50%, #ff8a8a, #c21f2f); color: #fff; border-color: #ff5566; }
   .controls #fire.bereit { animation: puls 1s ease-in-out infinite; }
@@ -156,7 +155,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.26';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.27';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1609,18 +1608,26 @@ const dmd = (() => {
   let scale = 1;
   function resize() {
     const st = document.getElementById('stage').getBoundingClientRect();
-    scale = Math.min(st.width / W, st.height / (H * 0.96));     // schräg gestellt wirkt der Tisch etwas niedriger
+    const kopf = document.getElementById('kopf');
+    kopf.style.transform = '';
+    const setze = s => { scale = s; cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px'; };
+    setze(Math.min(st.width / W, st.height / H));
+    // Schräg gestellt ist der Tisch sichtbar niedriger: so weit vergrößern, bis er oben an die Anzeige stößt –
+    // aber nie darüber (sonst verdeckt er die untere Anzeigezeile)
+    for (let i = 0; i < 6; i++) {
+      const r = cv.getBoundingClientRect(), frei = r.top - kopf.getBoundingClientRect().bottom - 6;
+      if (!(r.height > 0) || Math.abs(frei) < 1) break;
+      const neu = Math.min(st.width / W, scale * (1 + frei / r.height));
+      if (Math.abs(neu - scale) < 1e-4) break;
+      setze(neu);
+    }
     const dpr = window.devicePixelRatio || 1;
-    cv.style.width = W * scale + 'px';
-    cv.style.height = H * scale + 'px';
     cv.width = Math.round(W * scale * dpr);
     cv.height = Math.round(H * scale * dpr);
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
     grund = baueGrund(Math.min(3, scale * dpr));
-    // Die Anzeige rückt direkt über den (perspektivisch verkürzten) Tisch; die Restluft bleibt oben am Rand
-    const kopf = document.getElementById('kopf');
-    kopf.style.transform = '';
-    const luecke = cv.getBoundingClientRect().top - kopf.getBoundingClientRect().bottom - 8;
+    // Bleibt (breitenbegrenzt) Luft, rückt die Anzeige direkt über den Tisch; die Restluft bleibt oben am Rand
+    const luecke = cv.getBoundingClientRect().top - kopf.getBoundingClientRect().bottom - 6;
     if (luecke > 0) kopf.style.transform = `translateY(${luecke}px)`;
   }
   window.addEventListener('resize', resize);

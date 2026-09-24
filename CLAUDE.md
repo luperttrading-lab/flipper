@@ -23,7 +23,7 @@ Eigener Tisch mit den Funktionen von Williams „Terminator 2“ (1991), aber **
 Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Name: **Zero Time** (bis 0.17 „Zero Hour“; vom Nutzer in 0.18 umbenannt. „Fighting Machine“ als Alternative
   verworfen – zu lang für die Anzeige in großer Schrift, max. 10 Zeichen)
-- Abschuss per **Abzug-Knopf** (seit 0.26 rund, rechts unten über der Abschussrinne), keine Wisch-Feder mehr.
+- Abschuss per **Abzug-Knopf** (seit 0.27 klein, 42 px, mittig in einer schmalen Zeile **unter** dem Tisch), keine Wisch-Feder mehr.
   **Flipper seit 0.26 per Tipp auf die linke/rechte Bildschirmhälfte** (keine Flipper-Knöpfe mehr, Mehrfinger möglich)
 - **Kanone** wie im Original: schwenkt nach dem Laden automatisch hin und her, Abzug feuert,
   Treffer aufs beleuchtete Ziel startet Multiball; nach einigen Sekunden feuert sie selbst
@@ -106,6 +106,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `touch-action: none` auf html/body. Abzug schwebt 52 px rund rechts unten über der Abschussrinne (erst mittig probiert:
   verdeckte Flipperspitzen und Ablauf – verworfen). Startschirm zeigt einen Hinweis zur Steuerung. Tisch 708 px (430×932),
   569 px (375×667, vorher 482). Skalierung `st.height / (H * 0.96)`: bei 0.9 schob sich der Tisch über die Anzeige.
+- Stand 0.27: Screenshot des Nutzers vom iPhone zeigte: **Tisch verdeckte die untere Anzeigezeile**, unten blieb Luft.
+  Ursachen: (1) auf dem Gerät begrenzt die **Höhe** (nicht die Breite, Annahme aus 0.24 war falsch), die feste Skalierung
+  `H * 0.96` passte nicht zur Perspektive; (2) `body` hatte nie `margin: 0` (8 px Browser-Rand). Jetzt: `resize()` vergrößert
+  den Tisch schrittweise, bis seine **sichtbare** Oberkante 6 px unter der Anzeige liegt (nie darüber, max. Breite); Abzug
+  42 px in eigener Zeile unter dem Tisch (Nutzerwunsch). Gemessen mit simulierter Status-/Home-Leiste: 430×932 → Tisch
+  694 px, 393×852 → 614 px, 375×667 → 502 px; Anzeige überall frei, Abzug unter dem Tisch.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
