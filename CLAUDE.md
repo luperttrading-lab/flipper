@@ -81,3 +81,25 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Der Kickback selbst sitzt im Original aber in der **linken** Ausgasse (orange KICKBACK-Lampe links unten);
   bei uns rechts, weil links die Umlauf-Zuführung die Ausgasse abdeckt. Beim Rampen-Umbau prüfen.
 - **Ton:** Rückmeldung des Nutzers zu 0.9–0.16 steht aus (iOS-Freischaltung über Start-/Pause-Schirm).
+
+## Aus dem Video-Dossier des Nutzers (15 Folien, KI-Zusammenfassung des Videos, nicht im Repo – Seite ist öffentlich)
+
+Die Texte stammen aus dem Video [Wahrscheinlich richtig]. Die Zeichnungen darin sind KI-generiert und taugen **nicht** als
+Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
+- **Kanone laden:** Man muss das zentrale Klappziel unter dem Kopf versenken → grünes „LOAD CANNON“ leuchtet → die Kugel
+  wird in die Kanone rechts geladen. Bei uns reichen 2 Schädel-Treffer. Umbauen: mittleres Klappziel versenken →
+  LOAD GUN, dann lädt der nächste Schädel-Treffer.
+- **Kanonen-Schwierigkeit in 3 Phasen:** 1. feststehendes Ziel, 2. wanderndes Ziel, 3. im Multiball schnell und mehrere
+  Ziele. Bei uns wandert das Ziel immer. Umbauen: erster Kanonenschuss je Spiel mit festem Ziel.
+- **Kickback links** (bestätigt), neu beleuchtet über die Ziele rechts. Bei uns sitzt er rechts (Umlauf-Zuführung).
+- **Escape Route:** 3 Ziele rechts → Belohnung leuchtet (Multiball, Extra Ball, Bonus behalten) → linken Umlauf schießen →
+  Kugel landet in der hinteren rechten Mulde und kassiert. Widerspruch im Dossier: Dieselben 3 Ziele rechts sollen auch
+  den Kickback beleuchten. Klären.
+- **CPU-Säulen:** Die Rampen zählen nur **abwechselnd** (L/R/L/R). Bei uns zählt jede Rampe für sich.
+- **Payback Time:** 20 s Modus, 6 bestimmte Schüsse leuchten, jeder Treffer bringt Millionen. Bei uns sind es 25 s mit
+  doppelten Punkten.
+- **Chase Loop:** rechter äußerer Umlauf als Kombo = 1 Mio. Bei uns hat der rechte Umlauf keine Regel.
+- **Database** (linke Mulde): Zufallsbelohnungen, z. B. 500.000. **Lock:** Im Multiball eine Kugel links einloggen →
+  Jackpot vervielfacht.
+- **Video-Modus:** Die Flipper-Knöpfe steuern ein Fadenkreuz nach links und rechts, 3 Ziele vor Ablauf der Zeit treffen.
+- **Skill Shot:** Wert steigt von Kugel 1 zu Kugel 3. **Mittelpfosten** zwischen den Flippern (fehlt bei uns).
