@@ -91,6 +91,7 @@
   <span class="score" id="score">0</span>
   <span class="meta">
     <span class="balls" id="balls">Kugel 1 / 3</span>
+    <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
   </span>
 </header>
@@ -106,7 +107,89 @@
 </div>
 
 <script>
-const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.5';          // bei JEDER Änderung hochzählen
+</script>
+<script>
+// ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
+const sfx = (() => {
+  let ac = null, master = null, an = true;
+  try { an = localStorage.getItem('flipper.ton') !== 'aus'; } catch (_) {}
+  const tonEl = document.getElementById('ton');
+  const zeige = () => { tonEl.textContent = an ? 'Ton an' : 'Ton aus'; };
+  zeige();
+
+  // iOS erlaubt Ton erst nach einer Berührung: Kontext beim ersten Antippen starten
+  function unlock() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, unlock, { capture: true, passive: true }));
+
+  tonEl.addEventListener('click', () => {
+    an = !an; zeige();
+    try { localStorage.setItem('flipper.ton', an ? 'an' : 'aus'); } catch (_) {}
+  });
+
+  const bereit = () => an && ac && ac.state === 'running';
+
+  function ton(typ, f0, f1, dauer, laut, start = 0) {
+    const t = ac.currentTime + start;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = typ;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dauer);
+    g.gain.setValueAtTime(laut, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
+    o.connect(g).connect(master);
+    o.start(t); o.stop(t + dauer + 0.02);
+  }
+  function rauschen(dauer, laut, filterF0, filterF1, q = 1) {
+    const t = ac.currentTime, n = Math.floor(ac.sampleRate * dauer);
+    const buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = q;
+    bp.frequency.setValueAtTime(filterF0, t);
+    bp.frequency.exponentialRampToValueAtTime(filterF1, t + dauer);
+    g.gain.setValueAtTime(laut, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
+    src.connect(bp).connect(g).connect(master);
+    src.start(t);
+  }
+
+  // Drei Bumper = C-Dur-Dreiklang, jeder mit eigener Klangfarbe
+  const BUMPER = [
+    { typ: 'square',   f: 523.25 },   // C5
+    { typ: 'triangle', f: 659.25 },   // E5
+    { typ: 'sawtooth', f: 783.99 },   // G5
+  ];
+
+  return {
+    // Flipper: kurzes mechanisches Klacken, tief und trocken
+    flipper() {
+      if (!bereit()) return;
+      rauschen(0.05, 0.5, 2500, 800, 2);
+      ton('sine', 140, 60, 0.08, 0.6);
+    },
+    // Abschuss: aufsteigendes Zischen, lauter und höher je stärker gespannt
+    schuss(staerke) {
+      if (!bereit()) return;
+      rauschen(0.35, 0.25 + 0.35 * staerke, 400, 3000 + 3000 * staerke, 0.8);
+      ton('sine', 180, 420 + 400 * staerke, 0.3, 0.3);
+    },
+    bumper(i) {
+      if (!bereit()) return;
+      const b = BUMPER[i % BUMPER.length];
+      ton(b.typ, b.f, b.f * 1.02, 0.18, 0.22);
+      ton('sine', b.f * 2, b.f * 2, 0.08, 0.12);
+    },
+  };
+})();
 </script>
 <script>
 (() => {
@@ -225,7 +308,7 @@ const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
       return;
     }
 
-    for (const b of bumpers) {
+    for (const [bi, b] of bumpers.entries()) {
       const dx = ball.x - b.x, dy = ball.y - b.y, d = Math.hypot(dx, dy), min = b.r + R;
       if (d < min && d > 0) {
         const nx = dx / d, ny = dy / d;
@@ -234,7 +317,7 @@ const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
         if (vn < 0) { ball.vx -= 2 * vn * nx; ball.vy -= 2 * vn * ny; }
         // aktiver Kick
         ball.vx += nx * 260; ball.vy += ny * 260;
-        if (b.flash <= 0.05) { score += 100; updateHud(); }
+        if (b.flash <= 0.05) { score += 100; updateHud(); sfx.bumper(bi); }
         b.flash = 1;
       }
     }
@@ -346,6 +429,7 @@ const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
     if (loaded && pull > 0.08) {
       loaded = false;
       ball.vy = -(V_MIN + pull * (V_MAX - V_MIN));
+      sfx.schuss(pull);
       snapBack = true;          // Feder schnellt optisch zurück
     } else {
       pull = 0;
@@ -374,7 +458,7 @@ const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
 
   // ---------- Eingabe: Flipper ----------
   function bindButton(el, f) {
-    const on = e => { e.preventDefault(); f.on = true; el.classList.add('on'); };
+    const on = e => { e.preventDefault(); if (!f.on) sfx.flipper(); f.on = true; el.classList.add('on'); };
     const off = () => { f.on = false; el.classList.remove('on'); };
     el.addEventListener('pointerdown', on);
     el.addEventListener('pointerup', off);
@@ -390,8 +474,8 @@ const APP_VERSION = '0.4';          // bei JEDER Änderung hochzählen
   let spaceHeld = false;
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
-    if (e.key === 'ArrowLeft' || e.key === 'z') { flippers[0].on = true; bl.classList.add('on'); }
-    if (e.key === 'ArrowRight' || e.key === 'm') { flippers[1].on = true; br.classList.add('on'); }
+    if (e.key === 'ArrowLeft' || e.key === 'z') { sfx.flipper(); flippers[0].on = true; bl.classList.add('on'); }
+    if (e.key === 'ArrowRight' || e.key === 'm') { sfx.flipper(); flippers[1].on = true; br.classList.add('on'); }
     if (e.key === ' ') { e.preventDefault(); if (gameOver) restart(); else if (loaded) { snapBack = false; spaceHeld = true; } }
   });
   window.addEventListener('keyup', e => {
