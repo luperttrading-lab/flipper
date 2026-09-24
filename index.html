@@ -132,7 +132,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.11';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.12';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -296,6 +296,16 @@ const sfx = (() => {
     auswurf() { spiele(() => {
       rauschen(0.08, 0.5, 800, 300, 1.5);
       ton('sine', 90, 50, 0.12, 0.4);
+    }); },
+    // Kanone: tiefer Knall mit Nachhall
+    kanone() { spiele(() => {
+      rauschen(0.25, 0.7, 1200, 120, 0.7);
+      ton('sine', 120, 35, 0.35, 0.6);
+    }); },
+    // Multiball/Jackpot: kurze Fanfare
+    multiball() { spiele(() => {
+      [523, 659, 784, 1046].forEach((f, i) => ton('square', f, f, 0.14, 0.12, i * 0.1));
+      ton('sawtooth', 1046, 1046, 0.4, 0.1, 0.4);
     }); },
     bumper(i) { spiele(() => {
       const b = BUMPER[i % BUMPER.length];
@@ -503,18 +513,29 @@ const dmd = (() => {
   const tip = f => ({ x: f.px + f.side * FL * Math.cos(f.a), y: f.py + FL * Math.sin(f.a) });
 
   // ---------- Zustand ----------
-  let ball, score = 0, ballNo = 1, gameOver = false, loaded = true, zeit = 0;
+  // Mehrere Kugeln (Multiball). `ball` zeigt immer auf die gerade bearbeitete Kugel.
+  let balls = [], ball = null;
+  let score = 0, ballNo = 1, gameOver = false, loaded = true, zeit = 0;
   let bonus = 0, multi = 0, stufe = 1, extraBall = false, extraVergeben = false;
-  let saveBis = 0, autoStart = 0, gestartet = false;
+  let saveBis = 0, gestartet = false;
   let schaedelIdx = 0, bankReihen = 0, orbits = 0, bumperTreffer = 0;
+  let skullZahl = 0, gunLit = false, multiball = false, nachschub = 0, nachschubBis = 0, kanonenSchuss = 0;
   const MULTI = [1, 2, 4, 6, 8];
   const SCHAEDEL_WERT = [250000, 500000, 1000000, 3000000, 5000000];
+  const JACKPOT = 1000000;
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
   let dropReset = 0, meldung = null, blitz = 0;
 
-  function newBall() { ball = { x: SHOOT_X, y: SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0 }; loaded = true; }
+  // Kanone links: schwenkt geladen hin und her, der Abzug feuert (wie im Original)
+  const kanone = { x: 44, y: 440, a: 0.1, phase: 0, kugel: null, feuerBis: 0, ziel: 1 };
+  const K_MITTE = -0.2, K_AMP = 0.62, K_LAUF = 30, K_V = 1550;
+
+  const neueKugel = ruht => ({ x: SHOOT_X, y: SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0, ruht,
+    kanone: false, fliegt: 0, zurKanone: false, weg: false });
+  function newBall() { balls = [neueKugel(true)]; ball = balls[0]; loaded = true; }
   newBall();
+  const haelt = () => balls.some(b => b.halt > 0);
 
   function punkte(n, b = 1000) { score += n; bonus += b; }
   function melde(z1, z2 = '', sek = 1.8) { meldung = { z1, z2, von: zeit, bis: zeit + sek }; }
@@ -555,6 +576,23 @@ const dmd = (() => {
     if (vn < 0) { ball.vx -= (1 + rest) * vn * nx; ball.vy -= (1 + rest) * vn * ny; }
     return { nx, ny, vn };
   }
+  // Kugeln untereinander: gleich schwer, fast elastisch
+  const imSpiel = b => !b.ruht && !b.kanone && !b.rampe && !(b.halt > 0) && !b.weg;
+  function stossKugeln() {
+    for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
+      const a = balls[i], b = balls[j];
+      if (!imSpiel(a) || !imSpiel(b)) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      if (d >= 2 * R || d === 0) continue;
+      const nx = dx / d, ny = dy / d, ueber = (2 * R - d) / 2;
+      a.x -= nx * ueber; a.y -= ny * ueber; b.x += nx * ueber; b.y += ny * ueber;
+      const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+      if (vn < 0) {
+        const j2 = -(1 + 0.9) * vn / 2;
+        a.vx -= j2 * nx; a.vy -= j2 * ny; b.vx += j2 * nx; b.vy += j2 * ny;
+      }
+    }
+  }
 
   // ---------- Regeln ----------
   function trefferDrop(i) {
@@ -573,6 +611,8 @@ const dmd = (() => {
     }
   }
   function trefferStandup(i) {
+    // Kanonentreffer auf das beleuchtete Ziel startet den Multiball
+    if (zeit < kanonenSchuss && i === kanone.ziel && !multiball) { kanonenSchuss = 0; startMultiball(); return; }
     standups[i].an = true;
     punkte(10000); sfx.ziel();
     if (standups.every(s => s.an)) {
@@ -591,6 +631,14 @@ const dmd = (() => {
     }
   }
   function rampe(r) {
+    r.flash = 1;
+    ball.rampe = { r, t: 0 };
+    sfx.rampe();
+    if (multiball) {
+      punkte(JACKPOT, 10000); melde('JACKPOT', fmt(JACKPOT), 2); blitzen(1);
+      lampenBlitz(() => true, 0.6); sfx.multiball();
+      return;
+    }
     let extraJetzt = false;
     if (stufe < 5) {
       stufe++;
@@ -599,17 +647,47 @@ const dmd = (() => {
     punkte(50000 * stufe, 5000);
     if (extraJetzt) melde('EXTRA BALL', 'ALARM 5', 2.4);
     else melde('ALARMSTUFE ' + stufe, fmt(50000 * stufe));
-    r.flash = 1;
     lampenBlitz(l => l.gruppe === 'leiter', 0.7);
-    sfx.rampe();
-    ball.rampe = { r, t: 0 };
   }
   function schaedel() {
     const n = SCHAEDEL_WERT[schaedelIdx];
-    punkte(n, 5000); melde('SCHÄDEL', fmt(n));
+    punkte(n, 5000);
     sfx.loch(); blitzen(0.8);
     ball.x = SKULL.x; ball.y = SKULL.y; ball.vx = 0; ball.vy = 0;
     ball.halt = 1.2;
+    if (gunLit && !multiball && !kanone.kugel) {
+      // Kugel wandert aus dem Schädel in die Kanone
+      ball.zurKanone = true; gunLit = false; skullZahl = 0;
+      melde('KANONE GELADEN', 'ABZUG!', 2.2);
+    } else {
+      melde('SCHÄDEL', fmt(n));
+      if (!multiball && ++skullZahl >= 2) { gunLit = true; melde('SCHÄDEL ' + fmt(n), 'KANONE BEREIT', 2); }
+    }
+  }
+  function ladeKanone(b) {
+    b.kanone = true; b.zurKanone = false;
+    kanone.kugel = b; kanone.phase = 0; kanone.feuerBis = zeit + 7;
+    kanone.ziel = Math.floor(Math.random() * 3);
+    sfx.auswurf();
+  }
+  function feuer() {
+    const k = kanone.kugel;
+    if (!k) return;
+    kanone.kugel = null; k.kanone = false;
+    k.x = kanone.x + Math.cos(kanone.a) * (K_LAUF + 4); k.y = kanone.y + Math.sin(kanone.a) * (K_LAUF + 4);
+    k.vx = Math.cos(kanone.a) * K_V; k.vy = Math.sin(kanone.a) * K_V;
+    k.fliegt = 0.05;
+    kanonenSchuss = zeit + 1.3;
+    sfx.kanone(); blitzen(0.4);
+  }
+  function startMultiball() {
+    multiball = true;
+    nachschub += 2; nachschubBis = zeit + 1;
+    saveBis = zeit + 12;
+    punkte(500000, 10000);
+    melde('MULTIBALL', 'RAMPEN = JACKPOT', 2.8);
+    lampenBlitz(() => true, 1.5); blitzen(1);
+    sfx.multiball();
   }
   function blitzen(st) { blitz = Math.max(blitz, st); }
 
@@ -623,9 +701,34 @@ const dmd = (() => {
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
     if (dropReset && zeit > dropReset) { drops.forEach(d => { d.unten = false; }); dropReset = 0; }
-    if (autoStart && zeit > autoStart) { autoStart = 0; abschuss(); }
 
-    if (loaded) { ball.x = SHOOT_X; ball.y = SHOOT_Y; ball.vx = 0; ball.vy = 0; return; }
+    // Kanone schwenkt, solange sie geladen ist; nach einigen Sekunden feuert sie selbst
+    if (kanone.kugel) {
+      kanone.phase += dt * 1.8;
+      kanone.a = K_MITTE - K_AMP * Math.cos(kanone.phase);
+      kanone.kugel.x = kanone.x + Math.cos(kanone.a) * K_LAUF;
+      kanone.kugel.y = kanone.y + Math.sin(kanone.a) * K_LAUF;
+      if (zeit > kanone.feuerBis) feuer();
+    }
+    // Nachschub (Multiball, Kugelrettung): Kugeln nacheinander automatisch abschießen
+    if (nachschub > 0 && zeit > nachschubBis && !balls.some(b => b.ruht || (b.x > LANE_X && b.y > 560))) {
+      const b = neueKugel(false); b.vy = -(1880 + Math.random() * 80);
+      balls.push(b); nachschub--; nachschubBis = zeit + 0.9; gestartet = true;
+      sfx.schuss(1);
+    }
+
+    for (const b of balls) { ball = b; kugelSchritt(dt); }
+    stossKugeln();
+
+    const weg = balls.filter(b => b.weg);
+    if (weg.length) { balls = balls.filter(b => !b.weg); for (let i = 0; i < weg.length; i++) kugelWeg(); }
+    loaded = balls.some(b => b.ruht);
+    ball = balls[0] || null;
+  }
+
+  function kugelSchritt(dt) {
+    if (ball.ruht) { ball.x = SHOOT_X; ball.y = SHOOT_Y; ball.vx = 0; ball.vy = 0; return; }
+    if (ball.kanone) return;                    // Position bestimmt die Kanone
 
     // Auf der Rampe: Kugel folgt der Bahn, keine Physik
     if (ball.rampe) {
@@ -636,10 +739,13 @@ const dmd = (() => {
       }
       return;
     }
-    // Im Schädel-Loch: festhalten, dann nach unten auswerfen
+    // Im Schädel-Loch: festhalten, dann auswerfen – oder in die Kanone schicken
     if (ball.halt > 0) {
       ball.halt -= dt;
-      if (ball.halt <= 0) { ball.vx = 70; ball.vy = 330; cool.schaedel = zeit + 1; sfx.auswurf(); }
+      if (ball.halt <= 0) {
+        if (ball.zurKanone) ladeKanone(ball);
+        else { ball.vx = 70; ball.vy = 330; cool.schaedel = zeit + 1; sfx.auswurf(); }
+      }
       return;
     }
 
@@ -647,13 +753,17 @@ const dmd = (() => {
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
-    for (const w of walls) {
-      if (w.nurRunter && ball.vy <= 0) continue;
-      const c = collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
-      if (c && w.kick && -c.vn > 60 && frei('sling' + w.kick.seite, 0.15)) {
-        ball.vx += c.nx * 420; ball.vy += c.ny * 420;
-        w.kick.flash = 1;
-        punkte(1000, 500); sfx.schleuder();
+    // Frisch aus der Kanone: kurz über die Führungsschiene hinwegfliegen
+    if (ball.fliegt > 0) ball.fliegt -= dt;
+    else {
+      for (const w of walls) {
+        if (w.nurRunter && ball.vy <= 0) continue;
+        const c = collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
+        if (c && w.kick && -c.vn > 60 && frei('sling' + w.kick.seite, 0.15)) {
+          ball.vx += c.nx * 420; ball.vy += c.ny * 420;
+          w.kick.flash = 1;
+          punkte(1000, 500); sfx.schleuder();
+        }
       }
     }
     for (const p of posts) collideCircle(p.x, p.y, p.r, REST_WALL);
@@ -698,8 +808,8 @@ const dmd = (() => {
         rampe(r); return;
       }
     }
-    // Schädel-Loch
-    if ((cool.schaedel || 0) < zeit && Math.hypot(ball.x - SKULL.x, ball.y - SKULL.y) < 22) { schaedel(); return; }
+    // Schädel-Loch (ist es schon belegt, prallt die zweite Kugel ab)
+    if ((cool.schaedel || 0) < zeit && !haelt() && Math.hypot(ball.x - SKULL.x, ball.y - SKULL.y) < 22) { schaedel(); return; }
     // Umlauf links hinauf
     if (ball.x < 58 && Math.abs(ball.y - 320) < 10 && ball.vy < -150 && frei('orbit', 1.5)) {
       orbits++;
@@ -717,20 +827,28 @@ const dmd = (() => {
     const sp = Math.hypot(ball.vx, ball.vy), VMAX = 2200;
     if (sp > VMAX) { ball.vx *= VMAX / sp; ball.vy *= VMAX / sp; }
 
-    if (ball.y > H + 20) drain();
+    if (ball.y > H + 20) ball.weg = true;
   }
   function inlane() {
     if (stufe >= 3) { punkte(25000, 1000); sfx.gasse(); }
     else punkte(1000, 500);
   }
 
-  function drain() {
-    // Kugelrettung: kurz nach dem Abschuss gibt es die Kugel zurück
+  // Eine Kugel ist ins Aus gegangen
+  function kugelWeg() {
+    // Kugelrettung: kurz nach dem Abschuss (und zu Beginn des Multiballs) kommt sie zurück
     if (zeit < saveBis) {
-      melde('KUGEL GERETTET', '', 1.6);
-      newBall(); autoStart = zeit + 0.8; saveBis = 0;
+      if (!multiball) { melde('KUGEL GERETTET', '', 1.6); saveBis = 0; }
+      nachschub++; nachschubBis = Math.max(nachschubBis, zeit + 0.7);
       return;
     }
+    const rest = balls.length + nachschub;
+    if (rest > 0) {
+      if (multiball && rest <= 1) { multiball = false; melde('MULTIBALL', 'VORBEI', 1.6); }
+      return;
+    }
+    // Letzte Kugel verloren: Bonus zählen, nächste Kugel
+    multiball = false;
     const b = bonus * MULTI[multi];
     score += b;
     melde('BONUS ' + fmt(bonus), '× ' + MULTI[multi] + ' = ' + fmt(b), 2.4);
@@ -742,17 +860,18 @@ const dmd = (() => {
     newBall();
   }
 
-  // Abzug: Kugel abschießen (wie der Pistolengriff im Original)
+  // Abzug: Kugel abschießen oder Kanone feuern (wie der Pistolengriff im Original)
   function abschuss() {
-    if (!loaded) return;
-    loaded = false; gestartet = true;
-    ball.vy = -(1880 + Math.random() * 80);
+    const b = balls.find(x => x.ruht);
+    if (!b) return;
+    b.ruht = false; loaded = false; gestartet = true;
+    b.vy = -(1880 + Math.random() * 80);
     saveBis = zeit + SAVE_T;
     sfx.schuss(1);
   }
   function abzug() {
     if (gameOver) { restart(); return; }
-    if (autoStart) return;
+    if (kanone.kugel) { feuer(); return; }
     abschuss();
   }
 
@@ -761,8 +880,9 @@ const dmd = (() => {
 
   function restart() {
     score = 0; ballNo = 1; gameOver = false; bonus = 0; multi = 0; stufe = 1;
-    extraBall = false; extraVergeben = false; saveBis = 0; autoStart = 0;
+    extraBall = false; extraVergeben = false; saveBis = 0;
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
+    skullZahl = 0; gunLit = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
     newBall();
   }
@@ -779,7 +899,7 @@ const dmd = (() => {
 
   // Pfeile in der Schädel-Gasse (Lauflicht Richtung Loch)
   [345, 318, 291].forEach((y, k) => L({ form: 'pfeil', x: 96, y, w: 16, h: 16, dir: -PI / 2 - 0.12, farbe: 'rot',
-    gruppe: 'schaedel', z: () => ball.halt > 0 ? 1 : 3, k: 2 - k }));
+    gruppe: 'schaedel', z: () => haelt() ? 1 : 3, k: 2 - k }));
   // Pfeile vor den Rampen: Lauflicht, solange die Rampe die Alarmstufe hebt
   [[156, 462], [156, 438]].forEach(([x, y], k) => L({ form: 'pfeil', x, y, w: 16, h: 16, dir: -PI / 2, farbe: 'weiss',
     gruppe: 'rampe', z: () => stufe < 5 ? 3 : 1, k }));
@@ -787,8 +907,15 @@ const dmd = (() => {
     gruppe: 'rampe', z: () => stufe < 5 ? 3 : 1, k }));
   // Umlauf-Pfeil links
   L({ form: 'pfeil', x: 35, y: 420, w: 16, h: 18, dir: -PI / 2, farbe: 'amber', gruppe: 'orbit', z: () => 2 });
-  // „LOCK“ links (für den späteren Multiball)
-  L({ form: 'pfeil', x: 92, y: 425, w: 22, h: 20, dir: -PI / 2, farbe: 'gruen', label: 'LOCK', gruppe: 'lock', z: () => 0 });
+  // Kanone: fünf Winkel-Lampen zeigen, wohin sie gerade zielt (oben = steil)
+  for (let k = 0; k < 5; k++) L({ form: 'pfeil', x: 84, y: 400 + k * 10, w: 8, h: 12, dir: 0, farbe: 'gelb', gruppe: 'kanone',
+    z: () => kanone.kugel ? (Math.round((kanone.a - (K_MITTE - K_AMP)) / (2 * K_AMP) * 4) === k ? 1 : 0) : 0 });
+  // „LOAD GUN“: nächster Schädel-Treffer lädt die Kanone
+  L({ form: 'rechteck', x: 100, y: 380, w: 44, h: 11, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
+    z: () => kanone.kugel ? 1 : (gunLit ? 2 : 0) });
+  // Jackpot während des Multiballs
+  L({ form: 'rechteck', x: 218, y: 418, w: 44, h: 11, farbe: 'rot', label: 'JACKPOT', gruppe: 'jackpot',
+    z: () => multiball ? 2 : 0 });
 
   // Mittelsäule „CORE“: 4 Reihen × 2, jede komplette Klappziel-Reihe leuchtet eine Reihe auf
   const CORE_FARBEN = ['gruen', 'rot', 'weiss', 'gelb'];
@@ -812,7 +939,7 @@ const dmd = (() => {
   [166, 202, 238].forEach((x, i) => L({ form: 'kreis', x, y: 72, r: 6, farbe: 'gruen', gruppe: 'top', z: () => topLanes[i] ? 1 : 0 }));
   // Stehziele: Pfeil daneben
   standups.forEach((s, i) => L({ form: 'pfeil', x: 340, y: s.y, w: 12, h: 12, dir: 0, farbe: 'amber', gruppe: 'stand',
-    z: () => s.an ? 1 : 0 }));
+    z: () => (kanone.kugel && kanone.ziel === i) ? 2 : (s.an ? 1 : 0) }));
   // Rückkehrgassen
   [55, 321].forEach(x => L({ form: 'kreis', x, y: 612, r: 6, farbe: 'weiss', gruppe: 'lanes', z: () => stufe >= 3 ? 1 : 0 }));
   // Bonus-Fächer unten: 2X 4X HOLD 6X 8X
@@ -927,7 +1054,7 @@ const dmd = (() => {
       for (let t = 0.1; t <= 0.9; t += 0.2) { const [x, y] = bez(r.pfad, t); ctx.drawImage(glow('#ffffff'), x - 40, y - 40, 80, 80); }
     }
     // Schädel-Blitzer
-    const sb = Math.max(blitz, ball.halt > 0 ? 0.6 : 0);
+    const sb = Math.max(blitz, haelt() ? 0.6 : 0);
     if (sb > 0.02) {
       ctx.globalAlpha = sb;
       ctx.drawImage(glow('#ff3a2a'), SKULL.x - 70, SKULL.y - 100, 140, 140);
@@ -999,6 +1126,29 @@ const dmd = (() => {
     pfad(); ctx.strokeStyle = 'rgba(240,248,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
   }
 
+  // Kanone: Drehsockel und Lauf aus Chrom (eigene Form), mit Ziellinie solange geladen
+  function zeichneKanone() {
+    const { x, y, a } = kanone, c = Math.cos(a), s = Math.sin(a);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.beginPath(); ctx.arc(x + 6, y + 8, 15, 0, 2 * PI); ctx.fill();
+    if (kanone.kugel) {
+      ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(255,90,90,.55)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x + c * (K_LAUF + 10), y + s * (K_LAUF + 10)); ctx.lineTo(x + c * 110, y + s * 110); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.translate(x, y); ctx.rotate(a);
+    const g = ctx.createLinearGradient(0, -8, 0, 8);
+    g.addColorStop(0, '#f4f8fc'); g.addColorStop(0.5, '#7d8a98'); g.addColorStop(1, '#dfe6ee');
+    ctx.fillStyle = g;
+    ctx.fillRect(4, -6, K_LAUF - 2, 12);                       // Lauf
+    ctx.fillRect(-10, -15, 16, 5); ctx.fillRect(-10, 10, 16, 5); // Stummelflügel
+    ctx.beginPath(); ctx.arc(0, 0, 12, 0, 2 * PI); ctx.fill();   // Drehsockel
+    ctx.fillStyle = '#20262e'; ctx.beginPath(); ctx.arc(K_LAUF + 2, 0, 5, 0, 2 * PI); ctx.fill();
+    ctx.fillStyle = kanone.kugel ? '#ff3a3a' : '#5a1a1a'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 2 * PI); ctx.fill();
+    ctx.restore();
+  }
+
   function draw(dt) {
     ctx.drawImage(grund, 0, 0, W, H);
 
@@ -1051,7 +1201,7 @@ const dmd = (() => {
     ctx.fillStyle = sg;
     ctx.beginPath(); ctx.ellipse(sx, sy, 21, 18, 0, 0, 2 * PI); ctx.fill();
     ctx.fillRect(sx - 12, sy + 8, 24, 13);
-    const glut = ball.halt > 0 ? 1 : 0.6 + 0.4 * Math.sin(zeit * 3);
+    const glut = haelt() ? 1 : 0.6 + 0.4 * Math.sin(zeit * 3);
     ctx.fillStyle = '#1a0000';
     ctx.beginPath(); ctx.arc(sx - 7.5, sy + 1, 5, 0, 2 * PI); ctx.arc(sx + 7.5, sy + 1, 5, 0, 2 * PI); ctx.fill();
     ctx.fillStyle = `rgba(255, 40, 40, ${glut})`;
@@ -1073,13 +1223,13 @@ const dmd = (() => {
       ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
     }
 
-    // Kugel: Schatten, dann Chrom
-    let bx = ball.x, by = ball.y, auf = 0;
-    if (ball.rampe) { [bx, by] = bez(ball.rampe.r.pfad, Math.min(1, ball.rampe.t / RAMP_T)); auf = 1; }
-    if (!auf) {
-      ctx.fillStyle = 'rgba(0,0,0,.45)';
-      ctx.beginPath(); ctx.ellipse(bx + 3, by + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill();
-    }
+    // Kugeln: Position (auf der Rampe entlang der Bahn), Schatten
+    const lage = balls.map(b => {
+      if (b.rampe) { const [x, y] = bez(b.rampe.r.pfad, Math.min(1, b.rampe.t / RAMP_T)); return { x, y, hoch: 1 }; }
+      return { x: b.x, y: b.y, hoch: b.kanone ? 2 : 0 };
+    });
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    for (const p of lage) if (!p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
 
     // Rampen: klarer Kunststoff mit Drahtschienen
     for (const r of ramps) {
@@ -1092,14 +1242,16 @@ const dmd = (() => {
       ctx.restore();
     }
 
-    if (auf) {
-      ctx.fillStyle = 'rgba(0,0,0,.35)';
-      ctx.beginPath(); ctx.ellipse(bx + 7, by + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    for (const p of lage) if (p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 7, p.y + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
+
+    zeichneKanone();
+    for (const p of lage) {
+      const g = ctx.createRadialGradient(p.x - 3, p.y - 3, 1, p.x, p.y, R);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 2 * PI); ctx.fill();
     }
-    const g = ctx.createRadialGradient(bx - 3, by - 3, 1, bx, by, R);
-    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(bx, by, R, 0, 2 * PI); ctx.fill();
 
     zeichneLeuchtschein();
     blitz = Math.max(0, blitz - dt * 3);
@@ -1134,7 +1286,8 @@ const dmd = (() => {
       const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
       dmd.mitte(t, s === 2 ? 2 : 6, s, 3);
       dmd.text('KUGEL ' + ballNo, 1, 24, 1, 2);
-      dmd.mitte(MULTI[multi] + 'X', 24, 1, 2);
+      if (kanone.kugel) { if (blink) dmd.mitte('FEUER!', 24, 1, 3); }
+      else dmd.mitte(multiball ? 'MB' : MULTI[multi] + 'X', 24, 1, 2);
       dmd.rechts('ALARM ' + stufe, 24, 1, 2);
     }
     dmd.zeichne();
@@ -1194,7 +1347,7 @@ const dmd = (() => {
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    fire.classList.toggle('bereit', (loaded && !autoStart) || gameOver);
+    fire.classList.toggle('bereit', loaded || gameOver || !!kanone.kugel);
     const pause = !document.getElementById('start').hidden;
     if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
     else zeit += pause ? 0 : dt;              // Lichtshow läuft auch bei Game over
@@ -1206,7 +1359,9 @@ const dmd = (() => {
   requestAnimationFrame(frame);
 
   // Nur für automatische Tests (Node), im Browser ohne Wirkung
-  if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return ball; }, get score() { return score; },
+  if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },
+    get balls() { return balls; }, kanone, feuer, restart, schaedelLaden: () => { gunLit = true; }, get multiball() { return multiball; },
+    get score() { return score; },
     get loaded() { return loaded; }, flippers, get stufe() { return stufe; }, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
