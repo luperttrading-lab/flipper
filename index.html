@@ -53,11 +53,14 @@
     transform: rotateX(10deg); transform-origin: 50% 100%;
     box-shadow: 0 0 0 3px #2a3140, 0 0 0 6px #0c0f15;
   }
+  html, body { touch-action: none; }      /* ganzer Schirm ist Steuerfläche: kein Zoomen/Scrollen */
+  /* Abzug schwebt rechts unten über der Abschussrinne (dort liegt die Kugel, wie der Pistolengriff am Original) */
   .controls {
-    display: flex;
-    gap: 16px;
-    padding-block: 6px calc(env(safe-area-inset-bottom, 0px) + 8px);
+    position: fixed; right: 4px; z-index: 5;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+    display: flex; justify-content: center;
   }
+  #stage { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); }
   .controls button {
     flex: 1;
     height: 54px;
@@ -74,7 +77,7 @@
   .controls button.on { background: var(--btn-on); color: #1a1206; }
   .controls { align-items: center; }
   .controls #fire {
-    flex: 0 0 60px; height: 60px; border-radius: 50%;
+    flex: 0 0 52px; width: 52px; height: 52px; padding: 0; border-radius: 50%;
     background:
       repeating-linear-gradient(45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
       repeating-linear-gradient(-45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
@@ -116,6 +119,11 @@
     display: flex; justify-content: center; gap: 22px;
   }
   .start-leiste .ver { color: rgba(232, 238, 245, .7); }
+  .start-hilfe {
+    position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px);
+    margin: 0; text-align: center; font-size: 13px; color: rgba(232, 238, 245, .75);
+  }
+  .start:not(.splash) .start-hilfe { display: none; }
   .start > span {
     font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip);
     padding: 18px 26px; border: 2px solid var(--flip); border-radius: 16px;
@@ -132,6 +140,7 @@
 </header>
 <div class="start splash" id="start">
   <span id="start-text">Antippen zum Starten</span>
+  <p class="start-hilfe">Linke / rechte Bildschirmhälfte tippen = Flipper · Knopf unten = Abzug</p>
   <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
@@ -143,13 +152,11 @@
 </div>
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 <div class="controls">
-  <button id="bl" type="button">Links</button>
   <button id="fire" type="button" aria-label="Abzug">Abzug</button>
-  <button id="br" type="button">Rechts</button>
 </div>
 
 <script>
-const APP_VERSION = '0.25';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.26';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1602,7 +1609,7 @@ const dmd = (() => {
   let scale = 1;
   function resize() {
     const st = document.getElementById('stage').getBoundingClientRect();
-    scale = Math.min(st.width / W, st.height / (H * 0.9));      // schräg gestellt wirkt der Tisch ~10 % niedriger
+    scale = Math.min(st.width / W, st.height / (H * 0.96));     // schräg gestellt wirkt der Tisch etwas niedriger
     const dpr = window.devicePixelRatio || 1;
     cv.style.width = W * scale + 'px';
     cv.style.height = H * scale + 'px';
@@ -1622,34 +1629,37 @@ const dmd = (() => {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
 
   // ---------- Eingabe ----------
-  function bindButton(el, f) {
-    const on = e => { e.preventDefault(); el.classList.add('on'); if (wahlBewegen(f.side === 1 ? -1 : 1)) return; if (!f.on) sfx.flipper(); f.on = true; };
-    const off = () => { f.on = false; el.classList.remove('on'); };
-    el.addEventListener('pointerdown', on);
-    el.addEventListener('pointerup', off);
-    el.addEventListener('pointercancel', off);
-    el.addEventListener('pointerleave', off);
-    el.addEventListener('contextmenu', e => e.preventDefault());
-  }
-  const bl = document.getElementById('bl'), br = document.getElementById('br'), fire = document.getElementById('fire');
-  bindButton(bl, flippers[0]);
-  bindButton(br, flippers[1]);
+  // Flipper: linke / rechte Bildschirmhälfte antippen (mehrere Finger gleichzeitig möglich)
+  const finger = new Map();                       // pointerId → 0 (links) / 1 (rechts)
+  const halte = seite => { flippers[seite].on = [...finger.values()].includes(seite); };
+  window.addEventListener('pointerdown', e => {
+    if (e.target.closest && e.target.closest('#fire, #start, #update')) return;
+    e.preventDefault();
+    const seite = e.clientX < window.innerWidth / 2 ? 0 : 1;
+    if (wahlBewegen(seite ? 1 : -1)) return;
+    if (gameOver) { restart(); return; }
+    if (!flippers[seite].on) sfx.flipper();
+    finger.set(e.pointerId, seite); halte(seite);
+  }, { passive: false });
+  const los = e => { if (!finger.has(e.pointerId)) return; const s = finger.get(e.pointerId); finger.delete(e.pointerId); halte(s); };
+  ['pointerup', 'pointercancel'].forEach(ev => window.addEventListener(ev, los));
+  window.addEventListener('contextmenu', e => e.preventDefault());
+  const fire = document.getElementById('fire');
   fire.addEventListener('pointerdown', e => { e.preventDefault(); fire.classList.add('on'); abzug(); });
   fire.addEventListener('pointerup', () => fire.classList.remove('on'));
   fire.addEventListener('pointercancel', () => fire.classList.remove('on'));
   fire.addEventListener('contextmenu', e => e.preventDefault());
-  cv.addEventListener('pointerdown', () => { if (gameOver) restart(); });
 
   // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
-    if (e.key === 'ArrowLeft' || e.key === 'z') { if (wahlBewegen(-1)) return; sfx.flipper(); flippers[0].on = true; bl.classList.add('on'); }
-    if (e.key === 'ArrowRight' || e.key === 'm') { if (wahlBewegen(1)) return; sfx.flipper(); flippers[1].on = true; br.classList.add('on'); }
+    if (e.key === 'ArrowLeft' || e.key === 'z') { if (wahlBewegen(-1)) return; sfx.flipper(); flippers[0].on = true; }
+    if (e.key === 'ArrowRight' || e.key === 'm') { if (wahlBewegen(1)) return; sfx.flipper(); flippers[1].on = true; }
     if (e.key === ' ') { e.preventDefault(); abzug(); }
   });
   window.addEventListener('keyup', e => {
-    if (e.key === 'ArrowLeft' || e.key === 'z') { flippers[0].on = false; bl.classList.remove('on'); }
-    if (e.key === 'ArrowRight' || e.key === 'm') { flippers[1].on = false; br.classList.remove('on'); }
+    if (e.key === 'ArrowLeft' || e.key === 'z') flippers[0].on = false;
+    if (e.key === 'ArrowRight' || e.key === 'm') flippers[1].on = false;
   });
 
   // ---------- Loop ----------
