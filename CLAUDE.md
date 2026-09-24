@@ -28,3 +28,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Reihenfolge: 1 Layout (Schleudern, Seitengassen, Klappziele, Schädel) · 2 Regelwerk/Anzeige ·
   3 Rampen (zweite Ebene) · 4 Kanone · 5 Multiball
 - Layout nach Fotos des Nutzers vom Originaltisch (angefordert, noch ausstehend)
+- Stand 0.10 (Stufe 1): Layout nach Draufsicht-Foto: Umläufe links/rechts, 3 obere Gassen, 3 Pop-Bumper,
+  Schädel-Loch links oben, 3 Klappziele, 3 Stehziele rechts, Schleudern, Seiten-/Rückkehrgassen,
+  Abzug-Knopf. Rampen vorerst als Tunnel (Kugel fährt die Bahn als Animation ab). Linke Ausgasse
+  ist durch die Umlauf-Zuführung abgedeckt. Kanone und Multiball fehlen noch.
+- Physik-Test: Node-Simulation mit `window.__TEST__` (Abschuss-Pfad + 10 min Autoplay: Kugel
+  verlässt nie den Tisch, bleibt nie hängen).

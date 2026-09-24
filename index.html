@@ -1,9 +1,9 @@
-<title>Flipper Prototyp</title>
+<title>Zero Hour</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0b1420">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Flipper">
+<meta name="apple-mobile-web-app-title" content="Zero Hour">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +65,15 @@
     -webkit-tap-highlight-color: transparent;
   }
   .controls button.on { background: var(--btn-on); color: #1a1206; }
+  .controls { align-items: center; }
+  .controls #fire {
+    flex: 0 0 76px; height: 76px; border-radius: 50%;
+    background: #8e1d2c; color: #ffe3e6; font-size: 12px; letter-spacing: .04em;
+  }
+  .controls #fire.on { background: #ff5566; color: #2a0409; }
+  .controls #fire.bereit { animation: puls 1s ease-in-out infinite; }
+  @keyframes puls { 50% { box-shadow: 0 0 0 8px rgba(224, 52, 74, .35); } }
+  @media (prefers-reduced-motion: reduce) { .controls #fire.bereit { animation: none; box-shadow: 0 0 0 4px rgba(224, 52, 74, .5); } }
   .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
   .meta { display: flex; gap: 12px; align-items: baseline; }
   .ver {
@@ -113,11 +122,12 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 <div class="controls">
   <button id="bl" type="button">Links</button>
+  <button id="fire" type="button" aria-label="Abzug">Abzug</button>
   <button id="br" type="button">Rechts</button>
 </div>
 
 <script>
-const APP_VERSION = '0.9';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.10';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -256,6 +266,32 @@ const sfx = (() => {
       rauschen(0.35, 0.25 + 0.35 * staerke, 400, 3000 + 3000 * staerke, 0.8);
       ton('sine', 180, 420 + 400 * staerke, 0.3, 0.3);
     }); },
+    // Klappziel/Stehziel: heller, kurzer Doppel-Pieps
+    ziel() { spiele(() => {
+      ton('square', 1046, 1046, 0.05, 0.12);
+      ton('square', 1318, 1318, 0.06, 0.1, 0.05);
+    }); },
+    // Obere Gasse / Umlauf: kurzes Aufwärts-Glissando
+    gasse() { spiele(() => { ton('triangle', 600, 1200, 0.12, 0.18); }); },
+    // Schleuder: trockener, harter Schlag
+    schleuder() { spiele(() => {
+      rauschen(0.04, 0.45, 3500, 1500, 3);
+      ton('square', 220, 110, 0.05, 0.18);
+    }); },
+    // Rampe: aufsteigende Tonfolge wie ein Alarm
+    rampe() { spiele(() => {
+      [392, 523, 659, 784].forEach((f, i) => ton('sawtooth', f, f, 0.09, 0.13, i * 0.08));
+    }); },
+    // Schädel-Loch: tiefes Brummen
+    loch() { spiele(() => {
+      ton('sawtooth', 110, 55, 0.6, 0.25);
+      ton('sine', 220, 110, 0.4, 0.2);
+    }); },
+    // Auswurf aus dem Loch: dumpfer Stoß
+    auswurf() { spiele(() => {
+      rauschen(0.08, 0.5, 800, 300, 1.5);
+      ton('sine', 90, 50, 0.12, 0.4);
+    }); },
     bumper(i) { spiele(() => {
       const b = BUMPER[i % BUMPER.length];
       ton(b.typ, b.f, b.f * 1.02, 0.18, 0.22);
@@ -267,15 +303,16 @@ const sfx = (() => {
 </script>
 <script>
 (() => {
+  // ================= Zero Hour – Tisch, Physik, Regeln =================
   // Logische Tischgröße (px), wird auf den Bildschirm skaliert
-  const W = 400, H = 700;
-  const R = 10;                 // Kugelradius
-  const G = 1100;               // Schwerkraft (px/s²), entspricht Tischneigung
-  const STEPS = 10;             // Physik-Substeps pro Frame
-  const LANE_X = 345;           // Trennwand Abschussrinne
-  const PLUNGER_Y = 650;        // Oberkante Feder in Ruhe
-  const PULL_MAX = 45;          // Federweg in px
-  const REST_WALL = 0.55, REST_FLIP = 0.35;
+  const W = 400, H = 760;
+  const R = 9;                  // Kugelradius
+  const G = 1150;               // Schwerkraft (px/s²), entspricht Tischneigung
+  const STEPS = 12;             // Physik-Substeps pro Frame
+  const REST_WALL = 0.5, REST_FLIP = 0.3;
+  const LANE_X = 364;           // Trennwand Abschussrinne (rechts)
+  const SHOOT_X = 378, SHOOT_Y = 750;
+  const RAMP_T = 0.75;          // Fahrzeit über eine Rampe (s)
 
   const cv = document.getElementById('c');
   const ctx = cv.getContext('2d');
@@ -283,43 +320,111 @@ const sfx = (() => {
   const ballsEl = document.getElementById('balls');
 
   // ---------- Geometrie ----------
+  // Wände: {x1,y1,x2,y2, nurRunter?: Einweg-Tor, kick?: Schleuder}
   const walls = [];
-  const seg = (x1, y1, x2, y2) => walls.push({ x1, y1, x2, y2 });
-  // Außenwände
-  seg(20, 200, 20, 520);
-  seg(380, 200, 380, 700);
-  // Bogen oben (Halbkreis Mittelpunkt 200/200, r=180)
-  const N = 24;
-  for (let i = 0; i < N; i++) {
-    const a1 = Math.PI + (i / N) * Math.PI, a2 = Math.PI + ((i + 1) / N) * Math.PI;
-    seg(200 + 180 * Math.cos(a1), 200 + 180 * Math.sin(a1), 200 + 180 * Math.cos(a2), 200 + 180 * Math.sin(a2));
+  const seg = (x1, y1, x2, y2, extra = {}) => walls.push({ x1, y1, x2, y2, ...extra });
+  function bogen(cx, cy, r, a0, a1, n) {
+    for (let i = 0; i < n; i++) {
+      const b0 = a0 + (a1 - a0) * i / n, b1 = a0 + (a1 - a0) * (i + 1) / n;
+      seg(cx + r * Math.cos(b0), cy + r * Math.sin(b0), cx + r * Math.cos(b1), cy + r * Math.sin(b1));
+    }
   }
-  // Trennwand Abschussrinne
-  seg(LANE_X, 240, LANE_X, 700);
-  seg(LANE_X, 700, 380, 700);      // Boden der Rinne (Sicherung)
-  // Schrägen zu den Flippern
-  seg(20, 520, 100, 585);
-  seg(LANE_X, 520, 265, 585);
+  const PI = Math.PI;
+  // Gehäuse: Bogen oben, Seitenwände, Boden der Abschussrinne
+  bogen(202, 200, 190, PI, 2 * PI, 30);
+  seg(12, 200, 12, 760);
+  seg(392, 200, 392, 760);
+  seg(LANE_X, 300, LANE_X, 760);
+  seg(LANE_X, 760, 392, 760);
+  // Einweg-Tor oben an der Abschussrinne: Kugel darf hinaus, fällt aber nicht zurück
+  seg(392, 282, 366, 300, { nurRunter: true });
 
-  const bumpers = [
-    { x: 115, y: 290, r: 24, flash: 0 },
-    { x: 250, y: 290, r: 24, flash: 0 },
-    { x: 182, y: 385, r: 24, flash: 0 },
+  // Umlauf links („Fluchtweg“): Innenführung
+  seg(58, 200, 58, 470);
+  bogen(202, 200, 144, PI, PI * 1.25, 6);
+  // Umlauf rechts („Verfolgungsschleife“): Innenführung + Abweiser ins Spielfeld
+  seg(326, 200, 326, 420);
+  bogen(202, 200, 124, PI * 1.75, PI * 2, 6);
+  seg(364, 402, 330, 446);
+  // Unten am linken Umlauf: Kugel wird in die linke Rückkehrgasse geführt
+  seg(12, 470, 40, 574);
+
+  // Obere Durchlaufgassen: vier Pfosten bilden drei Gassen
+  for (const x of [148, 184, 220, 256]) seg(x, 52, x, 90);
+
+  // Schädel-Gasse links oben, Loch am Ende
+  seg(138, 362, 124, 248);
+  seg(58, 232, 124, 248);
+  const SKULL = { x: 90, y: 256 };
+
+  // Seitengassen unten
+  seg(40, 578, 40, 650);                  // links: Trennung Aus-/Rückkehrgasse
+  seg(40, 650, 117, 680);                 // links: Führung endet auf dem Flipper-Drehpunkt
+  seg(336, 578, 336, 650);                // rechts
+  seg(336, 650, 259, 680);
+  // Schleudern (Dreiecke über den Flippern), Schlagseite = kick
+  const slings = [
+    { pts: [[70, 572], [70, 628], [104, 648]], seite: 1 },
+    { pts: [[306, 572], [306, 628], [272, 648]], seite: -1 },
+  ];
+  for (const s of slings) {
+    const [a, b, c] = s.pts;
+    seg(a[0], a[1], b[0], b[1]);
+    seg(b[0], b[1], c[0], c[1]);
+    seg(c[0], c[1], a[0], a[1], { kick: s });
+  }
+
+  // Pfosten an den Rampeneinläufen
+  const posts = [
+    { x: 140, y: 405, r: 5 }, { x: 172, y: 405, r: 5 },
+    { x: 262, y: 395, r: 5 }, { x: 294, y: 395, r: 5 },
   ];
 
-  const FL = 66;                         // Flipperlänge
+  // Pop-Bumper oben
+  const bumpers = [
+    { x: 190, y: 150, r: 18, flash: 0 },
+    { x: 252, y: 162, r: 18, flash: 0 },
+    { x: 218, y: 212, r: 18, flash: 0 },
+  ];
+
+  // Klappziele in der Mitte (fallen beim Treffer weg)
+  const drops = [180, 205, 230].map(x => ({ x, y: 330, w: 22, unten: false }));
+  // Stehziele rechts
+  const standups = [470, 500, 530].map(y => ({ x: 358, y, h: 20, an: false }));
+
+  // Rampen (vorerst als Tunnel: Einfahrt → Fahrt über Bahn → Ausfahrt in die Rückkehrgasse)
+  const ramps = [
+    { name: 'links', ein: { x0: 145, x1: 167, y: 405 },
+      pfad: [[156, 400], [150, 70], [380, 180], [321, 585]], aus: { x: 321, y: 585, vx: 0, vy: 140 } },
+    { name: 'rechts', ein: { x0: 267, x1: 289, y: 395 },
+      pfad: [[278, 390], [250, 60], [10, 190], [55, 585]], aus: { x: 55, y: 585, vx: 0, vy: 140 } },
+  ];
+  const bez = (p, t) => {
+    const u = 1 - t;
+    return [
+      u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+      u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1],
+    ];
+  };
+
+  // Flipper
+  const FL = 58;
   const flippers = [
-    { px: 100, py: 588, side: 1, a: 0.5, prev: null, on: false },
-    { px: 265, py: 588, side: -1, a: 0.5, prev: null, on: false },
+    { px: 119, py: 688, side: 1, a: 0.5, prev: null, on: false },
+    { px: 257, py: 688, side: -1, a: 0.5, prev: null, on: false },
   ];
   const A_REST = 0.5, A_UP = -0.45, A_SPEED = 22; // rad, rad/s
   const tip = f => ({ x: f.px + f.side * FL * Math.cos(f.a), y: f.py + FL * Math.sin(f.a) });
 
   // ---------- Zustand ----------
-  let ball, score = 0, ballNo = 1, pull = 0, dragging = null, gameOver = false;
-  let loaded = true;        // Kugel liegt fest auf der Feder
-  let snapBack = false;     // Feder schnellt nach dem Schuss zurück (nur Optik)
-  function newBall() { ball = { x: 362, y: PLUNGER_Y - R, vx: 0, vy: 0 }; loaded = true; }
+  let ball, score = 0, ballNo = 1, gameOver = false, loaded = true, zeit = 0;
+  let bonus = 0, multi = 0, stufe = 1;          // multi: Index in MULTI
+  const MULTI = [1, 2, 4, 6, 8];
+  const topLanes = [false, false, false];
+  const cool = {};                              // Abklingzeiten der Schalter
+  let dropReset = 0, meldung = null;
+
+  function newBall() { ball = { x: SHOOT_X, y: SHOOT_Y, vx: 0, vy: 0, rampe: null, halt: 0 }; loaded = true; }
   newBall();
 
   function updateHud() {
@@ -327,6 +432,13 @@ const sfx = (() => {
     ballsEl.textContent = gameOver ? 'Game over' : `Kugel ${ballNo} / 3`;
   }
   updateHud();
+
+  function punkte(n, b = 1000) { score += n; bonus += b; updateHud(); }
+  function melde(text, sek = 1.6) { meldung = { text, bis: zeit + sek }; }
+  function frei(key, sek) {                      // Schalter nur einmal je Abklingzeit
+    if ((cool[key] || 0) > zeit) return false;
+    cool[key] = zeit + sek; return true;
+  }
 
   // ---------- Kollision ----------
   function collideSeg(x1, y1, x2, y2, rad, rest, svx = 0, svy = 0) {
@@ -337,7 +449,7 @@ const sfx = (() => {
     const cx = x1 + t * dx, cy = y1 + t * dy;
     let nx = ball.x - cx, ny = ball.y - cy;
     const d = Math.hypot(nx, ny);
-    if (d >= rad || d === 0) return false;
+    if (d >= rad || d === 0) return null;
     nx /= d; ny /= d;
     ball.x = cx + nx * rad; ball.y = cy + ny * rad;
     // Relativgeschwindigkeit zur (evtl. bewegten) Oberfläche
@@ -348,21 +460,84 @@ const sfx = (() => {
       ball.vx -= (1 + rest) * vn * nx;
       ball.vy -= (1 + rest) * vn * ny;
     }
-    return true;
+    return { nx, ny, vn };
+  }
+  function collideCircle(cx, cy, r, rest) {
+    const dx = ball.x - cx, dy = ball.y - cy, d = Math.hypot(dx, dy), min = r + R;
+    if (d >= min || d === 0) return null;
+    const nx = dx / d, ny = dy / d;
+    ball.x = cx + nx * min; ball.y = cy + ny * min;
+    const vn = ball.vx * nx + ball.vy * ny;
+    if (vn < 0) { ball.vx -= (1 + rest) * vn * nx; ball.vy -= (1 + rest) * vn * ny; }
+    return { nx, ny, vn };
   }
 
+  // ---------- Regeln ----------
+  function trefferDrop(i) {
+    drops[i].unten = true;
+    punkte(25000); sfx.ziel();
+    if (drops.every(d => d.unten)) {
+      punkte(100000, 5000); melde('ZIELE KOMPLETT 100.000');
+      dropReset = zeit + 1.2;
+    }
+  }
+  function trefferStandup(i) {
+    standups[i].an = true;
+    punkte(10000); sfx.ziel();
+    if (standups.every(s => s.an)) {
+      punkte(50000, 5000); melde('STEHZIELE 50.000');
+      standups.forEach(s => { s.an = false; });
+    }
+  }
+  function topLane(i) {
+    if (!topLanes[i]) { topLanes[i] = true; punkte(10000); sfx.gasse(); }
+    if (topLanes.every(Boolean)) {
+      topLanes.fill(false);
+      if (multi < MULTI.length - 1) multi++;
+      melde(`BONUS ${MULTI[multi]}X`);
+    }
+  }
+  function rampe(r) {
+    if (stufe < 5) stufe++;
+    punkte(50000 * stufe, 5000);
+    melde(`ALARMSTUFE ${stufe}`);
+    sfx.rampe();
+    ball.rampe = { r, t: 0 };
+  }
+  function schaedel() {
+    const n = 50000 + 25000 * stufe;
+    punkte(n, 5000); melde(`SCHÄDEL ${n.toLocaleString('de-DE')}`);
+    sfx.loch();
+    ball.x = SKULL.x; ball.y = SKULL.y; ball.vx = 0; ball.vy = 0;
+    ball.halt = 1.2;
+  }
+
+  // ---------- Physik ----------
   function step(dt) {
-    // Flipper bewegen
+    zeit += dt;
     for (const f of flippers) {
       const target = f.on ? A_UP : A_REST;
       f.prev = tip(f);
       const da = target - f.a, maxd = A_SPEED * dt;
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
+    if (dropReset && zeit > dropReset) { drops.forEach(d => { d.unten = false; }); dropReset = 0; }
 
-    // Kugel auf der Feder: fest verbunden, bewegt sich mit der Feder
-    if (loaded) {
-      ball.x = 362; ball.y = PLUNGER_Y + pull * PULL_MAX - R; ball.vx = 0; ball.vy = 0;
+    if (loaded) { ball.x = SHOOT_X; ball.y = SHOOT_Y; ball.vx = 0; ball.vy = 0; return; }
+
+    // Auf der Rampe: Kugel folgt der Bahn, keine Physik
+    if (ball.rampe) {
+      ball.rampe.t += dt;
+      if (ball.rampe.t >= RAMP_T) {
+        const a = ball.rampe.r.aus;
+        ball.x = a.x; ball.y = a.y; ball.vx = a.vx; ball.vy = a.vy; ball.rampe = null;
+      }
+      return;
+    }
+    // Im Schädel-Loch: festhalten, dann nach unten auswerfen
+    if (ball.halt > 0) {
+      ball.halt -= dt;
+      if (ball.halt <= 0) { ball.vx = 70; ball.vy = 330; cool.schaedel = zeit + 1; sfx.auswurf(); }
       return;
     }
 
@@ -370,28 +545,33 @@ const sfx = (() => {
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
-    for (const w of walls) collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
-
-    // Feder-Oberkante als Boden der Rinne
-    // Rückkehr in die Rinne: Kugel landet auf der Feder und ist wieder geladen
-    if (ball.x > LANE_X && ball.vy >= 0 && ball.y + R >= PLUNGER_Y) {
-      snapBack = false; pull = 0; newBall();
-      return;
+    for (const w of walls) {
+      if (w.nurRunter && ball.vy <= 0) continue;
+      const c = collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
+      if (c && w.kick && -c.vn > 60 && frei('sling' + w.kick.seite, 0.15)) {
+        ball.vx += c.nx * 420; ball.vy += c.ny * 420;
+        w.kick.flash = 1;
+        punkte(1000, 500); sfx.schleuder();
+      }
     }
+    for (const p of posts) collideCircle(p.x, p.y, p.r, REST_WALL);
 
     for (const [bi, b] of bumpers.entries()) {
-      const dx = ball.x - b.x, dy = ball.y - b.y, d = Math.hypot(dx, dy), min = b.r + R;
-      if (d < min && d > 0) {
-        const nx = dx / d, ny = dy / d;
-        ball.x = b.x + nx * min; ball.y = b.y + ny * min;
-        const vn = ball.vx * nx + ball.vy * ny;
-        if (vn < 0) { ball.vx -= 2 * vn * nx; ball.vy -= 2 * vn * ny; }
-        // aktiver Kick
-        ball.vx += nx * 260; ball.vy += ny * 260;
-        if (b.flash <= 0.05) { score += 100; updateHud(); sfx.bumper(bi); }
+      const c = collideCircle(b.x, b.y, b.r, 1);
+      if (c) {
+        ball.vx += c.nx * 280; ball.vy += c.ny * 280;
+        if (frei('bumper' + bi, 0.08)) { punkte(5000, 500); sfx.bumper(bi); }
         b.flash = 1;
       }
     }
+    drops.forEach((d, i) => {
+      if (d.unten) return;
+      if (collideSeg(d.x - d.w / 2, d.y, d.x + d.w / 2, d.y, R + 3, REST_WALL)) trefferDrop(i);
+    });
+    standups.forEach((s, i) => {
+      const c = collideSeg(s.x, s.y - s.h / 2, s.x, s.y + s.h / 2, R + 2, REST_WALL);
+      if (c && -c.vn > 40 && frei('stand' + i, 0.3)) trefferStandup(i);
+    });
 
     for (const f of flippers) {
       const t = tip(f);
@@ -399,96 +579,190 @@ const sfx = (() => {
       collideSeg(f.px, f.py, t.x, t.y, R + 7, REST_FLIP, svx, svy);
     }
 
+    // ---- Schalter ----
+    // obere Gassen
+    if (ball.y > 55 && ball.y < 90) {
+      [166, 202, 238].forEach((x, i) => {
+        if (Math.abs(ball.x - x) < 12 && frei('top' + i, 0.6)) topLane(i);
+      });
+    }
+    // Rampeneinfahrt: nur mit genug Schwung nach oben
+    for (const r of ramps) {
+      if (ball.x > r.ein.x0 && ball.x < r.ein.x1 && Math.abs(ball.y - r.ein.y) < 8 && ball.vy < -250) {
+        rampe(r); return;
+      }
+    }
+    // Schädel-Loch
+    if ((cool.schaedel || 0) < zeit && Math.hypot(ball.x - SKULL.x, ball.y - SKULL.y) < 22) { schaedel(); return; }
+    // Umlauf links hinauf
+    if (ball.x < 58 && Math.abs(ball.y - 320) < 10 && ball.vy < -150 && frei('orbit', 1.5)) {
+      punkte(25000, 2000); melde('FLUCHTWEG 25.000'); sfx.gasse();
+    }
+
     // Tempolimit gegen Durchtunneln
     const sp = Math.hypot(ball.vx, ball.vy), VMAX = 2200;
     if (sp > VMAX) { ball.vx *= VMAX / sp; ball.vy *= VMAX / sp; }
 
-    if (ball.y > H + 30) drain();
+    if (ball.y > H + 20) drain();
   }
 
   function drain() {
-    if (ballNo >= 3) { gameOver = true; }
-    else { ballNo++; }
+    const b = bonus * MULTI[multi];
+    score += b;
+    melde(`BONUS ${bonus.toLocaleString('de-DE')} × ${MULTI[multi]}`, 2.2);
+    bonus = 0; multi = 0;
+    if (ballNo >= 3) gameOver = true; else ballNo++;
     newBall();
     updateHud();
+  }
+
+  // Abzug: Kugel abschießen (wie der Pistolengriff im Original)
+  function abzug() {
+    if (gameOver) { restart(); return; }
+    if (!loaded) return;
+    loaded = false;
+    ball.vy = -(1880 + Math.random() * 80);
+    sfx.schuss(1);
   }
 
   // Für den Update-Mechanismus: automatisch neu laden nur, wenn kein Spiel läuft
   window.spielRuht = () => gameOver || (loaded && score === 0 && ballNo === 1);
 
-  function restart() { score = 0; ballNo = 1; gameOver = false; newBall(); updateHud(); }
+  function restart() {
+    score = 0; ballNo = 1; gameOver = false; bonus = 0; multi = 0; stufe = 1;
+    topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
+    newBall(); updateHud();
+  }
 
   // ---------- Zeichnen ----------
+  const C = {
+    feld: '#101c2e', rand: '#6fb6d3', chrom: '#c9d4df', rot: '#e0344a', amber: '#ffb347',
+    aus: '#2a3a52', gruen: '#3fd08a', text: '#e8eef5',
+  };
+  function lampe(x, y, r, an, farbe) {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * PI);
+    ctx.fillStyle = an ? farbe : C.aus; ctx.fill();
+  }
+  function schrift(text, x, y, gr, farbe, ausr = 'center') {
+    ctx.font = `${gr}px Bungee, "Arial Black", sans-serif`;
+    ctx.textAlign = ausr; ctx.fillStyle = farbe; ctx.fillText(text, x, y);
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#12233a';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = C.feld; ctx.fillRect(0, 0, W, H);
 
+    // Beschriftung der Gassen (eigene Namen)
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.translate(35, 400); ctx.rotate(-PI / 2); schrift('FLUCHTWEG', 0, 4, 11, C.rand); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.35;
+    ctx.translate(345, 330); ctx.rotate(PI / 2); schrift('SCHLEIFE', 0, 4, 11, C.rand); ctx.restore();
+
+    // Lampen: obere Gassen, Bonus-Multiplikator, Alarmstufe
+    [166, 202, 238].forEach((x, i) => lampe(x, 72, 6, topLanes[i], C.gruen));
+    MULTI.slice(1).forEach((m, i) => {
+      const x = 130 + i * 38, an = multi >= i + 1;
+      lampe(x, 600, 13, an, C.amber);
+      schrift(m + 'X', x, 604, 10, an ? '#1a1206' : '#6d7f95');
+    });
+    for (let i = 0; i < 5; i++) lampe(188 + (i - 2) * 16, 440 - 0, 5, stufe > i, C.rot);
+    schrift('ALARM', 188, 462, 9, '#6d7f95');
+
+    // Wände
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#5fb8d6';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = C.rand; ctx.lineWidth = 4;
     ctx.beginPath();
-    for (const w of walls) { ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); }
+    for (const w of walls) { if (!w.kick) { ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); } }
     ctx.stroke();
 
+    // Schleudern
+    for (const s of slings) {
+      s.flash = Math.max(0, (s.flash || 0) - 0.08);
+      ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath();
+      ctx.fillStyle = s.flash > 0 ? '#ffd1d6' : '#7a1f2c'; ctx.fill();
+      ctx.strokeStyle = C.rot; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
+    }
+
+    for (const p of posts) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2 * PI); ctx.fillStyle = C.chrom; ctx.fill(); }
+
+    // Klappziele + Stehziele
+    for (const d of drops) {
+      ctx.fillStyle = d.unten ? '#26344a' : C.rot;
+      ctx.fillRect(d.x - d.w / 2 + 1, d.y - 5, d.w - 2, 8);
+    }
+    for (const s of standups) {
+      ctx.fillStyle = s.an ? C.amber : '#b5c6d6';
+      ctx.fillRect(s.x - 3, s.y - s.h / 2, 6, s.h);
+    }
+
+    // Pop-Bumper
     for (const b of bumpers) {
       b.flash = Math.max(0, b.flash - 0.06);
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fillStyle = b.flash > 0 ? '#ffd1de' : '#e2557f';
-      ctx.fill();
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = '#12233a'; ctx.fill();
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 2 * PI);
+      ctx.fillStyle = b.flash > 0 ? '#ffe0e4' : C.rot; ctx.fill();
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.55, 0, 2 * PI);
+      ctx.fillStyle = C.chrom; ctx.fill();
     }
 
-    // Feder
-    const py = PLUNGER_Y + pull * PULL_MAX;
-    ctx.fillStyle = '#9fb3c8';
-    ctx.fillRect(LANE_X + 6, py, 380 - LANE_X - 12, 6);
-    ctx.strokeStyle = '#7d93ab'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    const coils = 6, top = py + 6, bottom = 695, cxm = (LANE_X + 380) / 2;
-    for (let i = 0; i <= coils * 2; i++) {
-      const y = top + (bottom - top) * i / (coils * 2);
-      const x = cxm + (i % 2 ? 9 : -9);
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
+    // Schädel über dem Loch (eigene, schlichte Form)
+    const sx = SKULL.x, sy = SKULL.y - 26;
+    ctx.fillStyle = C.chrom;
+    ctx.beginPath(); ctx.ellipse(sx, sy, 20, 17, 0, 0, 2 * PI); ctx.fill();
+    ctx.fillRect(sx - 12, sy + 8, 24, 12);
+    const glut = ball.halt > 0 ? 1 : 0.55 + 0.45 * Math.sin(zeit * 4);
+    ctx.fillStyle = `rgba(255, 40, 50, ${glut})`;
+    ctx.beginPath(); ctx.arc(sx - 7, sy + 1, 4, 0, 2 * PI); ctx.arc(sx + 7, sy + 1, 4, 0, 2 * PI); ctx.fill();
+    ctx.strokeStyle = C.feld; ctx.lineWidth = 1.5;
+    for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(sx + k * 4.5, sy + 12); ctx.lineTo(sx + k * 4.5, sy + 19); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(SKULL.x, SKULL.y, 10, 0, 2 * PI); ctx.fillStyle = '#05080d'; ctx.fill();
+
+    // Abschussrinne: Kolben
+    ctx.fillStyle = '#9fb3c8'; ctx.fillRect(LANE_X + 5, SHOOT_Y + R, 392 - LANE_X - 10, 6);
 
     // Flipper
-    ctx.strokeStyle = '#ffb347';
-    ctx.lineWidth = 14;
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 13;
     for (const f of flippers) {
       const t = tip(f);
       ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke();
     }
 
-    // Hinweis-Pfeil: solange die Kugel auf der Feder liegt und nicht gespannt wird
-    if (loaded && !gameOver && pull === 0) {
-      const t = performance.now() / 1000;
-      const cx = (LANE_X + 380) / 2;
-      for (let k = 0; k < 3; k++) {
-        const ph = (t * 1.2 + k / 3) % 1;          // wandert nach unten, blendet aus
-        const y = 520 + ph * 90;
-        ctx.globalAlpha = Math.sin(ph * Math.PI);
-        ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
-        ctx.beginPath(); ctx.moveTo(cx - 10, y - 6); ctx.lineTo(cx, y + 4); ctx.lineTo(cx + 10, y - 6); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
+    // Rampen (halbtransparent über dem Feld)
+    for (const r of ramps) {
+      ctx.save();
+      ctx.globalAlpha = 0.22; ctx.strokeStyle = C.chrom; ctx.lineWidth = 22;
+      ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); ctx.stroke();
+      ctx.globalAlpha = 0.6; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); ctx.stroke();
+      ctx.restore();
     }
 
-    // Kugel
-    const g = ctx.createRadialGradient(ball.x - 3, ball.y - 4, 1, ball.x, ball.y, R);
+    // Kugel (auf der Rampe entlang der Bahn)
+    let bx = ball.x, by = ball.y;
+    if (ball.rampe) [bx, by] = bez(ball.rampe.r.pfad, Math.min(1, ball.rampe.t / RAMP_T));
+    const g = ctx.createRadialGradient(bx - 3, by - 3, 1, bx, by, R);
     g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#8a97a6');
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(ball.x, ball.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, by, R, 0, 2 * PI); ctx.fill();
+
+    // Meldung (wie die Punktmatrix-Anzeige)
+    if (meldung && zeit < meldung.bis) {
+      ctx.fillStyle = 'rgba(5, 8, 13, .8)'; ctx.fillRect(40, 488, W - 80 - 36, 34);
+      schrift(meldung.text, (W - 36) / 2, 511, 15, C.amber);
+    }
+
+    // Hinweis auf den Abzug
+    if (loaded && !gameOver) {
+      const a = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+      ctx.globalAlpha = a; schrift('ABZUG!', 188, 540, 16, C.rot); ctx.globalAlpha = 1;
+    }
 
     if (gameOver) {
-      ctx.fillStyle = 'rgba(11,20,32,.75)'; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#ffb347'; ctx.textAlign = 'center';
-      ctx.font = '34px Bungee, "Arial Black", sans-serif';
-      ctx.fillText('GAME OVER', W / 2, H / 2 - 10);
-      ctx.font = '16px system-ui, sans-serif'; ctx.fillStyle = '#e8eef5';
-      ctx.fillText('Tippen zum Neustart', W / 2, H / 2 + 24);
+      ctx.fillStyle = 'rgba(11,20,32,.78)'; ctx.fillRect(0, 0, W, H);
+      schrift('GAME OVER', W / 2, H / 2 - 10, 34, C.amber);
+      ctx.font = '16px system-ui, sans-serif'; ctx.fillStyle = C.text;
+      ctx.fillText('Abzug drücken für ein neues Spiel', W / 2, H / 2 + 24);
     }
   }
 
@@ -507,41 +781,7 @@ const sfx = (() => {
   window.addEventListener('resize', resize);
   resize();
 
-  // ---------- Eingabe: Feder ----------
-  // Schuss: Mindeststärke reicht immer bis oben raus, voll gespannt = deutlich schneller
-  const V_MIN = 1350, V_MAX = 2150;
-  function releasePlunger() {
-    if (loaded && pull > 0.08) {
-      loaded = false;
-      ball.vy = -(V_MIN + pull * (V_MAX - V_MIN));
-      sfx.schuss(pull);
-      snapBack = true;          // Feder schnellt optisch zurück
-    } else {
-      pull = 0;
-    }
-  }
-  cv.addEventListener('pointerdown', e => {
-    if (gameOver) { restart(); return; }
-    const r = cv.getBoundingClientRect();
-    if (loaded && (e.clientX - r.left) / scale > W / 2) {
-      snapBack = false;
-      dragging = { id: e.pointerId, y0: e.clientY };
-      cv.setPointerCapture(e.pointerId);
-    }
-  });
-  cv.addEventListener('pointermove', e => {
-    if (!dragging || e.pointerId !== dragging.id) return;
-    pull = Math.max(0, Math.min(1, (e.clientY - dragging.y0) / 110));
-  });
-  const endDrag = e => {
-    if (!dragging || e.pointerId !== dragging.id) return;
-    dragging = null;
-    releasePlunger();
-  };
-  cv.addEventListener('pointerup', endDrag);
-  cv.addEventListener('pointercancel', endDrag);
-
-  // ---------- Eingabe: Flipper ----------
+  // ---------- Eingabe ----------
   function bindButton(el, f) {
     const on = e => { e.preventDefault(); if (!f.on) sfx.flipper(); f.on = true; el.classList.add('on'); };
     const off = () => { f.on = false; el.classList.remove('on'); };
@@ -551,22 +791,25 @@ const sfx = (() => {
     el.addEventListener('pointerleave', off);
     el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  const bl = document.getElementById('bl'), br = document.getElementById('br');
+  const bl = document.getElementById('bl'), br = document.getElementById('br'), fire = document.getElementById('fire');
   bindButton(bl, flippers[0]);
   bindButton(br, flippers[1]);
+  fire.addEventListener('pointerdown', e => { e.preventDefault(); fire.classList.add('on'); abzug(); });
+  fire.addEventListener('pointerup', () => fire.classList.remove('on'));
+  fire.addEventListener('pointercancel', () => fire.classList.remove('on'));
+  fire.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('pointerdown', () => { if (gameOver) restart(); });
 
-  // Tastatur (Desktop): ← / → oder Z / M, Leertaste = Feder halten
-  let spaceHeld = false;
+  // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
     if (e.key === 'ArrowLeft' || e.key === 'z') { sfx.flipper(); flippers[0].on = true; bl.classList.add('on'); }
     if (e.key === 'ArrowRight' || e.key === 'm') { sfx.flipper(); flippers[1].on = true; br.classList.add('on'); }
-    if (e.key === ' ') { e.preventDefault(); if (gameOver) restart(); else if (loaded) { snapBack = false; spaceHeld = true; } }
+    if (e.key === ' ') { e.preventDefault(); abzug(); }
   });
   window.addEventListener('keyup', e => {
     if (e.key === 'ArrowLeft' || e.key === 'z') { flippers[0].on = false; bl.classList.remove('on'); }
     if (e.key === 'ArrowRight' || e.key === 'm') { flippers[1].on = false; br.classList.remove('on'); }
-    if (e.key === ' ' && spaceHeld) { spaceHeld = false; releasePlunger(); }
   });
 
   // ---------- Loop ----------
@@ -574,14 +817,17 @@ const sfx = (() => {
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    if (spaceHeld) pull = Math.min(1, pull + dt * 1.5);
-    if (snapBack) { pull = Math.max(0, pull - dt * 12); if (pull === 0) snapBack = false; }
+    fire.classList.toggle('bereit', loaded && !gameOver);
     const pause = !document.getElementById('start').hidden;
     if (!gameOver && !pause) for (let i = 0; i < STEPS; i++) step(dt / STEPS);
     draw();
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  // Nur für automatische Tests (Node), im Browser ohne Wirkung
+  if (window.__TEST__) window.__TEST__.api = { step, abzug, get ball() { return ball; }, get score() { return score; },
+    get loaded() { return loaded; }, flippers, get stufe() { return stufe; } };
 })();
 </script>
 <script>
