@@ -83,6 +83,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Augen, bewusst **kein** Endoskelett-Look: keine roten Augen, keine Kolben/Kabel). Schwarzer Hintergrund per Helligkeit
   freigestellt, 144 px breit, im Spiel 48 px breit über dem Loch. Die Augen glühen per Leuchtschein (pulsierend, voll bei
   belegtem Loch). Die Datei steht in der Cache-Liste von `sw.js`.
+- Stand 0.22: App-Icon ersetzt durch Nutzer-Entwurf mit Stahlplatten-Schädel (orange Augen), kleiner Chromkugel und zwei
+  Flipperarmen, roter Ring; ohne Uhr. Quelle nur 512 px (reicht für alle drei Größen).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
