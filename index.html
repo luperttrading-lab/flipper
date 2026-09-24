@@ -44,7 +44,7 @@
   }
   #dmd {
     flex: 1; min-width: 0; display: block; border-radius: 6px;
-    background: #090402; box-shadow: 0 0 0 2px #1c1510, 0 0 18px rgba(255, 120, 30, .12);
+    background: #090402; box-shadow: 0 0 0 2px #1c1510, 0 0 18px rgba(255, 70, 30, .14);
   }
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; perspective: 1100px; }
   #c {
@@ -73,12 +73,17 @@
   .controls button.on { background: var(--btn-on); color: #1a1206; }
   .controls { align-items: center; }
   .controls #fire {
-    flex: 0 0 76px; height: 76px; border-radius: 50%;
-    background: #8e1d2c; color: #ffe3e6; font-size: 12px; letter-spacing: .04em;
+    flex: 0 0 78px; height: 78px; border-radius: 50%;
+    background:
+      repeating-linear-gradient(45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
+      radial-gradient(circle at 35% 30%, #ffffff, #b9c3cd 45%, #6b7682 80%, #3a424c);
+    color: #1c2128; font-size: 12px; letter-spacing: .04em; font-weight: 800;
+    border: 3px solid #d8dee5;
   }
-  .controls #fire.on { background: #ff5566; color: #2a0409; }
+  .controls #fire.on { background: radial-gradient(circle at 50% 50%, #ff8a8a, #c21f2f); color: #fff; border-color: #ff5566; }
   .controls #fire.bereit { animation: puls 1s ease-in-out infinite; }
-  @keyframes puls { 50% { box-shadow: 0 0 0 8px rgba(224, 52, 74, .35); } }
+  @keyframes puls { 50% { box-shadow: 0 0 0 7px rgba(255, 70, 60, .45), 0 0 22px rgba(255, 70, 60, .5); } }
   @media (prefers-reduced-motion: reduce) { .controls #fire.bereit { animation: none; box-shadow: 0 0 0 4px rgba(224, 52, 74, .5); } }
   .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
   .meta { display: flex; flex-direction: column; align-items: flex-end; }
@@ -132,7 +137,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.12';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.13';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -380,7 +385,7 @@ const dmd = (() => {
   window.addEventListener('resize', groesse);
   groesse();
 
-  const FARBE = ['#2a1305', '#7a3a0c', '#c9661a', '#ff9a2a'];
+  const FARBE = ['#2a0a04', '#7a1e08', '#d23a14', '#ff5a26'];
   function zeichne() {
     const key = buf.join('');
     if (key === alt) return;
@@ -395,7 +400,7 @@ const dmd = (() => {
       cx.fill();
     }
   }
-  return { leer, text, mitte, rechts, breite, rahmen, zeichne, groesse };
+  return { leer, text, mitte, rechts, breite, rahmen, zeichne, groesse, punkt };
 })();
 </script>
 <script>
@@ -484,7 +489,7 @@ const dmd = (() => {
   ];
 
   // Klappziele in der Mitte (fallen beim Treffer weg)
-  const drops = [180, 205, 230].map(x => ({ x, y: 330, w: 22, unten: false }));
+  const drops = [192, 216, 240].map(x => ({ x, y: 262, w: 20, unten: false }));
   // Stehziele rechts
   const standups = [470, 500, 530].map(y => ({ x: 358, y, h: 20, an: false }));
 
@@ -525,7 +530,7 @@ const dmd = (() => {
   const JACKPOT = 1000000;
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
-  let dropReset = 0, meldung = null, blitz = 0;
+  let dropReset = 0, meldung = null, blitz = 0, paybackBis = 0, kickback = false;
 
   // Kanone links: schwenkt geladen hin und her, der Abzug feuert (wie im Original)
   const kanone = { x: 44, y: 440, a: 0.1, phase: 0, kugel: null, feuerBis: 0, ziel: 1 };
@@ -537,7 +542,7 @@ const dmd = (() => {
   newBall();
   const haelt = () => balls.some(b => b.halt > 0);
 
-  function punkte(n, b = 1000) { score += n; bonus += b; }
+  function punkte(n, b = 1000) { score += zeit < paybackBis ? 2 * n : n; bonus += b; }   // Payback: alles doppelt
   function melde(z1, z2 = '', sek = 1.8) { meldung = { z1, z2, von: zeit, bis: zeit + sek }; }
   function frei(key, sek) {                      // Schalter nur einmal je Abklingzeit
     if ((cool[key] || 0) > zeit) return false;
@@ -602,7 +607,8 @@ const dmd = (() => {
       bankReihen++;
       if (schaedelIdx < SCHAEDEL_WERT.length - 1) schaedelIdx++;
       if (bankReihen >= 4) {
-        punkte(1000000, 10000); melde('CORE KOMPLETT', '1.000.000', 2.2); bankReihen = 0; blitzen(1);
+        punkte(1000000, 10000); melde('PAYBACK ZEIT', 'ALLES × 2', 2.6); bankReihen = 0; blitzen(1);
+        paybackBis = zeit + 25; lampenBlitz(() => true, 1); sfx.multiball();
       } else {
         punkte(100000, 5000); melde('ZIELE KOMPLETT', '100.000');
       }
@@ -616,7 +622,8 @@ const dmd = (() => {
     standups[i].an = true;
     punkte(10000); sfx.ziel();
     if (standups.every(s => s.an)) {
-      punkte(50000, 5000); melde('STEHZIELE', '50.000');
+      punkte(50000, 5000);
+      if (!kickback) { kickback = true; melde('KICKBACK', 'AN'); } else melde('STEHZIELE', '50.000');
       standups.forEach(s => { s.an = false; });
       lampenBlitz(l => l.gruppe === 'stand', 0.6);
     }
@@ -827,6 +834,10 @@ const dmd = (() => {
     const sp = Math.hypot(ball.vx, ball.vy), VMAX = 2200;
     if (sp > VMAX) { ball.vx *= VMAX / sp; ball.vy *= VMAX / sp; }
 
+    // Kickback in der rechten Ausgasse: schießt die Kugel zurück ins Spiel
+    if (kickback && ball.x > 338 && ball.x < LANE_X && ball.y > 660 && ball.vy > 0) {
+      kickback = false; ball.vx = -40; ball.vy = -1250; sfx.kanone(); melde('KICKBACK', '', 1.2);
+    }
     if (ball.y > H + 20) ball.weg = true;
   }
   function inlane() {
@@ -884,6 +895,7 @@ const dmd = (() => {
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     skullZahl = 0; gunLit = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
+    paybackBis = 0; kickback = false;
     newBall();
   }
 
@@ -907,8 +919,14 @@ const dmd = (() => {
     gruppe: 'rampe', z: () => stufe < 5 ? 3 : 1, k }));
   // Umlauf-Pfeil links
   L({ form: 'pfeil', x: 35, y: 420, w: 16, h: 18, dir: -PI / 2, farbe: 'amber', gruppe: 'orbit', z: () => 2 });
+  // Kleine rote Pfeile unter den Klappzielen
+  drops.forEach((d, i) => L({ form: 'pfeil', x: d.x, y: 292, w: 12, h: 14, dir: -PI / 2, farbe: 'rot', gruppe: 'drop',
+    z: () => d.unten ? 0 : 3, k: i }));
+  // Rechts an der Ausgasse: drei Rundlampen (Stehziele) und KICKBACK
+  standups.forEach((st, i) => L({ form: 'kreis', x: 350, y: 552 + i * 11, r: 4.5, farbe: 'amber', gruppe: 'kick', z: () => st.an || kickback ? 1 : 0 }));
+  L({ form: 'rechteck', x: 350, y: 640, w: 24, h: 10, farbe: 'rot', label: 'KICK', gruppe: 'kick', z: () => kickback ? 1 : 0 });
   // Kanone: fünf Winkel-Lampen zeigen, wohin sie gerade zielt (oben = steil)
-  for (let k = 0; k < 5; k++) L({ form: 'pfeil', x: 84, y: 400 + k * 10, w: 8, h: 12, dir: 0, farbe: 'gelb', gruppe: 'kanone',
+  for (let k = 0; k < 5; k++) L({ form: 'trapez', x: 80 + k * 4, y: 400 + k * 10, w: 22, h: 7, farbe: 'gelb', gruppe: 'kanone', rand: true,
     z: () => kanone.kugel ? (Math.round((kanone.a - (K_MITTE - K_AMP)) / (2 * K_AMP) * 4) === k ? 1 : 0) : 0 });
   // „LOAD GUN“: nächster Schädel-Treffer lädt die Kanone
   L({ form: 'rechteck', x: 100, y: 380, w: 44, h: 11, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
@@ -918,8 +936,8 @@ const dmd = (() => {
     z: () => multiball ? 2 : 0 });
 
   // Mittelsäule „CORE“: 4 Reihen × 2, jede komplette Klappziel-Reihe leuchtet eine Reihe auf
-  const CORE_FARBEN = ['gruen', 'rot', 'weiss', 'gelb'];
-  CORE_FARBEN.forEach((f, r) => [178, 198].forEach(x => L({ form: 'rechteck', x, y: 392 - r * 13, w: 17, h: 10, farbe: f,
+  const CORE_FARBEN = ['amber', 'blau', 'rot', 'gruen'];
+  CORE_FARBEN.forEach((f, r) => [175, 188, 201].forEach(x => L({ form: 'rechteck', x, y: 392 - r * 13, w: 12, h: 10, farbe: f,
     gruppe: 'core', z: () => bankReihen > r ? 1 : (bankReihen === r ? 2 : 0) })));
 
   // Leiter links: Belohnungen der Alarmstufen (unten → oben)
@@ -1002,6 +1020,9 @@ const dmd = (() => {
       ctx.closePath();
     } else if (l.form === 'keil') {
       ctx.arc(l.x, l.y, l.r1, l.a0, l.a1); ctx.arc(l.x, l.y, l.r0, l.a1, l.a0, true); ctx.closePath();
+    } else if (l.form === 'trapez') {
+      const w = l.w / 2, h = l.h / 2;
+      ctx.moveTo(l.x - w, l.y - h); ctx.lineTo(l.x + w - 4, l.y - h); ctx.lineTo(l.x + w, l.y + h); ctx.lineTo(l.x - w + 4, l.y + h); ctx.closePath();
     }
   }
   function mitteVon(l) {
@@ -1021,7 +1042,8 @@ const dmd = (() => {
         gr.addColorStop(1, `rgb(${r * 0.7 | 0},${g * 0.7 | 0},${b * 0.7 | 0})`);
         ctx.globalAlpha = l.i; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
       }
-      ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1.2; ctx.stroke();
+      if (l.rand) { ctx.strokeStyle = FARBE[l.farbe]; ctx.lineWidth = 1.8; ctx.stroke(); }
+      else { ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       if (l.label) {
         const [mx, my] = mitteVon(l);
         ctx.font = `700 ${l.form === 'keil' ? 7 : 6.5}px system-ui, sans-serif`;
@@ -1176,9 +1198,11 @@ const dmd = (() => {
 
     // Klappziele + Stehziele
     for (const d of drops) {
-      ctx.fillStyle = d.unten ? '#2a1a20' : '#e8303f';
-      ctx.fillRect(d.x - d.w / 2 + 1, d.y - 5, d.w - 2, 8);
-      if (!d.unten) { ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(d.x - d.w / 2 + 2, d.y - 5, d.w - 4, 2); }
+      if (d.unten) { ctx.fillStyle = '#2a1a20'; ctx.fillRect(d.x - 9, d.y - 2, 18, 4); continue; }
+      ctx.fillStyle = '#f2f2f2'; ctx.fillRect(d.x - 3, d.y - 2, 6, 8);          // Halter
+      const dg = ctx.createRadialGradient(d.x - 3, d.y - 4, 1, d.x, d.y, 10);
+      dg.addColorStop(0, '#ff9aa2'); dg.addColorStop(0.5, '#e8303f'); dg.addColorStop(1, '#8e0f1a');
+      ctx.beginPath(); ctx.arc(d.x, d.y - 1, 9, 0, 2 * PI); ctx.fillStyle = dg; ctx.fill();
     }
     for (const s of standups) {
       ctx.fillStyle = s.an ? '#ffe7b0' : '#e9eef4';
@@ -1276,6 +1300,15 @@ const dmd = (() => {
         const s = dmd.breite(meldung.z1, 2) <= 124 ? 2 : 1;
         dmd.mitte(meldung.z1, s === 2 ? 9 : 13, s, 3);
       }
+    } else if (kanone.kugel) {
+      // Fadenkreuz folgt dem Kanonenwinkel, das Kästchen zeigt das Ziel
+      const lage = (kanone.a - (K_MITTE - K_AMP)) / (2 * K_AMP);        // 0 = oben … 1 = unten
+      const kx = 20 + Math.round(lage * 88), ky = 12;
+      const zx = 20 + Math.round([0.38, 0.52, 0.66][kanone.ziel] * 88);
+      for (let a = 0; a < 2 * PI; a += 0.15) dmd.punkt(Math.round(kx + Math.cos(a) * 7), Math.round(ky + Math.sin(a) * 7), 3);
+      for (let d = -10; d <= 10; d++) { if (Math.abs(d) > 2) { dmd.punkt(kx + d, ky, 3); dmd.punkt(kx, ky + d, 3); } }
+      for (let d = -4; d <= 4; d++) { dmd.punkt(zx + d, ky - 4, 2); dmd.punkt(zx + d, ky + 4, 2); dmd.punkt(zx - 4, ky + d, 2); dmd.punkt(zx + 4, ky + d, 2); }
+      if (blink) dmd.mitte('FEUER FREI', 24, 1, 3);
     } else if (gameOver) {
       if (Math.floor(zeit * 0.5) % 2 === 0) { dmd.mitte('GAME OVER', 3, 2, 3); dmd.mitte(fmt(score), 22, 1, 2); }
       else { dmd.mitte('ABZUG DRÜCKEN', 8, 1, 3); dmd.mitte('FÜR NEUES SPIEL', 18, 1, 2); }
@@ -1286,7 +1319,7 @@ const dmd = (() => {
       const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
       dmd.mitte(t, s === 2 ? 2 : 6, s, 3);
       dmd.text('KUGEL ' + ballNo, 1, 24, 1, 2);
-      if (kanone.kugel) { if (blink) dmd.mitte('FEUER!', 24, 1, 3); }
+      if (zeit < paybackBis) dmd.mitte('PB ' + Math.ceil(paybackBis - zeit), 24, 1, blink ? 3 : 2);
       else dmd.mitte(multiball ? 'MB' : MULTI[multi] + 'X', 24, 1, 2);
       dmd.rechts('ALARM ' + stufe, 24, 1, 2);
     }
