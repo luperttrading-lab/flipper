@@ -93,6 +93,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   und Kickback. **Ton:** Bumper jetzt mechanischer Schlag statt Dur-Akkord; **Sirene** (2,5 s steigend) bei
   Multiball-Start und nach jedem Jackpot; **eigene Multiball-Musik** (a-Moll, 132 BPM, Bass-Achtel A–A–F–G + Kick + Snare,
   Web-Audio-Sequenzer, läuft nur im Multiball und nicht im Pause-Schirm; nicht nach Gehör geprüft).
+- Stand 0.24 (Bildschirm): „Ton an“ und Versionsnummer **nicht mehr oben**, sondern klein unten auf dem Start-/Pausenschirm
+  (Tipp darauf startet das Spiel nicht). Startschirm beim ersten Öffnen als **Startbild** (`start.jpg`, fehlt es noch, zeigt
+  er das App-Icon); der Pausenschirm bleibt halbtransparent. Knöpfe flacher (54 px, Abzug 60 px), Anzeige max. 320 px breit,
+  Seitenrand 10 px, Neigung 10° statt 13°, Perspektive 1300 px, Tisch unten ausgerichtet; die Anzeige wird per `translateY`
+  direkt über den perspektivisch verkürzten Tisch geschoben. Tisch dadurch 705 statt 663 px hoch (430×932), 530 statt 482 px
+  (375×667). Hinweis: Auf großen iPhones begrenzt die **Breite** den Tisch, nicht die Höhe.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

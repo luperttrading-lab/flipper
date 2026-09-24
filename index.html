@@ -28,7 +28,7 @@
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     display: flex;
     flex-direction: column;
-    padding-inline: 16px;
+    padding-inline: 10px;
     box-sizing: border-box;
     overflow: hidden;
     user-select: none;
@@ -39,29 +39,30 @@
     display: flex;
     gap: 10px;
     align-items: center;
-    padding-block: calc(env(safe-area-inset-top, 0px) + 10px) 6px;
+    justify-content: center;
+    padding-block: calc(env(safe-area-inset-top, 0px) + 6px) 4px;
     font-variant-numeric: tabular-nums;
   }
   #dmd {
-    flex: 1; min-width: 0; display: block; border-radius: 6px;
+    width: min(100%, 320px); display: block; border-radius: 6px;
     background: #090402; box-shadow: 0 0 0 2px #1c1510, 0 0 18px rgba(255, 70, 30, .14);
   }
-  #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; perspective: 1100px; }
+  #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
-    transform: rotateX(13deg); transform-origin: 50% 100%;
+    transform: rotateX(10deg); transform-origin: 50% 100%;
     box-shadow: 0 0 0 3px #2a3140, 0 0 0 6px #0c0f15;
   }
   .controls {
     display: flex;
     gap: 16px;
-    padding-block: 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    padding-block: 6px calc(env(safe-area-inset-bottom, 0px) + 8px);
   }
   .controls button {
     flex: 1;
-    height: 84px;
+    height: 54px;
     border: 0;
-    border-radius: 42px;
+    border-radius: 27px;
     background: var(--btn);
     color: var(--ink);
     font: 600 15px system-ui, sans-serif;
@@ -73,12 +74,12 @@
   .controls button.on { background: var(--btn-on); color: #1a1206; }
   .controls { align-items: center; }
   .controls #fire {
-    flex: 0 0 78px; height: 78px; border-radius: 50%;
+    flex: 0 0 60px; height: 60px; border-radius: 50%;
     background:
       repeating-linear-gradient(45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
       repeating-linear-gradient(-45deg, rgba(0,0,0,.14) 0 1px, transparent 1px 4px),
       radial-gradient(circle at 35% 30%, #ffffff, #b9c3cd 45%, #6b7682 80%, #3a424c);
-    color: #1c2128; font-size: 12px; letter-spacing: .04em; font-weight: 800;
+    color: #1c2128; font-size: 10px; letter-spacing: .02em; font-weight: 800;
     border: 3px solid #d8dee5;
   }
   .controls #fire.on { background: radial-gradient(circle at 50% 50%, #ff8a8a, #c21f2f); color: #fff; border-color: #ff5566; }
@@ -86,7 +87,6 @@
   @keyframes puls { 50% { box-shadow: 0 0 0 7px rgba(255, 70, 60, .45), 0 0 22px rgba(255, 70, 60, .5); } }
   @media (prefers-reduced-motion: reduce) { .controls #fire.bereit { animation: none; box-shadow: 0 0 0 4px rgba(224, 52, 74, .5); } }
   .controls button:focus-visible { outline: 3px solid var(--rail); outline-offset: 2px; }
-  .meta { display: flex; flex-direction: column; align-items: flex-end; }
   .ver {
     font-size: 13px; color: var(--muted); background: none; border: 0; padding: 8px 4px;
     text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer;
@@ -106,7 +106,17 @@
     background: rgba(11, 20, 32, .72);
   }
   .start[hidden] { display: none; }
-  .start span {
+  /* Beim ersten Start: Startbild (start.jpg; fehlt es, das App-Icon) über den ganzen Schirm */
+  .start.splash {
+    background: url(start.jpg) center / cover no-repeat, url(icon-512.png) center 38% / min(70vw, 360px) no-repeat, var(--bg);
+    align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  }
+  .start-leiste {
+    position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    display: flex; justify-content: center; gap: 22px;
+  }
+  .start-leiste .ver { color: rgba(232, 238, 245, .7); }
+  .start > span {
     font-family: "Bungee", "Arial Black", sans-serif; font-size: 22px; color: var(--flip);
     padding: 18px 26px; border: 2px solid var(--flip); border-radius: 16px;
   }
@@ -119,12 +129,14 @@
 
 <header>
   <canvas id="dmd" aria-label="Punktestand"></canvas>
-  <span class="meta">
+</header>
+<div class="start splash" id="start">
+  <span id="start-text">Antippen zum Starten</span>
+  <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
     <button class="ver" id="ver" type="button" aria-label="Auf Update prüfen"></button>
-  </span>
-</header>
-<div class="start" id="start"><span id="start-text">Antippen zum Starten</span></div>
+  </div>
+</div>
 <div class="update" id="update" hidden>
   <span id="update-text"></span>
   <button class="btn" id="update-go" type="button">Jetzt laden</button>
@@ -137,7 +149,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.23';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.24';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -209,12 +221,14 @@ const sfx = (() => {
     if (document.visibilityState === 'visible') {
       frisch = true;
       document.getElementById('start-text').textContent = 'Pause – antippen';
+      startEl.classList.remove('splash');
       startEl.hidden = false;
     }
   });
 
   // Umschalten mit Rückmeldung: Probeton + Zustand im Banner (hilft auch bei der Fehlersuche)
-  tonEl.addEventListener('click', () => {
+  tonEl.addEventListener('click', e => {
+    e.stopPropagation();
     an = !an; zeige();
     try { localStorage.setItem('flipper.ton', an ? 'an' : 'aus'); } catch (_) {}
     if (!an) { window.showInfo && window.showInfo('Ton aus', 2); return; }
@@ -1588,7 +1602,7 @@ const dmd = (() => {
   let scale = 1;
   function resize() {
     const st = document.getElementById('stage').getBoundingClientRect();
-    scale = Math.min(st.width / W, st.height / (H * 0.97));
+    scale = Math.min(st.width / W, st.height / (H * 0.9));      // schräg gestellt wirkt der Tisch ~10 % niedriger
     const dpr = window.devicePixelRatio || 1;
     cv.style.width = W * scale + 'px';
     cv.style.height = H * scale + 'px';
@@ -1596,6 +1610,11 @@ const dmd = (() => {
     cv.height = Math.round(H * scale * dpr);
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
     grund = baueGrund(Math.min(3, scale * dpr));
+    // Die Anzeige rückt direkt über den (perspektivisch verkürzten) Tisch; die Restluft bleibt oben am Rand
+    const kopf = document.querySelector('header');
+    kopf.style.transform = '';
+    const luecke = cv.getBoundingClientRect().top - kopf.getBoundingClientRect().bottom - 8;
+    if (luecke > 0) kopf.style.transform = `translateY(${luecke}px)`;
   }
   window.addEventListener('resize', resize);
   resize();
@@ -1733,7 +1752,7 @@ const dmd = (() => {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdate();
   });
-  verEl.addEventListener('click', () => checkForUpdate(true));
+  verEl.addEventListener('click', e => { e.stopPropagation(); checkForUpdate(true); });
 
   // Nach dem Update einmal melden, was jetzt läuft
   const GESEHEN = 'flipper.gesehen';
