@@ -67,10 +67,21 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   fest**, bis die Kanone geschossen hat (ohne Treffer auf das beleuchtete Ziel → neues Ziel). Nur **im Multiball wandert es**
   (alle 1,6 s, bei geladener Kanone alle 0,9 s). Im Multiball lädt der Schädel die Kanone erneut: Treffer auf das
   beleuchtete Ziel = SUPER JACKPOT 5 Mio. Kollision des Klappziels nur von unten, damit die ausgeworfene Kugel durchkommt.
+- Stand 0.19 – **Escape Route wie im Original** (Recherche: Die 6 Felder links unten SIND die Escape Route, kassiert wird
+  über den linken Umlauf, der in die Mulde oben rechts läuft). Die Leiter links (SEC. PASS · HOLD BONUS · LITE LANES ·
+  MULTIBALL · EXTRA BALL · 10 MILLION) hängt **nicht mehr an den Rampen**. Stattdessen: Zu Spielbeginn blinkt SEC. PASS,
+  jede komplette rote Mittel-Bank schaltet das nächste Feld ein, der linke Umlauf (Kugel bekommt 3 s `fluchtBis`) → neue
+  **Mulde oben rechts** (350/250, in der rechten Umlauf-Gasse, fängt nur abwärts laufende Kugeln) kassiert das unterste
+  blinkende Feld, eins je Umlauf, nach allen sechs von vorn. Felder: SEC. PASS = beide Säulen +1 und 250.000, HOLD BONUS =
+  Bonus und Multiplikator gehen auf die nächste Kugel über, LITE LANES = Rückkehrgassen 25.000 und **Hurry Up** (startet
+  nicht mehr bei jeder Mittel-Bank), MULTIBALL = Kanone bereit (Klappziel fällt), EXTRA BALL, 10 MILLION. Rampen: 100.000
+  und je eine Säulen-Stufe (Meldung CHECK/CODE/ALARM/KEY/CPU). Die Variable `stufe` ist entfallen: Uhrzeiger und Anzeige
+  („FLUCHT n“) zeigen die kassierten Felder.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
-  fest/wandernd, Sperre. Ergebnis 0.18: 14/14 OK, 3 × 10 min ohne Fehler. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
+  fest/wandernd, Sperre. Ergebnis 0.18: 14/14 OK, 3 × 10 min ohne Fehler. Ab 0.19 auch Escape Route (Umlauf → Mulde,
+  Weiterschalten, Neustart der Leiter); Ergebnis 0.19: 19/19 OK, 3 × 10 min ohne Fehler, Mulde im Autoplay 5–13× je 10 min. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
   (= `RUND_LAGE` für das Fadenkreuz), 3 × 10 min ohne Fehler.
 
 ## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)
@@ -102,7 +113,7 @@ Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
 - **Geklärt per Recherche (Regelblatt von Dean St. Antoine, Zusammenfassungen via Websuche; Direktabruf gesperrt):**
   - **Kickback:** sitzt in der **linken** Ausgasse. Ihn beleuchten die **3 orangen Stehziele rechts** direkt unter der
     Einmündung der Abschussrinne. Unsere Stehziele stimmen also, nur der Kickback gehört nach links.
-  - **Escape Route:** Sie wird über eine **eigene rote 3er-Bank Stehziele in der Spielfeldmitte** vorgeschaltet, **nicht**
+  - **[erledigt 0.19] Escape Route:** Sie wird über eine **eigene rote 3er-Bank Stehziele in der Spielfeldmitte** vorgeschaltet, **nicht**
     über die orangen rechts. Jede komplette Bank schaltet die 6 Rechteck-Einsätze links unten weiter (blinken). Man kassiert
     in der **Mulde oben rechts**, dabei gibt es das unterste blinkende Feature. Die 3. Stufe beleuchtet Hurry Up. Das
     Dossier hat beide Bänke verwechselt. [Vermutung] Unsere „runden roten Klappziele unter den Bumpern“ sind in

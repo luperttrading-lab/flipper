@@ -120,11 +120,35 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   pruefe(!drin, 'Stehendes Klappziel sperrt den Schädel');
 }
 
+// 2c. Escape Route: linker Umlauf → Mulde oben rechts kassiert; Mittel-Bank schaltet weiter
+{
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  const b = api.balls[0];
+  const umlauf = () => { b.halt = 0; b.mulde = false; b.x = 35; b.y = 470; b.vx = 0; b.vy = -1500; };
+  umlauf();
+  const drin = lauf(api, 2.5, () => b.mulde);
+  pruefe(drin && api.flucht.geholt === 1, 'Linker Umlauf landet in der Mulde oben rechts und kassiert SEC. PASS');
+  lauf(api, 1.3);
+  pruefe(!b.mulde && b.vy > 0, 'Mulde wirft die Kugel wieder aus');
+  api.balls.forEach(x => { x.fluchtBis = 0; });
+  umlauf(); lauf(api, 2.5, () => b.mulde);
+  pruefe(api.flucht.geholt === 1, 'Ohne neue Mittel-Bank gibt es kein weiteres Feld');
+  lauf(api, 1.3);
+  for (let r = 0; r < 5; r++) {
+    for (let i = 0; i < 3; i++) { b.halt = 0; b.mulde = false; b.x = 216 + (i - 1) * 24; b.y = 300; b.vx = 0; b.vy = -600; lauf(api, 0.15); }
+    lauf(api, 1.4);
+  }
+  pruefe(api.flucht.lit === 6, 'Fünf komplette Mittel-Banken beleuchten alle 6 Felder (lit=' + api.flucht.lit + ')');
+  for (let k = 0; k < 5; k++) { umlauf(); lauf(api, 2.5, () => b.mulde); lauf(api, 1.3); }
+  pruefe(api.flucht.geholt === 0 && api.flucht.lit === 1, 'Nach allen sechs Feldern beginnt die Leiter von vorn');
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);
   const api = lade();
-  let still = new Map(), max = 0, spiele = 0, schuesse = 0, rundT = 0, mb = 0, letzterT = null, warMb = false;
+  let still = new Map(), max = 0, spiele = 0, schuesse = 0, rundT = 0, mb = 0, muldeT = 0, letzterT = null, warMb = false;
   const W = 400, H = 760;
   let ok = true;
   for (let i = 0; i < min * 60 / DT; i++) {
@@ -142,6 +166,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
     api.step(DT);
     if (api.multiball && !warMb) mb++;
     warMb = api.multiball;
+    if (api.balls.some(b => b.mulde && !b._m)) { muldeT++; api.balls.forEach(b => { b._m = b.mulde; }); } else api.balls.forEach(b => { b._m = b.mulde; });
     if (api.rundTreffer && api.rundTreffer !== letzterT) { rundT++; letzterT = api.rundTreffer; }
     for (const b of api.balls) {
       if (b.rampe || b.kanone || b.ruht || b.halt > 0) { still.delete(b); continue; }
@@ -151,7 +176,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
       else { s.t += DT; max = Math.max(max, s.t); if (s.t > 8) { ok = false; console.log('  Kugel hängt bei', b.x.toFixed(1), b.y.toFixed(1)); s.t = -1e9; } }
     }
   }
-  console.log(`  ${min} min: ${spiele} Spiele beendet, Kanonenschüsse ${schuesse}, Rundziel-Treffer ${rundT}, Multibälle ${mb}, längster Stillstand ${max.toFixed(1)} s`);
+  console.log(`  ${min} min: ${spiele} Spiele beendet, Kanonenschüsse ${schuesse}, Rundziel-Treffer ${rundT}, Multibälle ${mb}, Mulde ${muldeT}, längster Stillstand ${max.toFixed(1)} s`);
   pruefe(ok, `Autoplay ${min} min: keine Kugel verloren oder hängend`);
 }
 process.exit(fehler ? 1 : 0);
