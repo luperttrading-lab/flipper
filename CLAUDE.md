@@ -167,6 +167,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Kollision unverändert als Kapsel R+7. **Rückkehrgassen ohne Knick:** schräge Führung liegt exakt auf der Verlängerung der
   Oberkante des ruhenden Flippers (Winkel 0,5 rad, um 7 zur Oberkante versetzt), von (40 / 640,6) bis (115,4 / 681,9) bzw.
   gespiegelt. Gemessen: Kugel aus der Rückkehrgasse springt am Übergang nicht mehr hoch (vorher 119 Einheiten/s aufwärts).
+- Stand 0.38 (nach Foto des Originals): **Bumper** als rote Kunststoffkappe gezeichnet (Schatten, weißer Sockel,
+  durchscheinender Rand, Innenring, erhöhter Deckel mit Glanzlicht, beim Treffer hell). **Rote Dreierreihe = Stehziele**
+  statt Klappziele (bestätigt die Vermutung aus der Recherche): runde Scheiben mit Niete auf Halterung, bleiben stehen
+  (Kugel prallt immer ab), getroffen leuchten sie (`drops[i].an`); Treffer zählt nur mit Aufprall > 40 und 0,25 s Abklingzeit;
+  schon beleuchtet = 5.000; alle drei → wie bisher Reihe komplett (CORE, Schädel-Wert, Escape Route), nach 1,2 s aus.
+  Variable heißt weiter `drops`. Test 25/25 (neu: Stehziel bleibt stehen), 3 × 10 min ohne Fehler.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

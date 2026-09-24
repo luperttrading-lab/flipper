@@ -184,6 +184,17 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   pruefe(a === 'false,true,false' && b === 'false,false,true' && c === 'false,true,false', `Gassenwechsel rechts/links (${a} | ${b} | ${c})`);
 }
 
+// 2f. Rote Stehziele: bleiben stehen (Kugel prallt ab), zweiter Treffer auf ein beleuchtetes Ziel zählt nicht für die Reihe
+{
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  const b = api.balls[0];
+  const schuss = () => { b.halt = 0; b.x = 216; b.y = 330; b.vx = 0; b.vy = -700; let minY = 999; for (let i = 0; i < 0.25 * 720; i++) { api.step(1 / 720); minY = Math.min(minY, b.y); } return minY; };
+  const y1 = schuss(); const an1 = api.drops[1].an;
+  const y2 = schuss(); const nochAn = api.drops[1].an && !api.drops[0].an;
+  pruefe(y1 > 262 && y2 > 262 && an1 && nochAn, `Stehziel bleibt stehen (Kugel kommt nur bis y ${Math.round(Math.min(y1, y2))}), leuchtet nach Treffer`);
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);

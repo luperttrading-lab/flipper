@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.37';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.38';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -554,7 +554,8 @@ const dmd = (() => {
   ];
 
   // Klappziele in der Mitte (fallen beim Treffer weg)
-  const drops = [192, 216, 240].map(x => ({ x, y: 262, w: 20, unten: false }));
+  // Rote Dreierreihe in der Mitte: runde STEHziele (bleiben stehen, leuchten nach Treffer) – wie am Original
+  const drops = [192, 216, 240].map(x => ({ x, y: 262, w: 20, an: false, blitz: 0 }));
   // Stehziele rechts
   const standups = [460, 485, 510].map(y => ({ x: 358, y, h: 20, an: false }));
   // Fünf weiße Rundziele links an der Fluchtweg-Gasse, unter dem Flugobjekt; eins leuchtet und wechselt
@@ -699,9 +700,11 @@ const dmd = (() => {
 
   // ---------- Regeln ----------
   function trefferDrop(i) {
-    drops[i].unten = true;
+    drops[i].blitz = 1;
+    if (drops[i].an || dropReset) { punkte(5000, 500); sfx.ziel(); return; }     // schon beleuchtet
+    drops[i].an = true;
     punkte(25000); sfx.ziel();
-    if (drops.every(d => d.unten)) {
+    if (drops.every(d => d.an)) {
       bankReihen++;
       if (schaedelIdx < SCHAEDEL_WERT.length - 1) schaedelIdx++;
       if (bankReihen >= 4) {
@@ -856,7 +859,7 @@ const dmd = (() => {
       f.a += Math.max(-maxd, Math.min(maxd, da));
     }
     if (folge && zeit > folge.ab) { if (multiball) melde(folge.z1, folge.z2, 2.4); folge = null; }
-    if (dropReset && zeit > dropReset) { drops.forEach(d => { d.unten = false; }); dropReset = 0; }
+    if (dropReset && zeit > dropReset) { drops.forEach(d => { d.an = false; }); dropReset = 0; }
 
     // Kanone schwenkt, solange sie geladen ist; nach einigen Sekunden feuert sie selbst
     if (kanone.kugel) {
@@ -955,8 +958,8 @@ const dmd = (() => {
     if (!sdrop.unten && ball.y > sdrop.y &&
       collideSeg(sdrop.x0, sdrop.y, sdrop.x1, sdrop.y, R + 3, REST_WALL) && frei('sdrop', 0.3)) trefferSchaedelDrop();
     drops.forEach((d, i) => {
-      if (d.unten) return;
-      if (collideSeg(d.x - d.w / 2, d.y, d.x + d.w / 2, d.y, R + 3, REST_WALL)) trefferDrop(i);
+      const c = collideSeg(d.x - d.w / 2, d.y, d.x + d.w / 2, d.y, R + 3, REST_WALL);
+      if (c && -c.vn > 40 && frei('rot' + i, 0.25)) trefferDrop(i);
     });
     standups.forEach((s, i) => {
       const c = collideSeg(s.x, s.y - s.h / 2, s.x, s.y + s.h / 2, R + 2, REST_WALL);
@@ -1090,7 +1093,7 @@ const dmd = (() => {
     extraBall = false; extraVergeben = false; saveBis = 0;
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     gunLit = false; sdrop.unten = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0; rundTreffer = null;
-    topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
+    topLanes.fill(false); drops.forEach(d => { d.an = false; }); standups.forEach(s => { s.an = false; });
     paybackBis = 0; kickback = false; jpMult = 1; jpShow = -99; folge = null; sicherL = 0; sicherR = 0; wahl = null; hurryBis = 0;
     newBall();
   }
@@ -1123,7 +1126,7 @@ const dmd = (() => {
   L({ form: 'pfeil', x: 35, y: 420, w: 16, h: 18, dir: -PI / 2, farbe: 'amber', gruppe: 'orbit', z: () => 2 });
   // Kleine rote Pfeile unter den Klappzielen
   drops.forEach((d, i) => L({ form: 'pfeil', x: d.x, y: 292, w: 12, h: 14, dir: -PI / 2, farbe: 'rot', gruppe: 'drop',
-    z: () => d.unten ? 0 : 3, k: i }));
+    z: () => d.an ? 1 : 3, k: i }));
   // Rechts an der Ausgasse: drei Rundlampen (Stehziele) und KICKBACK
   standups.forEach((st, i) => L({ form: 'kreis', x: 350, y: 596 + i * 11, r: 4.5, farbe: 'amber', gruppe: 'kick', z: () => st.an || kickback ? 1 : 0 }));
   L({ form: 'rechteck', x: 350, y: 640, w: 24, h: 10, farbe: 'rot', label: 'KICK', gruppe: 'kick', z: () => kickback ? 1 : 0 });
@@ -1488,12 +1491,18 @@ const dmd = (() => {
     }
 
     // Klappziele + Stehziele
+    // Rote Stehziele: runde Scheibe mit Niete auf schwarzer Halterung; getroffen = hell leuchtend
+    ctx.fillStyle = '#15171c'; ctx.fillRect(drops[0].x - 12, drops[0].y + 2, drops[2].x - drops[0].x + 24, 5);   // Halterung
     for (const d of drops) {
-      if (d.unten) { ctx.fillStyle = '#2a1a20'; ctx.fillRect(d.x - 9, d.y - 2, 18, 4); continue; }
-      ctx.fillStyle = '#f2f2f2'; ctx.fillRect(d.x - 3, d.y - 2, 6, 8);          // Halter
+      d.blitz = Math.max(0, d.blitz - dt * 6);
+      const hell = d.an ? 1 : d.blitz;
       const dg = ctx.createRadialGradient(d.x - 3, d.y - 4, 1, d.x, d.y, 10);
-      dg.addColorStop(0, '#ff9aa2'); dg.addColorStop(0.5, '#e8303f'); dg.addColorStop(1, '#8e0f1a');
-      ctx.beginPath(); ctx.arc(d.x, d.y - 1, 9, 0, 2 * PI); ctx.fillStyle = dg; ctx.fill();
+      dg.addColorStop(0, hell ? '#ffd0d4' : '#ff8a94'); dg.addColorStop(0.55, hell ? '#ff4050' : '#c8202e'); dg.addColorStop(1, '#6e0a14');
+      ctx.beginPath(); ctx.ellipse(d.x, d.y - 1, 9, 8.5, 0, 0, 2 * PI); ctx.fillStyle = dg; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(40,0,5,.7)'; ctx.stroke();
+      ctx.fillStyle = '#c9d0d8'; ctx.beginPath(); ctx.arc(d.x, d.y - 1, 1.8, 0, 2 * PI); ctx.fill();   // Niete
+      if (hell) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * hell;
+        ctx.drawImage(glow('#ff3040'), d.x - 16, d.y - 17, 32, 32); ctx.restore(); }
     }
     for (const s of standups) {
       ctx.fillStyle = s.an ? '#ffe7b0' : '#e9eef4';
@@ -1515,10 +1524,19 @@ const dmd = (() => {
     // Pop-Bumper: Metallring, rote leuchtende Kappe
     for (const b of bumpers) {
       b.flash = Math.max(0, b.flash - dt * 7);
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 2, 0, 2 * PI); ctx.fillStyle = '#c9d4df'; ctx.fill();
-      const g = ctx.createRadialGradient(b.x - 4, b.y - 5, 2, b.x, b.y, b.r);
-      g.addColorStop(0, b.flash > 0 ? '#ffffff' : '#ffb0b6'); g.addColorStop(0.5, '#ff3844'); g.addColorStop(1, '#8e0f1a');
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r - 1, 0, 2 * PI); ctx.fillStyle = g; ctx.fill();
+      const f = b.flash, r = b.r;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(b.x + 3, b.y + 4, r + 3, 0, 2 * PI); ctx.fill();   // Schatten
+      ctx.fillStyle = '#eef0f2'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 2.5, 0, 2 * PI); ctx.fill();               // weißer Sockel
+      // breiter, durchscheinender Rand der Kappe
+      const g = ctx.createRadialGradient(b.x, b.y, r * 0.5, b.x, b.y, r + 1);
+      g.addColorStop(0, `rgba(${210 + 45 * f},${40 + 60 * f},${50 + 50 * f},.92)`); g.addColorStop(1, 'rgba(150,12,24,.95)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, r + 1, 0, 2 * PI); ctx.fill();
+      ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,150,160,.55)'; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.78, 0, 2 * PI); ctx.stroke();  // Innenring
+      // erhöhter Deckel mit Glanz; leuchtet beim Treffer hell auf
+      const d = ctx.createRadialGradient(b.x - r * 0.25, b.y - r * 0.3, 1, b.x, b.y, r * 0.6);
+      d.addColorStop(0, f > 0.05 ? '#ffffff' : '#ff9aa4'); d.addColorStop(0.6, f > 0.05 ? '#ff6070' : '#e22a3a'); d.addColorStop(1, '#8e0f1a');
+      ctx.fillStyle = d; ctx.beginPath(); ctx.arc(b.x, b.y, r * 0.58, 0, 2 * PI); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(b.x - r * 0.42, b.y - r * 0.5, r * 0.28, r * 0.13, -0.6, 0, 2 * PI); ctx.fill();  // Glanzlicht
     }
 
     // Schädel über dem Loch: Stahlplatten-Schädel (Bild schaedel.png), Augen glühen orange
@@ -1768,7 +1786,7 @@ const dmd = (() => {
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
     get score() { return score; },
-    get loaded() { return loaded; }, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
+    get loaded() { return loaded; }, drops, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>
 <script>
