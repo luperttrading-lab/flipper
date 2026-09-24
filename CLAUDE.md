@@ -189,7 +189,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Abbildung exakt auf die Schleuder-Ecken (70/572, 70/628, 104/648), Maßstab fast gleichmäßig (0,96/0,95); schwarzer
   Hintergrund per Helligkeit durchsichtig; `schleuder.png` 270×480 = 5 px/Einheit, Ausschnitt ab (60/562), 54×96.
   Die zwei Außenkanten der Schleuder sind als `schleuder: true` markiert → keine Metallbleche/Pfosten/weiße Kante mehr darüber,
-  solange das Bild geladen ist (`schleuderBildOk()`); sonst Rückfall auf das alte rote Dreieck.
+  solange das Bild geladen ist (`schleuderBildOk()`); sonst Rückfall auf das alte rote Dreieck. 0.42: roter Lichtschein
+  außerhalb des Gummis an der langen Seite weggeschnitten (alles > 14,5 px = 2,9 Einheiten außerhalb der Kante).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
