@@ -93,7 +93,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   und Kickback. **Ton:** Bumper jetzt mechanischer Schlag statt Dur-Akkord; **Sirene** (2,5 s steigend) bei
   Multiball-Start und nach jedem Jackpot; **eigene Multiball-Musik** (a-Moll, 132 BPM, Bass-Achtel A–A–F–G + Kick + Snare,
   Web-Audio-Sequenzer, läuft nur im Multiball und nicht im Pause-Schirm; nicht nach Gehör geprüft).
-- Stand 0.24 (Bildschirm): „Ton an“ und Versionsnummer **nicht mehr oben**, sondern klein unten auf dem Start-/Pausenschirm
+- Stand 0.24/0.25 (Bildschirm; 0.25 = Korrektur: Kopfzeile per id="kopf", da die Test-Attrappe kein querySelector kennt): „Ton an“ und Versionsnummer **nicht mehr oben**, sondern klein unten auf dem Start-/Pausenschirm
   (Tipp darauf startet das Spiel nicht). Startschirm beim ersten Öffnen als **Startbild** (`start.jpg`, fehlt es noch, zeigt
   er das App-Icon); der Pausenschirm bleibt halbtransparent. Knöpfe flacher (54 px, Abzug 60 px), Anzeige max. 320 px breit,
   Seitenrand 10 px, Neigung 10° statt 13°, Perspektive 1300 px, Tisch unten ausgerichtet; die Anzeige wird per `translateY`
