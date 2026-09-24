@@ -69,4 +69,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   „… wechselndes Targetlicht treffen“, „… Drop Target wird Pistole geladen“, „… beleuchtetes Target zu
   schießen“, „… Schüsse zählt 5 Mio“. Folgerung [Vermutung]: Die Kanone wird über ein Klappziel geladen (bei
   uns über den Schädel) und das beleuchtete Ziel wechselt. Beim Umbau abgleichen.
+- **Kickback:** Die 3 orangen Stehziele rechts mit 3 runden Lampen und „LITE KICKBACK“ bestätigen unsere Regel.
+  Der Kickback selbst sitzt im Original aber in der **linken** Ausgasse (orange KICKBACK-Lampe links unten);
+  bei uns rechts, weil links die Umlauf-Zuführung die Ausgasse abdeckt. Beim Rampen-Umbau prüfen.
 - **Ton:** Rückmeldung des Nutzers zu 0.9–0.16 steht aus (iOS-Freischaltung über Start-/Pause-Schirm).
