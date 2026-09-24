@@ -54,3 +54,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (3 Mio → 500.000), die rechte Rampe kassiert.
 - Physik-Test: Node-Simulation mit `window.__TEST__` (Abschuss-Pfad + 10 min Autoplay: Kugel
   verlässt nie den Tisch, bleibt nie hängen).
+
+## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)
+
+- **Echte Rampen (Stufe 3):** große Klarsichtrampe oben rechts über den Bumpern; Drahtrampen laufen seitlich
+  herunter in die Rückkehrgassen (rechte Rampe → linke Rückkehrgasse, linke → rechte). Derzeit Tunnel.
+- **Drehbares Ziel rechts:** ein Kasten auf einem drehbaren Sockel (blauer Ring) an der rechten Seite, er dreht
+  sich sichtbar. Vermutlich das eigentliche Ziel der Kanone; derzeit sind es die 3 Stehziele.
+- **Einsätze ohne Regel bisher:** „MILLION WHEN FLASHING“ (links neben der Schädel-Gasse und rechts vor der
+  rechten Rampe), „BILLIONS PLUS“ (rechts), LOCK + DATABASE (links), VIDEO MODE (links, Minispiel in der Anzeige).
+- **Ton:** Rückmeldung des Nutzers zu 0.9–0.16 steht aus (iOS-Freischaltung über Start-/Pause-Schirm).
