@@ -17,11 +17,12 @@ GitHub Pages aus dem Repo-Wurzelverzeichnis. Bei **jeder** Änderung an der App 
 GitHub Pages baut aus `main`. Der Nutzer hat erlaubt, Änderungen direkt nach `main` zu pushen
 (zusätzlich zum Arbeits-Branch), damit sie sofort in der Home-Bildschirm-App ankommen.
 
-## Projektziel: „Zero Hour“
+## Projektziel: „Zero Time“
 
 Eigener Tisch mit den Funktionen von Williams „Terminator 2“ (1991), aber **ohne** dessen Namen,
 Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
-- Name: **Zero Hour**
+- Name: **Zero Time** (bis 0.17 „Zero Hour“; vom Nutzer in 0.18 umbenannt. „Fighting Machine“ als Alternative
+  verworfen – zu lang für die Anzeige in großer Schrift, max. 10 Zeichen)
 - Abschuss per **Abzug-Knopf** (unten zwischen den Flipper-Knöpfen), keine Wisch-Feder mehr
 - **Kanone** wie im Original: schwenkt nach dem Laden automatisch hin und her, Abzug feuert,
   Treffer aufs beleuchtete Ziel startet Multiball; nach einigen Sekunden feuert sie selbst
@@ -52,32 +53,88 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.16: Schädel-Gasse mit 5 Einsätzen wie im Original (SUPER, LOAD GUN, EXTRA BALL, JACKPOT, TIMER),
   Schädel im Multiball = Jackpot. HURRY UP: jede abgeräumte Klappziel-Reihe startet 20 s Countdown
   (3 Mio → 500.000), die rechte Rampe kassiert.
-- Physik-Test: Node-Simulation mit `window.__TEST__` (Abschuss-Pfad + 10 min Autoplay: Kugel
-  verlässt nie den Tisch, bleibt nie hängen).
+- Stand 0.17 (Kanonen-Korrektur): Kanone sitzt jetzt **rechts** (Kasten auf Drehsockel mit blauem Ring, Drehpunkt
+  340/548), schwenkt geladen zwischen PI+0,28 und PI+0,72 rad, Abzug feuert nach links oben quer übers Feld, nach 7 s
+  feuert sie selbst. Links unter dem gezeichneten Chrom-Flugobjekt (42/360) an der Fluchtweg-Gasse 5 weiße Rundziele
+  (x 61, y 386…446); eins ist beleuchtet und wandert (alle 3 s, bei geladener Kanone alle 1,4 s, nach dem Schuss steht
+  es). Kanonentreffer aufs beleuchtete Ziel → Multiball (im Multiball 1 Mio), aufs falsche → 25.000. Ohne Kanone:
+  beleuchtet 50.000, sonst 10.000. Gelbe Winkel-Trapeze direkt vor den Zielen zeigen das Targetlicht. Die 3 orangen
+  Stehziele rechts (jetzt y 460/485/510) sind nur noch für den Kickback. Der Kanonenschuss prallt oberhalb von Lage
+  ≈0,27 am Rampenpfosten (172/405) ab – Ziele deshalb nicht höher setzen.
+- Stand 0.18 (nach Recherche zum Original): **Klappziel vor dem Schädel** (Chromplatte quer über die Gasse, y 300) sperrt
+  das Schädel-Loch; umgeworfen → LOAD GUN, der nächste Schädel-Treffer lädt die Kanone, danach steht es wieder.
+  Die alte Regel „2 Schädel-Treffer“ ist entfallen. Alarmstufe 4 und Multiball legen es ebenfalls um. **Targetlicht steht
+  fest**, bis die Kanone geschossen hat (ohne Treffer auf das beleuchtete Ziel → neues Ziel). Nur **im Multiball wandert es**
+  (alle 1,6 s, bei geladener Kanone alle 0,9 s). Im Multiball lädt der Schädel die Kanone erneut: Treffer auf das
+  beleuchtete Ziel = SUPER JACKPOT 5 Mio. Kollision des Klappziels nur von unten, damit die ausgeworfene Kugel durchkommt.
+- Stand 0.19 – **Escape Route wie im Original** (Recherche: Die 6 Felder links unten SIND die Escape Route, kassiert wird
+  über den linken Umlauf, der in die Mulde oben rechts läuft). Die Leiter links (SEC. PASS · HOLD BONUS · LITE LANES ·
+  MULTIBALL · EXTRA BALL · 10 MILLION) hängt **nicht mehr an den Rampen**. Stattdessen: Zu Spielbeginn blinkt SEC. PASS,
+  jede komplette rote Mittel-Bank schaltet das nächste Feld ein, der linke Umlauf (Kugel bekommt 3 s `fluchtBis`) → neue
+  **Mulde oben rechts** (350/250, in der rechten Umlauf-Gasse, fängt nur abwärts laufende Kugeln) kassiert das unterste
+  blinkende Feld, eins je Umlauf, nach allen sechs von vorn. Felder: SEC. PASS = beide Säulen +1 und 250.000, HOLD BONUS =
+  Bonus und Multiplikator gehen auf die nächste Kugel über, LITE LANES = Rückkehrgassen 25.000 und **Hurry Up** (startet
+  nicht mehr bei jeder Mittel-Bank), MULTIBALL = Kanone bereit (Klappziel fällt), EXTRA BALL, 10 MILLION. Rampen: 100.000
+  und je eine Säulen-Stufe (Meldung CHECK/CODE/ALARM/KEY/CPU). Die Variable `stufe` ist entfallen: Uhrzeiger und Anzeige
+  („FLUCHT n“) zeigen die kassierten Felder.
+- Stand 0.20: neues App-Icon vom Nutzer (per Bildprogramm nach unserer Beschreibung: Chromkugel mit rotem Fadenkreuz,
+  zwei Flipperarme, Uhr mit Zeiger auf 12, roter Ring). Quelle 1024 px, daraus icon-512, icon-192, apple-touch-icon (180).
+- Stand 0.21: Schädel im Spiel ist jetzt ein Bild vom Nutzer (`schaedel.png`, Stahlplatten-Schädel mit Nieten und orangen
+  Augen, bewusst **kein** Endoskelett-Look: keine roten Augen, keine Kolben/Kabel). Schwarzer Hintergrund per Helligkeit
+  freigestellt, 144 px breit, im Spiel 48 px breit über dem Loch. Die Augen glühen per Leuchtschein (pulsierend, voll bei
+  belegtem Loch). Die Datei steht in der Cache-Liste von `sw.js`.
+- Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
+  Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
+  verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
+  fest/wandernd, Sperre. Ergebnis 0.18: 14/14 OK, 3 × 10 min ohne Fehler. Ab 0.19 auch Escape Route (Umlauf → Mulde,
+  Weiterschalten, Neustart der Leiter); Ergebnis 0.19: 19/19 OK, 3 × 10 min ohne Fehler, Mulde im Autoplay 5–13× je 10 min. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
+  (= `RUND_LAGE` für das Fadenkreuz), 3 × 10 min ohne Fehler.
 
 ## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)
 
-- **WICHTIGSTE KORREKTUR – Kanone ist auf der falschen Seite:** Die Kanone des Originals ist der **Kasten auf
-  dem drehbaren Sockel rechts** (blauer Ring, rechts neben der rechten Rampe/Seitengasse). Das Chrom-Flugobjekt
-  links ist **keine Kanone, sondern das Ziel** (Flugobjekt über den 5 weißen Rundzielen an der Fluchtweg-Gasse).
-  Laut Quellen: „load the swinging cannon and shoot the HK-Aerial across the playfield to start multiball“.
-  Umbau: Kanone nach rechts (schwenkt, Abzug feuert nach links über das Feld), Ziele = 5 weiße Rundziele links
-  unter dem Flugobjekt, eins davon beleuchtet und wechselnd („wechselndes Targetlicht treffen“). Die 3 orangen
-  Stehziele rechts bleiben nur für den Kickback. Winkel-Lampen (gelbe Trapeze links) zeigen vermutlich das Ziel.
+- ~~Kanone auf der falschen Seite~~ – erledigt in 0.17 (siehe Stand 0.17).
 
 - **Echte Rampen (Stufe 3):** große Klarsichtrampe oben rechts über den Bumpern; Drahtrampen laufen seitlich
   herunter in die Rückkehrgassen (rechte Rampe → linke Rückkehrgasse, linke → rechte). Derzeit Tunnel.
-- **Drehbares Ziel rechts:** ein Kasten auf einem drehbaren Sockel (blauer Ring) an der rechten Seite, er dreht
-  sich sichtbar. Vermutlich das eigentliche Ziel der Kanone; derzeit sind es die 3 Stehziele.
 - **Einsätze ohne Regel bisher:** „MILLION WHEN FLASHING“ (links neben der Schädel-Gasse und rechts vor der
   rechten Rampe), „BILLIONS PLUS“ (rechts), LOCK + DATABASE (links), VIDEO MODE (links, Minispiel in der Anzeige).
-- **5 weiße Klappziele links:** eine Reihe von 5 weißen runden Zielen direkt unter der Kanone, längs der
-  Fluchtweg-Gasse. Fehlen im Spiel noch.
 - **Regelkarte (deutsch, nur teilweise lesbar):** „… Rampen schießen, um Security Level zu erreichen“ (passt),
   „… wechselndes Targetlicht treffen“, „… Drop Target wird Pistole geladen“, „… beleuchtetes Target zu
   schießen“, „… Schüsse zählt 5 Mio“. Folgerung [Vermutung]: Die Kanone wird über ein Klappziel geladen (bei
-  uns über den Schädel) und das beleuchtete Ziel wechselt. Beim Umbau abgleichen.
+  uns weiterhin über den Schädel). Das wechselnde beleuchtete Ziel ist seit 0.17 umgesetzt.
 - **Kickback:** Die 3 orangen Stehziele rechts mit 3 runden Lampen und „LITE KICKBACK“ bestätigen unsere Regel.
   Der Kickback selbst sitzt im Original aber in der **linken** Ausgasse (orange KICKBACK-Lampe links unten);
   bei uns rechts, weil links die Umlauf-Zuführung die Ausgasse abdeckt. Beim Rampen-Umbau prüfen.
 - **Ton:** Rückmeldung des Nutzers zu 0.9–0.16 steht aus (iOS-Freischaltung über Start-/Pause-Schirm).
+
+## Aus dem Video-Dossier des Nutzers (15 Folien, KI-Zusammenfassung des Videos, nicht im Repo – Seite ist öffentlich)
+
+Die Texte stammen aus dem Video [Wahrscheinlich richtig]. Die Zeichnungen darin sind KI-generiert und taugen **nicht** als
+Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
+- **Kanone laden:** Man muss das zentrale Klappziel unter dem Kopf versenken → grünes „LOAD CANNON“ leuchtet → die Kugel
+  wird in die Kanone rechts geladen. Bei uns reichen 2 Schädel-Treffer. Umbauen: mittleres Klappziel versenken →
+  LOAD GUN, dann lädt der nächste Schädel-Treffer.
+- **Kanonen-Schwierigkeit in 3 Phasen:** 1. feststehendes Ziel, 2. wanderndes Ziel, 3. im Multiball schnell und mehrere
+  Ziele. Bei uns wandert das Ziel immer. Umbauen: erster Kanonenschuss je Spiel mit festem Ziel.
+- **Geklärt per Recherche (Regelblatt von Dean St. Antoine, Zusammenfassungen via Websuche; Direktabruf gesperrt):**
+  - **Kickback:** sitzt in der **linken** Ausgasse. Ihn beleuchten die **3 orangen Stehziele rechts** direkt unter der
+    Einmündung der Abschussrinne. Unsere Stehziele stimmen also, nur der Kickback gehört nach links.
+  - **[erledigt 0.19] Escape Route:** Sie wird über eine **eigene rote 3er-Bank Stehziele in der Spielfeldmitte** vorgeschaltet, **nicht**
+    über die orangen rechts. Jede komplette Bank schaltet die 6 Rechteck-Einsätze links unten weiter (blinken). Man kassiert
+    in der **Mulde oben rechts**, dabei gibt es das unterste blinkende Feature. Die 3. Stufe beleuchtet Hurry Up. Das
+    Dossier hat beide Bänke verwechselt. [Vermutung] Unsere „runden roten Klappziele unter den Bumpern“ sind in
+    Wahrheit diese rote 3er-Bank.
+  - **[erledigt 0.18] Kanone laden:** Das Klappziel steht **direkt vor dem Schädel**. Ist es umgeworfen, geht die Kugel in den Schädel,
+    ein Auswerfer schießt sie über eine Drahtbahn in die Kanone (rechts, auf halber Höhe). Umbauen: Klappziel vor unser
+    Schädel-Loch setzen, statt „2 Schädel-Treffer“.
+  - **[erledigt 0.18] Kanonenziel:** Man feuert, wenn die Kanone am **beleuchteten weißen Stehziel** vorbeischwenkt. Treffer = Multiball.
+    Im Multiball wandert das beleuchtete Ziel über die Fünferbank unter dem Flugobjekt (Super Jackpot). Das bestätigt
+    die 3 Phasen aus dem Dossier: erst festes Ziel, im Multiball wanderndes.
+- **CPU-Säulen:** Die Rampen zählen nur **abwechselnd** (L/R/L/R). Bei uns zählt jede Rampe für sich.
+- **Payback Time:** 20 s Modus, 6 bestimmte Schüsse leuchten, jeder Treffer bringt Millionen. Bei uns sind es 25 s mit
+  doppelten Punkten.
+- **Chase Loop:** rechter äußerer Umlauf als Kombo = 1 Mio. Bei uns hat der rechte Umlauf keine Regel.
+- **Database** (linke Mulde): Zufallsbelohnungen, z. B. 500.000. **Lock:** Im Multiball eine Kugel links einloggen →
+  Jackpot vervielfacht.
+- **Video-Modus:** Die Flipper-Knöpfe steuern ein Fadenkreuz nach links und rechts, 3 Ziele vor Ablauf der Zeit treffen.
+- **Skill Shot:** Wert steigt von Kugel 1 zu Kugel 3. **Mittelpfosten** zwischen den Flippern (fehlt bei uns).
