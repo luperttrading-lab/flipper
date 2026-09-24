@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.40';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.41';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -480,7 +480,8 @@ const dmd = (() => {
   const cv = document.getElementById('c');
   const ctx = cv.getContext('2d');
   const schienen = document.createElement('canvas');
-  const schleuderBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schleuder.png' }) : null;          // Hilfsebene für die Rampenschienen
+  const schleuderBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schleuder.png' }) : null;
+  const schleuderBildOk = () => !!(schleuderBild && schleuderBild.complete && schleuderBild.naturalWidth);          // Hilfsebene für die Rampenschienen
   const schaedelBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schaedel.png' }) : null;
 
   // ---------- Geometrie ----------
@@ -536,8 +537,8 @@ const dmd = (() => {
   ];
   for (const s of slings) {
     const [a, b, c] = s.pts;
-    seg(a[0], a[1], b[0], b[1]);
-    seg(b[0], b[1], c[0], c[1]);
+    seg(a[0], a[1], b[0], b[1], { schleuder: true });   // Außenkanten: Gummi und Pfosten zeigt das Schleuder-Bild
+    seg(b[0], b[1], c[0], c[1], { schleuder: true });
     seg(c[0], c[1], a[0], a[1], { kick: s });
   }
 
@@ -1374,13 +1375,13 @@ const dmd = (() => {
   function zeichneWaende() {
     if (!freieEnden) {
       const n = new Map(), key = (x, y) => Math.round(x) + ',' + Math.round(y);
-      for (const w of walls) if (!w.kick) for (const [x, y] of [[w.x1, w.y1], [w.x2, w.y2]]) {
+      for (const w of walls) if (!w.kick && !w.schleuder) for (const [x, y] of [[w.x1, w.y1], [w.x2, w.y2]]) {
         const k = key(x, y); n.set(k, (n.get(k) || { x, y, c: 0 })); n.get(k).c++;
       }
       freieEnden = [...n.values()].filter(e => e.c === 1 && e.x > 14 && e.x < 390 && e.y < 758);
     }
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    const pfad = (dx = 0, dy = 0) => { ctx.beginPath(); for (const w of walls) if (!w.kick) chromLinie(w.x1 + dx, w.y1 + dy, w.x2 + dx, w.y2 + dy); };
+    const pfad = (dx = 0, dy = 0) => { ctx.beginPath(); for (const w of walls) if (!w.kick && !(w.schleuder && schleuderBildOk())) chromLinie(w.x1 + dx, w.y1 + dy, w.x2 + dx, w.y2 + dy); };
     pfad(2.2, 3); ctx.strokeStyle = 'rgba(0,0,0,.42)'; ctx.lineWidth = 6.5; ctx.stroke();         // Schatten
     pfad(); ctx.strokeStyle = '#1c232c'; ctx.lineWidth = 6; ctx.stroke();                          // Kante
     pfad(); ctx.strokeStyle = '#6f7d8c'; ctx.lineWidth = 4.4; ctx.stroke();                        // Stahl
@@ -1498,20 +1499,22 @@ const dmd = (() => {
     for (const s of slings) {
       s.flash = Math.max(0, s.flash - dt * 8);
       const drei = () => { ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath(); };
-      drei(); ctx.fillStyle = '#5a0c14'; ctx.fill();                                   // dunkler Kunststoffrand
-      if (schleuderBild && schleuderBild.complete && schleuderBild.naturalWidth) {
-        // Bild (links gebaut, Ausschnitt ab 66/568, 42 × 84 Einheiten); rechte Schleuder gespiegelt an x = 188
+      if (schleuderBildOk()) {
+        // Bild samt Gummi und Pfosten (links gebaut, Pfosten exakt auf den drei Ecken; Ausschnitt ab 60/562, 54 × 96);
+        // rechte Schleuder gespiegelt an x = 188
         ctx.save();
         if (s.seite < 0) { ctx.translate(376, 0); ctx.scale(-1, 1); }
-        ctx.drawImage(schleuderBild, 66, 568, 42, 84);
+        ctx.drawImage(schleuderBild, 60, 562, 54, 96);
         ctx.restore();
-      }
+      } else { drei(); ctx.fillStyle = '#8a1e2b'; ctx.fill(); }
       if (s.flash > 0) {                                                               // Schlag: grell aufleuchten
         ctx.save(); ctx.globalCompositeOperation = 'lighter'; drei();
         ctx.fillStyle = `rgba(255,190,170,${0.8 * s.flash})`; ctx.fill(); ctx.restore();
       }
-      ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
+      if (!schleuderBildOk()) {
+        ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
+      }
     }
     zeichneWaende();
 
