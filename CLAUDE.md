@@ -177,6 +177,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Glanzstreifen und Spitzlicht nach links oben; an **freien Enden** (einmal vorkommende Endpunkte, einmalig berechnet in
   `freieEnden`) kleine Chrom-Pfosten r 4,2 – dadurch auch an den Schleuder-Ecken. Schleudern selbst noch alt (rotes Dreieck):
   Bild-Auftrag an den Nutzer (Gemini), Einbau per Beschnitt auf die Dreiecksform geplant.
+- Stand 0.40: **Schleudern mit Bild** (`schleuder.png`, 210×420, 5 px/Einheit, Ausschnitt ab 66/568, 42×84 Einheiten). Quelle:
+  Gemini-Bild des Nutzers – Form/Pfosten/Gummi dort falsch (6 Pfosten, Gummischleife), daher nur das rote Kunststoffteil
+  (Farbmaske) per **affiner Abbildung** Dreieck→Dreieck exakt auf unsere Schleuder gelegt (Ecken Quelle 92/164, 40/305,
+  200/420 → 70/572, 70/628, 104/648) und auf das Dreieck beschnitten; rechte Schleuder gespiegelt an x = 188. Darunter
+  dunkelrote Grundfläche (Lücken an den runden Ecken), beim Schlag hell überblendet. In `sw.js` gecacht.
+  **Vorlagen-Methode für weitere Bilder:** flaches Tischbild über lokalen Server (`python3 -m http.server`, sonst ist die
+  Zeichenfläche wegen file:// „tainted“) per `canvas.toDataURL`, Formvorlagen weiß auf schwarz je Element.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

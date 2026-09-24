@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.39';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.40';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -479,7 +479,8 @@ const dmd = (() => {
 
   const cv = document.getElementById('c');
   const ctx = cv.getContext('2d');
-  const schienen = document.createElement('canvas');          // Hilfsebene für die Rampenschienen
+  const schienen = document.createElement('canvas');
+  const schleuderBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schleuder.png' }) : null;          // Hilfsebene für die Rampenschienen
   const schaedelBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schaedel.png' }) : null;
 
   // ---------- Geometrie ----------
@@ -1496,8 +1497,19 @@ const dmd = (() => {
     // Schleudern: rote Kunststoffkappe, leuchtet beim Schlag
     for (const s of slings) {
       s.flash = Math.max(0, s.flash - dt * 8);
-      ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath();
-      ctx.fillStyle = s.flash > 0 ? '#ffe2e5' : '#8a1e2b'; ctx.fill();
+      const drei = () => { ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath(); };
+      drei(); ctx.fillStyle = '#5a0c14'; ctx.fill();                                   // dunkler Kunststoffrand
+      if (schleuderBild && schleuderBild.complete && schleuderBild.naturalWidth) {
+        // Bild (links gebaut, Ausschnitt ab 66/568, 42 × 84 Einheiten); rechte Schleuder gespiegelt an x = 188
+        ctx.save();
+        if (s.seite < 0) { ctx.translate(376, 0); ctx.scale(-1, 1); }
+        ctx.drawImage(schleuderBild, 66, 568, 42, 84);
+        ctx.restore();
+      }
+      if (s.flash > 0) {                                                               // Schlag: grell aufleuchten
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; drei();
+        ctx.fillStyle = `rgba(255,190,170,${0.8 * s.flash})`; ctx.fill(); ctx.restore();
+      }
       ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
     }

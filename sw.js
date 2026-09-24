@@ -1,6 +1,6 @@
 // Eigene Dateien: Netz zuerst (Cache nur für offline). Fremde (Schriften): Cache zuerst.
 const CACHE = 'flipper';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './apple-touch-icon.png', './schaedel.png', './start.jpg'];
+const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './apple-touch-icon.png', './schaedel.png', './start.jpg', './schleuder.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
