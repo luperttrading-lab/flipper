@@ -1,6 +1,6 @@
 {
-  "name": "Zero Hour",
-  "short_name": "Zero Hour",
+  "name": "Zero Time",
+  "short_name": "Zero Time",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

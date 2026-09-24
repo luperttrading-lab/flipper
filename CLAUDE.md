@@ -17,11 +17,12 @@ GitHub Pages aus dem Repo-Wurzelverzeichnis. Bei **jeder** Änderung an der App 
 GitHub Pages baut aus `main`. Der Nutzer hat erlaubt, Änderungen direkt nach `main` zu pushen
 (zusätzlich zum Arbeits-Branch), damit sie sofort in der Home-Bildschirm-App ankommen.
 
-## Projektziel: „Zero Hour“
+## Projektziel: „Zero Time“
 
 Eigener Tisch mit den Funktionen von Williams „Terminator 2“ (1991), aber **ohne** dessen Namen,
 Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
-- Name: **Zero Hour**
+- Name: **Zero Time** (bis 0.17 „Zero Hour“; vom Nutzer in 0.18 umbenannt. „Fighting Machine“ als Alternative
+  verworfen – zu lang für die Anzeige in großer Schrift, max. 10 Zeichen)
 - Abschuss per **Abzug-Knopf** (unten zwischen den Flipper-Knöpfen), keine Wisch-Feder mehr
 - **Kanone** wie im Original: schwenkt nach dem Laden automatisch hin und her, Abzug feuert,
   Treffer aufs beleuchtete Ziel startet Multiball; nach einigen Sekunden feuert sie selbst
@@ -60,9 +61,16 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   beleuchtet 50.000, sonst 10.000. Gelbe Winkel-Trapeze direkt vor den Zielen zeigen das Targetlicht. Die 3 orangen
   Stehziele rechts (jetzt y 460/485/510) sind nur noch für den Kickback. Der Kanonenschuss prallt oberhalb von Lage
   ≈0,27 am Rampenpfosten (172/405) ab – Ziele deshalb nicht höher setzen.
+- Stand 0.18 (nach Recherche zum Original): **Klappziel vor dem Schädel** (Chromplatte quer über die Gasse, y 300) sperrt
+  das Schädel-Loch; umgeworfen → LOAD GUN, der nächste Schädel-Treffer lädt die Kanone, danach steht es wieder.
+  Die alte Regel „2 Schädel-Treffer“ ist entfallen. Alarmstufe 4 und Multiball legen es ebenfalls um. **Targetlicht steht
+  fest**, bis die Kanone geschossen hat (ohne Treffer auf das beleuchtete Ziel → neues Ziel). Nur **im Multiball wandert es**
+  (alle 1,6 s, bei geladener Kanone alle 0,9 s). Im Multiball lädt der Schädel die Kanone erneut: Treffer auf das
+  beleuchtete Ziel = SUPER JACKPOT 5 Mio. Kollision des Klappziels nur von unten, damit die ausgeworfene Kugel durchkommt.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
-  verlässt nie den Tisch, bleibt nie hängen. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
+  verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
+  fest/wandernd, Sperre. Ergebnis 0.18: 14/14 OK, 3 × 10 min ohne Fehler. Ergebnis 0.17: Ziel 1–5 bei Lage 0,31/0,40/0,51/0,62/0,72
   (= `RUND_LAGE` für das Fadenkreuz), 3 × 10 min ohne Fehler.
 
 ## Offene Punkte aus den Video-Standbildern (für die nächste Sitzung)
@@ -99,10 +107,10 @@ Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
     in der **Mulde oben rechts**, dabei gibt es das unterste blinkende Feature. Die 3. Stufe beleuchtet Hurry Up. Das
     Dossier hat beide Bänke verwechselt. [Vermutung] Unsere „runden roten Klappziele unter den Bumpern“ sind in
     Wahrheit diese rote 3er-Bank.
-  - **Kanone laden:** Das Klappziel steht **direkt vor dem Schädel**. Ist es umgeworfen, geht die Kugel in den Schädel,
+  - **[erledigt 0.18] Kanone laden:** Das Klappziel steht **direkt vor dem Schädel**. Ist es umgeworfen, geht die Kugel in den Schädel,
     ein Auswerfer schießt sie über eine Drahtbahn in die Kanone (rechts, auf halber Höhe). Umbauen: Klappziel vor unser
     Schädel-Loch setzen, statt „2 Schädel-Treffer“.
-  - **Kanonenziel:** Man feuert, wenn die Kanone am **beleuchteten weißen Stehziel** vorbeischwenkt. Treffer = Multiball.
+  - **[erledigt 0.18] Kanonenziel:** Man feuert, wenn die Kanone am **beleuchteten weißen Stehziel** vorbeischwenkt. Treffer = Multiball.
     Im Multiball wandert das beleuchtete Ziel über die Fünferbank unter dem Flugobjekt (Super Jackpot). Das bestätigt
     die 3 Phasen aus dem Dossier: erst festes Ziel, im Multiball wanderndes.
 - **CPU-Säulen:** Die Rampen zählen nur **abwechselnd** (L/R/L/R). Bei uns zählt jede Rampe für sich.

@@ -90,6 +90,36 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   }
 }
 
+// 2b. Klappziel vor dem Schädel → LOAD GUN → Schädel lädt die Kanone; Targetlicht steht bis zum Multiball
+{
+  const api = lade();
+  api.abzug(); lauf(api, 0.3);
+  const b = api.balls[0];
+  pruefe(!api.sdrop.unten, 'Schädel-Klappziel steht zu Spielbeginn');
+  b.x = 94; b.y = 340; b.vx = 0; b.vy = -700;
+  lauf(api, 0.25, () => api.sdrop.unten);
+  pruefe(api.sdrop.unten && api.gunLit, 'Treffer aufs Schädel-Klappziel beleuchtet LOAD GUN');
+  b.x = 94; b.y = 330; b.vx = 0; b.vy = -700;
+  const geladen = lauf(api, 2.5, () => api.kanone.kugel);
+  pruefe(geladen && !api.sdrop.unten, 'Schädel-Treffer lädt die Kanone, Klappziel steht wieder');
+  const z = api.kanone.ziel;
+  let fest = true;
+  for (let i = 0; i < 5 / DT && api.kanone.kugel; i++) { api.step(DT); if (api.kanone.ziel !== z) fest = false; }
+  pruefe(fest, 'Targetlicht steht fest, solange kein Multiball läuft');
+  const api2 = lade();
+  api2.abzug(); lauf(api2, 0.3);
+  api2.starteWahl(); api2.wahlFertig();            // Wahl 0 = Multiball
+  const z2 = api2.kanone.ziel; let wandert = false;
+  lauf(api2, 3, () => { if (api2.kanone.ziel !== z2) wandert = true; return wandert; });
+  pruefe(api2.multiball && wandert, 'Im Multiball wandert das Targetlicht');
+  // Ohne umgeworfenes Klappziel kommt keine Kugel in den Schädel
+  const api3 = lade();
+  api3.abzug(); lauf(api3, 0.3);
+  const c = api3.balls[0]; c.x = 94; c.y = 340; c.vx = 0; c.vy = -700;
+  const drin = lauf(api3, 0.4, () => c.halt > 0);
+  pruefe(!drin, 'Stehendes Klappziel sperrt den Schädel');
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);
