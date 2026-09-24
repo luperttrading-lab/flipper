@@ -43,5 +43,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (Grün/Rot/Blau/Orange), Winkel-Lampen als gelb umrandete Trapeze, Anzeige rot-orange mit Fadenkreuz im
   Kanonen-Modus („FEUER FREI“), Payback-Modus (4 Klappziel-Reihen → 25 s doppelte Punkte), Kickback in der
   rechten Ausgasse (alle 3 Stehziele), Abzug-Knopf als Chromgriff.
+- Stand 0.14: Sicherheits-Säulen wie im Original (CHECK · CODE · ALARM · KEY · CPU, Sonnenstrahl-Einsätze):
+  linke Rampe füllt links, rechte rechts; beide voll → „PAYBACK ZEIT“ 25 s doppelte Punkte. Mittelsäule voll
+  → 1.000.000. Anzeige zählt die letzten 5 s vor dem Selbstschuss der Kanone groß herunter.
 - Physik-Test: Node-Simulation mit `window.__TEST__` (Abschuss-Pfad + 10 min Autoplay: Kugel
   verlässt nie den Tisch, bleibt nie hängen).

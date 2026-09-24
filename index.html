@@ -137,7 +137,7 @@
 </div>
 
 <script>
-const APP_VERSION = '0.13';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.14';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -531,6 +531,7 @@ const dmd = (() => {
   const topLanes = [false, false, false];
   const cool = {};                              // Abklingzeiten der Schalter
   let dropReset = 0, meldung = null, blitz = 0, paybackBis = 0, kickback = false;
+  let sicherL = 0, sicherR = 0;                  // Sicherheits-Säulen: Stufen je Rampe (0…5)
 
   // Kanone links: schwenkt geladen hin und her, der Abzug feuert (wie im Original)
   const kanone = { x: 44, y: 440, a: 0.1, phase: 0, kugel: null, feuerBis: 0, ziel: 1 };
@@ -607,8 +608,7 @@ const dmd = (() => {
       bankReihen++;
       if (schaedelIdx < SCHAEDEL_WERT.length - 1) schaedelIdx++;
       if (bankReihen >= 4) {
-        punkte(1000000, 10000); melde('PAYBACK ZEIT', 'ALLES × 2', 2.6); bankReihen = 0; blitzen(1);
-        paybackBis = zeit + 25; lampenBlitz(() => true, 1); sfx.multiball();
+        punkte(1000000, 10000); melde('CORE KOMPLETT', '1.000.000', 2.2); bankReihen = 0; blitzen(1);
       } else {
         punkte(100000, 5000); melde('ZIELE KOMPLETT', '100.000');
       }
@@ -652,9 +652,16 @@ const dmd = (() => {
       if (stufe === 5 && !extraVergeben) { extraBall = true; extraVergeben = true; extraJetzt = true; }
     }
     punkte(50000 * stufe, 5000);
+    // Jede Rampe knackt die nächste Sicherheitsstufe ihrer Säule; sind beide Säulen voll: „CPU“ → Payback
+    if (r.name === 'links') sicherL = Math.min(5, sicherL + 1); else sicherR = Math.min(5, sicherR + 1);
+    if (sicherL >= 5 && sicherR >= 5) {
+      sicherL = sicherR = 0; paybackBis = zeit + 25;
+      melde('PAYBACK ZEIT', 'ALLES × 2', 2.8); blitzen(1); lampenBlitz(() => true, 1.2); sfx.multiball();
+      return;
+    }
     if (extraJetzt) melde('EXTRA BALL', 'ALARM 5', 2.4);
     else melde('ALARMSTUFE ' + stufe, fmt(50000 * stufe));
-    lampenBlitz(l => l.gruppe === 'leiter', 0.7);
+    lampenBlitz(l => l.gruppe === 'leiter' || l.gruppe === (r.name === 'links' ? 'sicherL' : 'sicherR'), 0.7);
   }
   function schaedel() {
     const n = SCHAEDEL_WERT[schaedelIdx];
@@ -895,7 +902,7 @@ const dmd = (() => {
     schaedelIdx = 0; bankReihen = 0; orbits = 0; bumperTreffer = 0; gestartet = false;
     skullZahl = 0; gunLit = false; multiball = false; nachschub = 0; kanone.kugel = null; kanonenSchuss = 0;
     topLanes.fill(false); drops.forEach(d => { d.unten = false; }); standups.forEach(s => { s.an = false; });
-    paybackBis = 0; kickback = false;
+    paybackBis = 0; kickback = false; sicherL = 0; sicherR = 0;
     newBall();
   }
 
@@ -948,11 +955,13 @@ const dmd = (() => {
   ['250K', '500K', '1M', '3M', '5M'].forEach((t, k) =>
     L({ form: 'rechteck', x: 294, y: 552 - k * 24, w: 54, h: 17, farbe: 'rot', label: t, gruppe: 'schaedel',
       z: () => schaedelIdx === k ? 2 : (schaedelIdx > k ? 1 : 0) }));
-  // Rund-Einsätze: links Umlauf-Fortschritt, rechts Bumper-Serie
-  for (let k = 0; k < 5; k++) {
-    L({ form: 'kreis', x: 130, y: 548 - k * 22, r: 8, farbe: 'amber', gruppe: 'orbit', z: () => orbits > k ? 1 : 0 });
-    L({ form: 'kreis', x: 246, y: 548 - k * 22, r: 8, farbe: 'amber', gruppe: 'bumper', z: () => bumperTreffer >= (k + 1) * 10 ? 1 : 0 });
-  }
+  // Sicherheits-Säulen (unten → oben): linke Rampe füllt links, rechte Rampe rechts; oben „CPU“
+  ['CHECK', 'CODE', 'ALARM', 'KEY', 'CPU'].forEach((t, k) => {
+    L({ form: 'kreis', x: 130, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherL',
+      z: () => sicherL > k ? 1 : (sicherL === k ? 2 : 0) });
+    L({ form: 'kreis', x: 246, y: 548 - k * 22, r: 9, farbe: 'amber', label: t, sonne: true, gruppe: 'sicherR',
+      z: () => sicherR > k ? 1 : (sicherR === k ? 2 : 0) });
+  });
   // Obere Gassen
   [166, 202, 238].forEach((x, i) => L({ form: 'kreis', x, y: 72, r: 6, farbe: 'gruen', gruppe: 'top', z: () => topLanes[i] ? 1 : 0 }));
   // Stehziele: Pfeil daneben
@@ -1042,11 +1051,19 @@ const dmd = (() => {
         gr.addColorStop(1, `rgb(${r * 0.7 | 0},${g * 0.7 | 0},${b * 0.7 | 0})`);
         ctx.globalAlpha = l.i; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
       }
-      if (l.rand) { ctx.strokeStyle = FARBE[l.farbe]; ctx.lineWidth = 1.8; ctx.stroke(); }
+      if (l.sonne) {
+        ctx.save(); ctx.clip();
+        ctx.strokeStyle = l.i > 0.5 ? 'rgba(255,240,200,.45)' : 'rgba(255,190,120,.16)'; ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        for (let a = 0; a < 2 * PI; a += PI / 9) { ctx.moveTo(l.x, l.y); ctx.lineTo(l.x + Math.cos(a) * l.r, l.y + Math.sin(a) * l.r); }
+        ctx.stroke(); ctx.restore();
+        insertPfad(l);
+        ctx.strokeStyle = '#ff4a2a'; ctx.lineWidth = 1.6; ctx.stroke();
+      } else if (l.rand) { ctx.strokeStyle = FARBE[l.farbe]; ctx.lineWidth = 1.8; ctx.stroke(); }
       else { ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1.2; ctx.stroke(); }
       if (l.label) {
         const [mx, my] = mitteVon(l);
-        ctx.font = `700 ${l.form === 'keil' ? 7 : 6.5}px system-ui, sans-serif`;
+        ctx.font = `700 ${l.form === 'keil' ? 7 : l.form === 'kreis' ? 5 : 6.5}px system-ui, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillStyle = l.i > 0.5 ? 'rgba(20,8,0,.85)' : 'rgba(255,255,255,.28)';
         ctx.fillText(l.label, mx, my + 0.5);
@@ -1308,6 +1325,8 @@ const dmd = (() => {
       for (let a = 0; a < 2 * PI; a += 0.15) dmd.punkt(Math.round(kx + Math.cos(a) * 7), Math.round(ky + Math.sin(a) * 7), 3);
       for (let d = -10; d <= 10; d++) { if (Math.abs(d) > 2) { dmd.punkt(kx + d, ky, 3); dmd.punkt(kx, ky + d, 3); } }
       for (let d = -4; d <= 4; d++) { dmd.punkt(zx + d, ky - 4, 2); dmd.punkt(zx + d, ky + 4, 2); dmd.punkt(zx - 4, ky + d, 2); dmd.punkt(zx + 4, ky + d, 2); }
+      const rest = Math.ceil(kanone.feuerBis - zeit);
+      if (rest <= 5 && rest > 0) dmd.text(String(rest), 110, 3, 3, 3);
       if (blink) dmd.mitte('FEUER FREI', 24, 1, 3);
     } else if (gameOver) {
       if (Math.floor(zeit * 0.5) % 2 === 0) { dmd.mitte('GAME OVER', 3, 2, 3); dmd.mitte(fmt(score), 22, 1, 2); }
