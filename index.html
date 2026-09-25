@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.43';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.44';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1604,6 +1604,17 @@ const dmd = (() => {
 
     // Abschussrinne: Kolben
     ctx.fillStyle = '#9fb3c8'; ctx.fillRect(LANE_X + 5, SHOOT_Y + R, 392 - LANE_X - 10, 6);
+
+    // Tipp-Hinweis unter den Rückkehrgassen: dezenter Ring mit Punkt je Seite, leuchtet beim Flipperschlag auf
+    flippers.forEach((f, k) => {
+      const x = k ? 310 : 66, y = 714, a = f.on ? 0.55 : 0.16;
+      ctx.strokeStyle = `rgba(190,215,240,${a})`; ctx.fillStyle = `rgba(190,215,240,${a})`;
+      ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, 13, 0, 2 * PI); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, 2 * PI); ctx.fill();
+      ctx.lineWidth = 1.2; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(x, y, 19, -PI * 0.85, -PI * 0.15); ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
 
     // Flipper: weißer Körper, rotes Gummi
     const flipperForm = (f, t, r0, r1) => {

@@ -199,6 +199,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (175/670, 1700) trifft bei 59–62° (4 von 16 Winkeln); Kugel läuft über den Bogen und den linken Umlauf zurück.
   Abweiser (364/402–330/446) bleibt, damit Kugeln von oben nicht in die rechte Ausgasse fallen. Test 26/26, 11 × 10 min
   Autoplay ohne Fehler (einmal 3,4 s Stillstand, nicht reproduzierbar, sonst ≤ 1,3 s).
+- Stand 0.44 (Nutzerwunsch per Screenshot): **Tipp-Hinweis** links/rechts unter den Rückkehrgassen (66/714 und 310/714): dezenter
+  Ring mit Punkt und kleinem Bogen darüber (Alpha 0,16), leuchtet beim Flipperschlag auf (0,55). Obere Gassen: Nutzer vermutete
+  zu hohe Pfosten – gemessen widerlegt (Pfostenhöhe fast egal; Kugel > ~500/s bleibt am Bogen, Abschuss ~1900/s läuft immer
+  darüber). Vorschlag offen: Skill Shot (streuende Abschussstärke, nicht unter ~1350) und/oder breitere Gassen.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
