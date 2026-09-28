@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.45';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.46';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -463,6 +463,8 @@ const dmd = (() => {
   // ================= Zero Time – Tisch, Physik, Regeln, Licht =================
   // Logische Tischgröße (px), wird auf den Bildschirm skaliert
   const W = 400, H = 760;
+  // Testmodus „?3d“: Tisch wird mit three.js in 3D gezeigt (drei.js); die 2D-Zeichnung dient dann nur als Bodentextur
+  const DREI = typeof location !== 'undefined' && /[?&]3d\b/.test(location.search || '');
   const R = 9;                  // Kugelradius
   const G = 1150;               // Schwerkraft (px/s²), entspricht Tischneigung
   const STEPS = 12;             // Physik-Substeps pro Frame
@@ -1535,9 +1537,9 @@ const dmd = (() => {
         ctx.beginPath(); ctx.moveTo(...s.pts[2]); ctx.lineTo(...s.pts[0]); ctx.stroke();
       }
     }
-    zeichneWaende();
+    if (!DREI) zeichneWaende();
 
-    for (const p of posts) {
+    if (!DREI) for (const p of posts) {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2 * PI); ctx.fillStyle = '#d8e2ec'; ctx.fill();
       ctx.strokeStyle = '#1a1f27'; ctx.lineWidth = 1; ctx.stroke();
     }
@@ -1577,6 +1579,7 @@ const dmd = (() => {
     for (const b of bumpers) {
       b.flash = Math.max(0, b.flash - dt * 7);
       const f = b.flash, r = b.r;
+      if (DREI) continue;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(b.x + 3, b.y + 4, r + 3, 0, 2 * PI); ctx.fill();   // Schatten
       ctx.fillStyle = '#eef0f2'; ctx.beginPath(); ctx.arc(b.x, b.y, r + 2.5, 0, 2 * PI); ctx.fill();               // weißer Sockel
       // breiter, durchscheinender Rand der Kappe
@@ -1624,7 +1627,7 @@ const dmd = (() => {
       ctx.arc(t.x, t.y, r1, w - PI / 2 - s, w + PI / 2 + s);            // schmale runde Spitze
       ctx.closePath();
     };
-    for (const f of flippers) {
+    if (!DREI) for (const f of flippers) {
       const t = tip(f);
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.save(); ctx.translate(3, 4); flipperForm(f, t, 9, 5.5); ctx.fill(); ctx.restore();
       ctx.fillStyle = '#c21f2f'; flipperForm(f, t, 9, 5.5); ctx.fill();                          // rotes Gummi
@@ -1640,11 +1643,12 @@ const dmd = (() => {
       return { x: b.x, y: b.y, hoch: b.kanone ? 2 : 0 };
     });
     ctx.fillStyle = 'rgba(0,0,0,.45)';
-    for (const p of lage) if (!p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
+    if (!DREI) for (const p of lage) if (!p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
 
     // Rampen: klarer Kunststoff mit Drahtschienen
     for (const r of ramps) {
       r.flash = Math.max(0, r.flash - dt * 2.5);
+      if (DREI) continue;
       const bahn = () => { ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); };
       // Die Rampe liegt ÜBER dem Spielfeld (auch über den Bumpern): Schatten, getönter Kunststoff, zwei helle Schienen
       ctx.save(); ctx.translate(5, 7);
@@ -1664,12 +1668,12 @@ const dmd = (() => {
     }
 
     ctx.fillStyle = 'rgba(0,0,0,.35)';
-    for (const p of lage) if (p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 7, p.y + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
+    if (!DREI) for (const p of lage) if (p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 7, p.y + 9, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
 
     zeichneZielmarke();
     zeichneKanone();
     zeichneAbzug();
-    for (const p of lage) {
+    if (!DREI) for (const p of lage) {
       const g = ctx.createRadialGradient(p.x - 3, p.y - 3, 1, p.x, p.y, R);
       g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#d7dee6'); g.addColorStop(0.75, '#7c8794'); g.addColorStop(1, '#2d333b');
       ctx.fillStyle = g;
@@ -1749,6 +1753,10 @@ const dmd = (() => {
   // ---------- Skalierung ----------
   let scale = 1;
   function resize() {
+    if (DREI) {                                  // 3D: feste Texturgröße 800 × 1520, 2D-Fläche unsichtbar
+      scale = 2; cv.width = W * 2; cv.height = H * 2; cv.style.display = 'none';
+      ctx.setTransform(2, 0, 0, 2, 0, 0); grund = baueGrund(2); return;
+    }
     const st = document.getElementById('stage').getBoundingClientRect();
     const kopf = document.getElementById('kopf');
     kopf.style.transform = '';
@@ -1798,6 +1806,7 @@ const dmd = (() => {
   // Bildschirmpunkt → Tischkoordinaten, exakt für die schräge Ansicht (rotateX um die Unterkante, Perspektive der Bühne)
   const NEIGUNG = 10 * PI / 180, PERSP = 1300;
   function tischPunkt(cx, cy) {
+    if (DREI && window.__ZT3D) return window.__ZT3D.tischPunkt(cx, cy);
     const stage = document.getElementById('stage'), st = stage.getBoundingClientRect();
     const ox = st.left + st.width / 2, oy = st.top + st.height / 2;
     const unten = st.bottom - (parseFloat(getComputedStyle(stage).paddingBottom) || 0);
@@ -1843,6 +1852,13 @@ const dmd = (() => {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  // 3D-Ansicht (Test): Daten für drei.js
+  if (DREI) {
+    window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, tip, FL, bez, RAMP_T, kanone, drops, standups,
+      get balls() { return balls; }, schleuderBildOk, grundLicht };
+    const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION; document.body.appendChild(s);
+  }
 
   // Nur für automatische Tests (Node), im Browser ohne Wirkung
   if (window.__TEST__) window.__TEST__.api = { step, abzug, imAbzugFeld, tischPunkt, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },

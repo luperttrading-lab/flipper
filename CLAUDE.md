@@ -203,6 +203,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Ring mit Punkt und kleinem Bogen darüber (Alpha 0,16), leuchtet beim Flipperschlag auf (0,55); seit 0.45 nur bei Kugel 1 (`ballNo === 1`). Obere Gassen: Nutzer vermutete
   zu hohe Pfosten – gemessen widerlegt (Pfostenhöhe fast egal; Kugel > ~500/s bleibt am Bogen, Abschuss ~1900/s läuft immer
   darüber). Vorschlag offen: Skill Shot (streuende Abschussstärke, nicht unter ~1350) und/oder breitere Gassen.
+- Stand 0.46: **3D-Prototyp** (Testseite `index.html?3d`, normale App unverändert). `drei.js` (ES-Modul) + `lib/three.module.min.js`
+  (three.js r170, MIT, per npm geholt – jsDelivr ist in der Sandbox gesperrt; lokal im Repo, läuft offline). Physik/Regeln bleiben
+  2D; die 2D-Zeichnung (fest 800×1520) ist die **Bodentextur** (auch als emissiveMap → Einsätze leuchten). Mit `DREI` lässt `draw()`
+  Bleche, Pfosten, Bumper-Kappen, Flipper, Kugeln und Rampen weg; `drei.js` baut sie in 3D: Stahlbleche (InstancedMesh), Chrompfosten
+  an freien Enden, Bumper (Sockel/Kappe, leuchten bei `flash`), extrudierte Flipper, Chromkugeln, **Drahtrampen** entlang der
+  Tunnel-Bezierbahnen (Höhe 72 links / 46 rechts, 4 Drähte, Stützen), Gehäuse. Umgebung für Spiegelungen selbst gebaut (PMREM aus
+  Leuchtflächen). Kamera 68° geneigt, passt Spielfeld auf Breite, unten bündig. `tischPunkt` per Raycast (`window.__ZT3D`),
+  geprüft: Tisch→Bildschirm→Tisch exakt. Daten für drei.js in `window.__ZT`. Offen: Leistung auf dem iPhone (in der Sandbox nur
+  Software-Rendering, nicht messbar), Schädel/Kanone/Ziele noch flach auf der Textur, Rampen-Physik weiter als Tunnel.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
