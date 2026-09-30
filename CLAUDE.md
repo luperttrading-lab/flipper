@@ -286,6 +286,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (fliegt über die Gassen). Autoplay je 6 × 60 min: Bumper Ø 6,1/min statt 5,1/min (+20 %), begrenzt durch Mulde nur ~0,4/min.
   `tools/sim.js`: Mulden-Test prüft jetzt „verlässt die Mulde“ statt „fällt nach unten“. Hinweis: Test „Gassen-Zone“ ist unabhängig davon
   wacklig (je Schuss ~85 % → Test besteht nur ~84 %), gemessen vor 0.55 und danach gleich.
+- Stand 0.61: Tipp auf die Versionsnummer (manuelle Update-Prüfung) lädt bei neuer Version nach **0,5 s** statt 1,5 s neu (Nutzerwunsch); automatisch im Ruhezustand weiter 3 s.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

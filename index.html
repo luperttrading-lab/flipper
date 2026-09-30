@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.60';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.61';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -2071,7 +2071,7 @@ const dmd = (() => {
     announced = v;
     zeigeBanner('Neue Version ' + v + ' ist da');
     const ruhig = window.spielRuht ? window.spielRuht() : true;
-    if (manual || ruhig) setTimeout(() => location.reload(), manual ? 1500 : 3000);
+    if (manual || ruhig) setTimeout(() => location.reload(), manual ? 500 : 3000);   // 0.61: Tipp auf die Version lädt nach 0,5 s (vorher 1,5 s)
   }
 
   window.addEventListener('pageshow', () => setTimeout(checkForUpdate, 800));

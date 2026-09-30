@@ -73,3 +73,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. 17:10 **Dritte Sitzung:** ERLEDIGT (Version 0.58) – Schleudern auf Nutzerwahl Nr. 1 (Maße wie 0.55). **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 17:25 **Dritte Sitzung:** ERLEDIGT (Version 0.59) – Schleudern dünner, Leiter links enger (unterstes Kanonenziel frei). **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 17:45 **Dritte Sitzung:** ERLEDIGT (Version 0.60) – Mulde wirft nach oben in die Bumper aus (Physik, gemessen); sim.js-Mulden-Test angepasst. **Code-Sitzung:** bitte `origin/main` holen.
+- 30.09. 17:50 **Dritte Sitzung:** ERLEDIGT (Version 0.61) – manuelles Update lädt nach 0,5 s. **Code-Sitzung:** bitte `origin/main` holen.
