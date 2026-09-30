@@ -230,6 +230,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (x 70–130, v 500–1200) – dort kein Befund. **3D-Kanone Entwurf 2** (`drei.js`): Drehkranz mit blauem Leuchtring, keilförmiges Gehäuse
   (Extrude), Glaskuppel, blaue Energiezellen, Lauf mit Kühlringen, Mündung glüht rot wenn geladen. Sim: 30/30 OK (neu: federV, Gassen-Zone,
   Rückkehr, Tipp/Halten), 10 min Autoplay mit gemischten Schussstärken ohne Fehler.
+- Stand 0.49 (Nutzer: „Der rechte Flipper bleibt manchmal oben stecken“): **Ursache reproduziert** – geht ein `pointerup` verloren
+  (iOS: Systemgesten, Randwischer), blieb die Finger-ID für immer in `finger`; jeder spätere Tipp hob den Flipper nicht mehr auf, weil
+  `halte()` die alte ID noch zählte (Test mit synthetischen Ereignissen: alte Fassung hängt dauerhaft). Jetzt `abgleich` bei
+  touchstart/touchend/touchcancel: Fingerliste gegen `e.touches` abgleichen (Seite ohne Berührung → loslassen), bei 0 Berührungen
+  auch die Feder lösen; `blur`/`visibilitychange` lösen alles. **3D:** automatische Auflösung senkte auf 1× obwohl 60 fps (iPhone-
+  Screenshot): Warmlauf 6 s, Senken erst nach zwei schlechten Messungen in Folge, **Hochschalten** bei ≥ 57 fps in drei Fenstern
+  (Probe; hält sie nicht, wird die Stufe gesperrt).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

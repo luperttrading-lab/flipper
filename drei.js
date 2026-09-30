@@ -332,16 +332,32 @@ const fpsAnz = document.createElement('div');
 Object.assign(fpsAnz.style, { position: 'fixed', left: '6px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)', zIndex: 5,
   font: '600 11px system-ui, sans-serif', color: 'rgba(200,220,255,.7)', pointerEvents: 'none', textShadow: '0 1px 2px #000' });
 document.body.appendChild(fpsAnz);
-let fZaehler = 0, fStart = performance.now(), fWarm = performance.now() + 3000;
+let fZaehler = 0, fStart = performance.now(), fWarm = performance.now() + 6000;
+let langsam = 0, flott = 0, probe = false;
+const gesperrt = new Set();                                    // Stufen, die nach einem Versuch nicht flüssig liefen
+function stufeSetzen(i) {
+  stufe = i; renderer.setPixelRatio(Math.min(STUFEN[i], GERAET_DPR)); renderer.setSize(bw, bh, false);
+}
 function messeFps(jetzt) {
   fZaehler++;
   if (jetzt - fStart < 1500) return;
   const fps = fZaehler * 1000 / (jetzt - fStart); fZaehler = 0; fStart = jetzt;
-  if (window.__ZT_FEST) { /* Bildaufnahmen in der Sandbox: Auflösung nicht absenken */ }
-  else if (jetzt > fWarm && fps < 40 && stufe < STUFEN.length - 1) {          // zu langsam: gröber rechnen, dann erneut messen
-    stufe++; renderer.setPixelRatio(Math.min(STUFEN[stufe], GERAET_DPR)); renderer.setSize(bw, bh, false); fWarm = jetzt + 2500;
-  } else if (jetzt > fWarm && fps < 30 && stufe === STUFEN.length - 1 && sonne.castShadow) {
-    sonne.castShadow = false; fWarm = jetzt + 2500;                        // letzte Stufe: Schatten aus
+  if (!window.__ZT_FEST && jetzt > fWarm) {
+    if (fps < 40) {
+      flott = 0;
+      if (++langsam >= 2) {                                   // erst nach zwei schlechten Messungen in Folge senken
+        langsam = 0;
+        if (probe) { gesperrt.add(stufe); probe = false; }    // Hochschalten hat nicht getragen: diese Stufe nicht mehr versuchen
+        if (stufe < STUFEN.length - 1) { stufeSetzen(stufe + 1); fWarm = jetzt + 2500; }
+        else if (fps < 30 && sonne.castShadow) { sonne.castShadow = false; fWarm = jetzt + 2500; }
+      }
+    } else {
+      langsam = 0;
+      if (probe && fps >= 50) probe = false;                  // neue Stufe läuft flüssig: behalten
+      if (fps >= 57 && ++flott >= 3 && stufe > 0 && !gesperrt.has(stufe - 1) && Math.min(STUFEN[stufe - 1], GERAET_DPR) > Math.min(STUFEN[stufe], GERAET_DPR)) {
+        flott = 0; probe = true; stufeSetzen(stufe - 1); fWarm = jetzt + 2500;   // wieder schärfer, wenn Luft ist
+      }
+    }
   }
   fpsAnz.textContent = `${Math.round(fps)} fps · ${Math.min(STUFEN[stufe], GERAET_DPR)}× ${sonne.castShadow ? '' : '· ohne Schatten'}`;
 }
