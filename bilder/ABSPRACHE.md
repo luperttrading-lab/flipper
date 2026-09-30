@@ -63,4 +63,6 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   **Code-Sitzung:** bitte vor der nächsten Änderung `origin/main` holen.
 - 30.09. 15:10 **Dritte Sitzung:** ERLEDIGT (Version 0.53) – linker Rampenbogen weiter außen (Kontrollpunkt in `ramps[1]`), damit die
   weißen Rundziele frei liegen. Geändert: index.html, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
+- 30.09. 15:30 **Dritte Sitzung:** ERLEDIGT (Version 0.54, Nutzerwunsch) – **3D ist jetzt Standard** (flach nur mit `?2d`), Kamera 50°,
+  Anzeige rückt über den Tisch. Geändert: index.html, drei.js, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 

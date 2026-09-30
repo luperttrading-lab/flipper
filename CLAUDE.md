@@ -203,7 +203,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Ring mit Punkt und kleinem Bogen darüber (Alpha 0,16), leuchtet beim Flipperschlag auf (0,55); seit 0.45 nur bei Kugel 1 (`ballNo === 1`). Obere Gassen: Nutzer vermutete
   zu hohe Pfosten – gemessen widerlegt (Pfostenhöhe fast egal; Kugel > ~500/s bleibt am Bogen, Abschuss ~1900/s läuft immer
   darüber). Vorschlag offen: Skill Shot (streuende Abschussstärke, nicht unter ~1350) und/oder breitere Gassen.
-- Stand 0.46: **3D-Prototyp** (Testseite `index.html?3d`, normale App unverändert). `drei.js` (ES-Modul) + `lib/three.module.min.js`
+- Stand 0.46: **3D-Prototyp** (damals Testseite `index.html?3d`; seit 0.54 Standard). `drei.js` (ES-Modul) + `lib/three.module.min.js`
   (three.js r170, MIT, per npm geholt – jsDelivr ist in der Sandbox gesperrt; lokal im Repo, läuft offline). Physik/Regeln bleiben
   2D; die 2D-Zeichnung (fest 800×1520) ist die **Bodentextur** (auch als emissiveMap → Einsätze leuchten). Mit `DREI` lässt `draw()`
   Bleche, Pfosten, Bumper-Kappen, Flipper, Kugeln und Rampen weg; `drei.js` baut sie in 3D: Stahlbleche (InstancedMesh), Chrompfosten
@@ -261,6 +261,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   „rechts“ (`ramps[1]`, endet links) von (10/190) auf (−40/200); Ein- und Ausgang unverändert (Ausgang 55/585). Der absteigende Ast
   liegt bei y 386–446 jetzt bei x 36–39 statt 52–58 und verdeckt die weißen Rundziele (x 61) nicht mehr. Rampen sind weiter Tunnel
   (nur Animation), Physik unverändert.
+- Stand 0.54 (Nutzerwunsch „alles wie in der 3D-Version, leicht von vorn“): **3D ist Standard** – `DREI` gilt jetzt immer, außer mit
+  `?2d`, ohne WebGL oder in den Node-Tests (`window.__TEST__`). Lädt `drei.js` nicht (onerror) oder fehlt nach 15 s `window.__ZT3D`,
+  wechselt die Seite auf `?2d`. **Kamera 50° statt 60°** (mehr von vorn). Da die Breite begrenzt, rückt `einpassen()` die Anzeige
+  (`#kopf`, position relative, z-index 3) per `translateY` direkt über die Rückwand; Szenen-Hintergrund = Seiten-Hintergrund.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

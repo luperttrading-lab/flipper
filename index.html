@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.53';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.54';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -463,8 +463,12 @@ const dmd = (() => {
   // ================= Zero Time – Tisch, Physik, Regeln, Licht =================
   // Logische Tischgröße (px), wird auf den Bildschirm skaliert
   const W = 400, H = 760;
-  // Testmodus „?3d“: Tisch wird mit three.js in 3D gezeigt (drei.js); die 2D-Zeichnung dient dann nur als Bodentextur
-  const DREI = typeof location !== 'undefined' && /[?&]3d\b/.test(location.search || '');
+  // 3D-Ansicht (Standard seit 0.54): Tisch wird mit three.js gezeigt (drei.js); die 2D-Zeichnung dient dann nur als Bodentextur.
+  // Flache 2D-Ansicht mit „?2d“, automatisch ohne WebGL und in den Node-Tests (window.__TEST__).
+  const DREI = typeof location !== 'undefined' && typeof window !== 'undefined' && !window.__TEST__
+    && !/[?&]2d\b/.test(location.search || '') && (() => {
+      try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (_) { return false; }
+    })();
   const R = 9;                  // Kugelradius
   const G = 1150;               // Schwerkraft (px/s²), entspricht Tischneigung
   const STEPS = 12;             // Physik-Substeps pro Frame
@@ -1981,7 +1985,11 @@ const dmd = (() => {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
       get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF, rund, sdrop, MULDE, get gunLit() { return gunLit; },
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
-    const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION; document.body.appendChild(s);
+    const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION;
+    // Lädt die 3D-Ansicht nicht (Modul fehlt, WebGL-Fehler), auf die flache Ansicht ausweichen statt schwarzem Bild
+    const flach = () => { if (!window.__ZT3D) location.replace(location.pathname + '?2d'); };
+    s.onerror = flach; setTimeout(flach, 15000);
+    document.body.appendChild(s);
   }
 
   // Nur für automatische Tests (Node), im Browser ohne Wirkung

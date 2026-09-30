@@ -1,4 +1,4 @@
-// Zero Time – 3D-Ansicht (Prototyp, nur mit „?3d“ in der Adresse)
+// Zero Time – 3D-Ansicht (Standard seit 0.54; flach mit „?2d“)
 // Physik und Regeln bleiben in index.html (2D). Hier wird nur gezeichnet:
 // Boden = die 2D-Zeichnung als Textur, darauf echte 3D-Teile (Chromschienen, Pfosten, Bumper, Flipper, Kugeln, Drahtrampen).
 // Koordinaten: Tisch (x, y) → 3D (X = x − 200, Z = y − 380), Höhe = Y. Eine Tischeinheit = eine 3D-Einheit.
@@ -29,6 +29,10 @@ stage.appendChild(gl);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x06080c);
+try {                                       // Hintergrund wie die Seite, damit die Luft über dem Tisch nicht als schwarzer Kasten wirkt
+  const bg = getComputedStyle(document.body).backgroundColor;
+  if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) scene.background = new THREE.Color(bg);
+} catch (_) {}
 const camera = new THREE.PerspectiveCamera(34, 1, 10, 6000);
 
 // Umgebung für Spiegelungen: dunkler Raum mit ein paar hellen Leuchtflächen (selbst gebaut, keine fremde Bilddatei)
@@ -388,7 +392,7 @@ function kugelMesh(i) {
 }
 
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
-const NEIG = 60 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben)
+const NEIG = 50 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben; 0.54: 50° statt 60°, mehr von vorn)
 let bw = 0, bh = 0;
 function einpassen() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -414,6 +418,13 @@ function einpassen() {
     ziel.z -= (b.y0 + 1) * 300;
   }
   passt(dist);
+  // Luft über dem Tisch (Breite begrenzt): Anzeige direkt über die Rückwand rücken, die Restluft bleibt ganz oben
+  const kopf = document.getElementById('kopf');
+  if (kopf) {
+    const oben = (1 - P(X0, -22, 46).project(camera).y) / 2 * h;          // Oberkante der Rückwand in Bühnen-Pixeln
+    const luecke = Math.max(0, oben - 4);
+    Object.assign(kopf.style, { position: 'relative', zIndex: 3, transform: luecke ? `translateY(${luecke}px)` : '' });
+  }
 }
 window.addEventListener('resize', einpassen);
 einpassen();
