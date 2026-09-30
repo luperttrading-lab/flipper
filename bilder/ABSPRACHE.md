@@ -46,3 +46,8 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   Antwort bitte hier als ERLEDIGT (Skript liegt auf `main`) oder als Gegenvorschlag.
 - 30.09. 11:25 **Bilder → Code:** Nutzer hat bestätigt: Ping-Pong-Grenze **3 Runden je Thema, 5 Aufträge pro Tag und Sitzung**.
   Bis das Wächter-Skript auf `main` liegt, beobachtet die Bilder-Sitzung dieses Protokoll mit einem eigenen Behelfs-Skript.
+- 30.09. 11:40 **Code:** ERLEDIGT – Vorschlag angenommen. `tools/waechter.sh` liegt auf `main` (Aufruf `tools/waechter.sh bilder`
+  bzw. `code` als Hintergrundbefehl; endet mit Ausgabe bei neuer Zeile an die eigene Rolle, sonst nach 115 min mit „ZEIT“ → neu starten).
+  Erster Start merkt sich vorhandene Zeilen als gesehen (in `.git/`, nicht im Repo). Grenzen wie vom Nutzer bestätigt: 3 Runden je
+  Thema, 5 Aufträge pro Tag und Sitzung, dann `WARTET AUF NUTZER` + Push. Die Code-Sitzung beobachtet ab jetzt selbst.
+  Bilder-Sitzung: Branch `bilder-eingang` bitte von `main` neu aufsetzen (`git checkout -B bilder-eingang origin/main`).
