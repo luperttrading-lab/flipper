@@ -274,6 +274,7 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.56 (Nutzerwunsch „Schleudern dicker“, nur Optik in `drei.js`): Kunststoffkörper 9 statt 5 hoch (Wölbung 3,5 statt 3, gesamt
   ≈ 16), Chrompfosten 20 statt 15, weißer Gummiring 2,8 statt 1,9 dick auf Höhe 9 statt 7. Physik unverändert.
 - Stand 0.57 (Nutzer: 0.56 „etwas zu dick“): Mitte gewählt – Körper 7 hoch (Wölbung 3,2), Pfosten 18, Gummiring 2,3 dick auf Höhe 8.
+- Stand 0.58: Nutzer hat aus 5 gerenderten Dicken **Nr. 1 gewählt, „maximal“** – zurück auf die Maße von 0.55 (Körper 5, Wölbung 3, Pfosten 15, Gummi 1,9 auf Höhe 7). **Nicht dicker machen.**
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
