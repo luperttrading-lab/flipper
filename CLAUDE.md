@@ -257,6 +257,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   rote Dreierbank als stehende Scheiben mit Niete und Halterung (leuchten bei `an`/`blitz`), orange Stehziele als Platten (leuchten bei
   `an`), fünf weiße Rundziele als Scheiben auf Halter (beleuchtetes Ziel glüht gelb), Klappziel vor dem Schädel als Chromplatte mit
   Lampe (grün bei LOAD GUN, versinkt weich bei `sdrop.unten`), Chromring um die Mulde. `__ZT` liefert dafür `rund`, `sdrop`, `MULDE`, `gunLit`.
+- Stand 0.53 (iPhone-Screenshot: 3D läuft mit 58 fps bei 1,5×): **Linker Rampenbogen weiter außen** – 2. Kontrollpunkt der Rampe
+  „rechts“ (`ramps[1]`, endet links) von (10/190) auf (−40/200); Ein- und Ausgang unverändert (Ausgang 55/585). Der absteigende Ast
+  liegt bei y 386–446 jetzt bei x 36–39 statt 52–58 und verdeckt die weißen Rundziele (x 61) nicht mehr. Rampen sind weiter Tunnel
+  (nur Animation), Physik unverändert.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

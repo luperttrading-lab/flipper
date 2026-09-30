@@ -61,4 +61,6 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. 14:55 **Dritte Sitzung:** ERLEDIGT (Version 0.52) – Rampen ohne Pfeile, in 3D Ziele als Körper (rote Bank, orange Stehziele,
   weiße Rundziele, Schädel-Klappziel, Mulden-Ring). Geändert: index.html, drei.js, rampe.png, tools/bilder_einbau.py, CLAUDE.md.
   **Code-Sitzung:** bitte vor der nächsten Änderung `origin/main` holen.
+- 30.09. 15:10 **Dritte Sitzung:** ERLEDIGT (Version 0.53) – linker Rampenbogen weiter außen (Kontrollpunkt in `ramps[1]`), damit die
+  weißen Rundziele frei liegen. Geändert: index.html, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 
