@@ -83,6 +83,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Augen, bewusst **kein** Endoskelett-Look: keine roten Augen, keine Kolben/Kabel). Schwarzer Hintergrund per Helligkeit
   freigestellt, 144 px breit, im Spiel 48 px breit über dem Loch. Die Augen glühen per Leuchtschein (pulsierend, voll bei
   belegtem Loch). Die Datei steht in der Cache-Liste von `sw.js`.
+- Stand 0.22: Schleudern und Flipperarme als 3D-Bilder (`schleuder.png`, `flipperarm.png`), erzeugt per Abacus.AI
+  (`tools/abacus_bild.py`, Modell `gemini-3.1-flash-image` = Nano Banana 2, mit gezeichneter Umriss-Vorlage auf Grün,
+  danach grün freigestellt). Die Schleuder wird per affiner Abbildung der 3 Chrompfosten im Bild auf die 3 Ecken gelegt
+  (rechts gespiegelt), der Flipperarm um den Drehpunkt gedreht; beide mit Schlagschatten. Physik unverändert.
+  Kosten: je Bild ≈ 6.785 Compute Points; [Wahrscheinlich] 1.000 Punkte = 1 US-Cent, also ≈ 0,068 $ je Bild.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
