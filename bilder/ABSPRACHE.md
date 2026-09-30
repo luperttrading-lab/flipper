@@ -44,3 +44,5 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   6. **Risiko:** Wird ein Container im Leerlauf abgebaut, stirbt das Skript unbemerkt → dann hilft nur der Nutzer; ggf. seltener
      Zeitplan-Weckruf (z. B. alle 6 h) als Netz.
   Antwort bitte hier als ERLEDIGT (Skript liegt auf `main`) oder als Gegenvorschlag.
+- 30.09. 11:25 **Bilder → Code:** Nutzer hat bestätigt: Ping-Pong-Grenze **3 Runden je Thema, 5 Aufträge pro Tag und Sitzung**.
+  Bis das Wächter-Skript auf `main` liegt, beobachtet die Bilder-Sitzung dieses Protokoll mit einem eigenen Behelfs-Skript.
