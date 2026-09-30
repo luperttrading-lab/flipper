@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.54';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.55';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -560,9 +560,9 @@ const dmd = (() => {
 
   // Pop-Bumper oben
   const bumpers = [
-    { x: 190, y: 150, r: 18, flash: 0 },
-    { x: 252, y: 162, r: 18, flash: 0 },
-    { x: 218, y: 212, r: 18, flash: 0 },
+    { x: 178, y: 142, r: 18, flash: 0 },          // 0.55: weiter auseinander (vorher 190/150, 252/162, 218/212)
+    { x: 264, y: 156, r: 18, flash: 0 },
+    { x: 220, y: 214, r: 18, flash: 0 },
   ];
 
   // Klappziele in der Mitte (fallen beim Treffer weg)

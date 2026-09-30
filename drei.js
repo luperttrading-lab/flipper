@@ -72,6 +72,7 @@ const chrom = new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 1, ro
 const stahl = new THREE.MeshStandardMaterial({ color: 0xaab5c2, metalness: 0.9, roughness: 0.32 });
 const gummiSchwarz = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.7 });
 const weiss = new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: 0.35 });
+const gummiWeiss = new THREE.MeshStandardMaterial({ color: 0xefe9dc, roughness: 0.6 });
 const gummiRot = new THREE.MeshStandardMaterial({ color: 0xc21f2f, roughness: 0.55 });
 const holz = new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.5, metalness: 0.3 });
 const kugelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.12, envMapIntensity: 1.4 });
@@ -193,14 +194,21 @@ const schleudern3d = Z.slings.map(sl => {
     const p = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.6, 15, 18), chrom); p.position.copy(P(x, y, 7.5)); p.castShadow = true; g.add(p);
     const kp = new THREE.Mesh(new THREE.SphereGeometry(3.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), chrom); kp.position.copy(P(x, y, 15)); g.add(kp);
   }
-  // Gummiwulst zwischen den Pfosten 0 und 2 (lange Schlagseite), leicht nach außen versetzt
-  const a = pk[0], b = pk[2], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
-  let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }   // nach außen
-  const wulst = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, l, 12), gummiSchwarz);
-  wulst.rotation.z = Math.PI / 2;                              // Achse entlang x
-  const holder = new THREE.Group(); holder.add(wulst);
-  holder.position.copy(P((a[0] + b[0]) / 2 + nx * 3.2, (a[1] + b[1]) / 2 + ny * 3.2, 7));
-  holder.rotation.y = -Math.atan2(dy, dx); wulst.castShadow = true; g.add(holder);
+  // Weißer Gummiring rund um alle drei Pfosten (wie im Schleuder-Bild; 0.55 statt schwarzem Wulst nur an der Schlagseite)
+  const RP = 3.6, RG = 1.9, HG = 7;                              // Pfostenradius, Gummidicke, Höhe
+  for (let i = 0; i < 3; i++) {
+    const a = pk[i], b = pk[(i + 1) % 3], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+    let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }   // nach außen
+    const strang = new THREE.Mesh(new THREE.CylinderGeometry(RG, RG, l, 12), gummiWeiss);
+    strang.rotation.z = Math.PI / 2;                             // Achse entlang x
+    const holder = new THREE.Group(); holder.add(strang);
+    holder.position.copy(P((a[0] + b[0]) / 2 + nx * RP, (a[1] + b[1]) / 2 + ny * RP, HG));
+    holder.rotation.y = -Math.atan2(dy, dx); strang.castShadow = true; g.add(holder);
+  }
+  for (const [x, y] of pk) {                                     // um jeden Pfosten herum
+    const t = new THREE.Mesh(new THREE.TorusGeometry(RP, RG, 10, 24), gummiWeiss);
+    t.rotation.x = Math.PI / 2; t.position.copy(P(x, y, HG)); t.castShadow = true; g.add(t);
+  }
   scene.add(g);
   return { sl, mat: schleuderMat };
 });

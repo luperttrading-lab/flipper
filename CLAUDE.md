@@ -265,6 +265,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `?2d`, ohne WebGL oder in den Node-Tests (`window.__TEST__`). Lädt `drei.js` nicht (onerror) oder fehlt nach 15 s `window.__ZT3D`,
   wechselt die Seite auf `?2d`. **Kamera 50° statt 60°** (mehr von vorn). Da die Breite begrenzt, rückt `einpassen()` die Anzeige
   (`#kopf`, position relative, z-index 3) per `translateY` direkt über die Rückwand; Szenen-Hintergrund = Seiten-Hintergrund.
+- Stand 0.55 (Nutzerwunsch): **Pop-Bumper weiter auseinander** (178/142, 264/156, 220/214 statt 190/150, 252/162, 218/212; Lücken
+  zwischen den Kappen 51/47/37 statt 27/32/25, bei Kugel-Ø 18). Gemessen (Autoplay, nur voller Abschuss, 6 × 10 min neu gegen
+  3 × 10 min alt): Bumper-Treffer Ø 5,7/min statt 3,5/min, Serien ≥ 4 Treffer (Abstand < 0,7 s) 0,52/min statt 0,17/min, längste
+  Serie bis 16. Noch weiter auseinander (172/140, 268/154, 220/212) war schlechter (4,5/min, Serien ≥ 4 0,27/min). Sim 30/30,
+  10 min ohne Fehler. **3D-Schleudern mit weißem Gummiring** rund um alle drei Pfosten (Stränge + Ringe um die Pfosten, `gummiWeiss`)
+  statt schwarzem Wulst nur an der Schlagseite (Nutzer: wie das Schleuder-Bild).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
