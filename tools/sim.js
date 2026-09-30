@@ -145,7 +145,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   const drin = lauf(api, 2.5, () => b.mulde);
   pruefe(drin && api.flucht.geholt === 1, 'Linker Umlauf landet in der Mulde oben rechts und kassiert SEC. PASS');
   lauf(api, 1.3);
-  pruefe(!b.mulde && b.vy > 0, 'Mulde wirft die Kugel wieder aus');
+  pruefe(!b.mulde && Math.hypot(b.x - 350, b.y - 250) > 20, `Mulde wirft die Kugel wieder aus (seit 0.60 nach oben, jetzt bei ${Math.round(b.x)}/${Math.round(b.y)})`);
   api.balls.forEach(x => { x.fluchtBis = 0; });
   umlauf(); lauf(api, 2.5, () => b.mulde);
   pruefe(api.flucht.geholt === 1, 'Ohne neue Mittel-Bank gibt es kein weiteres Feld');

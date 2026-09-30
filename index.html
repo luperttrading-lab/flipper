@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.59';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.60';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -949,7 +949,8 @@ const dmd = (() => {
       ball.halt -= dt;
       if (ball.halt <= 0) {
         if (ball.zurKanone) ladeKanone(ball);
-        else if (ball.mulde) { ball.mulde = false; ball.vx = -20; ball.vy = 260; cool.mulde = zeit + 1; sfx.auswurf(); }
+        else if (ball.mulde) {                   // 0.60: nach oben durch den rechten Umlauf → obere Gassen → Pop-Bumper (gemessen 675–685 am besten)
+          ball.mulde = false; ball.vx = -20 + (Math.random() - 0.5) * 6; ball.vy = -(680 + (Math.random() - 0.5) * 10); cool.mulde = zeit + 1; sfx.auswurf(); }
         else { ball.vx = 70; ball.vy = 330; cool.schaedel = zeit + 1; sfx.auswurf(); }
       }
       return;

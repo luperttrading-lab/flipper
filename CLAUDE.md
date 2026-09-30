@@ -278,6 +278,14 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.59 (Nutzer: „noch etwas dünner“; unterstes gelbes Kanonenziel-Trapez nicht ganz zu sehen): Schleudern Körper 3,5 (Wölbung 2,5),
   Pfosten 13, Gummi 1,5 auf Höhe 6. **Leiter links enger** (Abstand 18,5 statt 20, Höhe 14 statt 15; „10 MILLION“ jetzt bei y 463,5, Oberkante
   456,5), roter Rahmen ab y 453 statt 443 – vorher schnitt er das 5. Trapez (y 443–449) und die untere Zielklammer. Klammer unten y 449.
+- Stand 0.60 (Nutzer: Kugel soll oben viel öfter zwischen den 3 Pop-Bumpern hin und her laufen): **Messung zuerst** – Gitter aus Abstand
+  (Skalierung 0,8–1,2 um den Schwerpunkt) × Bumper-Schlag (280/380/480/600), je 60 min Autoplay: alles 4–6 Treffer/min, Unterschiede im
+  Rauschen → Abstand/Schlag sind **nicht** der Hebel, sondern wie oft die Kugel überhaupt nach oben kommt. Umgesetzt: **Mulde oben rechts
+  wirft nach oben aus** (vx −20 ±3, vy −680 ±5 statt nach unten 260) → Kugel läuft den rechten Umlauf hinauf, fällt durch die oberen Gassen
+  in die Bumper. Einzelmessung (40 Würfe je Wert): 675–685 am besten, ~70 % mit ≥ 3 Bumper-Treffern, Ø 4 Treffer in 5 s; 695–705 schlecht
+  (fliegt über die Gassen). Autoplay je 6 × 60 min: Bumper Ø 6,1/min statt 5,1/min (+20 %), begrenzt durch Mulde nur ~0,4/min.
+  `tools/sim.js`: Mulden-Test prüft jetzt „verlässt die Mulde“ statt „fällt nach unten“. Hinweis: Test „Gassen-Zone“ ist unabhängig davon
+  wacklig (je Schuss ~85 % → Test besteht nur ~84 %), gemessen vor 0.55 und danach gleich.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
