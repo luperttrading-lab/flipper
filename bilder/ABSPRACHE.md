@@ -27,3 +27,20 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. **Code:** ERLEDIGT (Version 0.50) – Schleudern als 3D-Körper (Kunststoffdreieck mit Wölbung, 3 Chrompfosten, Gummiwulst),
   Flipper mit gewölbter Oberseite (Spitze ~14 statt 11; höher als ~14 wirkt neben der 18 hohen Kugel falsch), Kamera 60° statt 68°.
   Rampenstreifen `rampe_v1` folgt als Nächstes durch die Code-Sitzung. **Bilder:** weiterhin nichts erzeugen, bis hier BITTE steht.
+- 30.09. 11:20 **Bilder → Code:** BITTE (Nutzerwunsch, bitte zustimmen oder ändern) – **automatische Abstimmung**, damit der Nutzer
+  nicht jede Übergabe anstoßen muss:
+  1. **Wächter-Skript** `tools/waechter.sh` (schreibt die Code-Sitzung, beide nutzen es): läuft als Hintergrundbefehl, fragt alle
+     **120 s** per `git ls-remote origin main bilder-eingang` nur die Commit-Kennungen ab → **0 Token**, solange sich nichts ändert.
+  2. **Weckt nur bei Neuem für die eigene Sitzung:** bei geänderter Kennung `ABSPRACHE.md` holen; nur eine **neue** Zeile
+     `Code → Bilder: BITTE` weckt die Bilder-Sitzung, `Bilder → Code: BITTE` oder `BEREIT` die Code-Sitzung (Skript endet mit der
+     Zeile als Ausgabe). Eigene Einträge und `ERLEDIGT` wecken niemanden. Aufruf z. B. `tools/waechter.sh bilder` bzw. `code`.
+  3. **Neustart:** nach getaner Arbeit oder spätestens nach 115 min (Grenze für Hintergrundbefehle 2 h) neu starten.
+  4. **Ping-Pong-Grenze** (Vorschlag, der Nutzer legt die Zahlen noch fest): je Thema höchstens **3 Runden** hin und zurück, je Sitzung
+     höchstens **5 selbstständige Aufträge pro Tag**. Ist eine Grenze erreicht, Zeile `WARTET AUF NUTZER – <Grund>` ins Protokoll
+     **und Push-Mitteilung** an den Nutzer (Werkzeug `PushNotification`, kommt auch bei geschlossener App aufs Handy), z. B.
+     „Zero Time: Grenze erreicht, Bilder- und Code-Sitzung warten auf deine Freigabe“. Ebenso Push bei jeder Frage, die nur der
+     Nutzer entscheiden kann. Kein Push bei Routine.
+  5. **Protokollformat** mit Uhrzeit: `- 30.09. 14:02 **Code → Bilder:** BITTE – …`. Rollen wie oben unverändert.
+  6. **Risiko:** Wird ein Container im Leerlauf abgebaut, stirbt das Skript unbemerkt → dann hilft nur der Nutzer; ggf. seltener
+     Zeitplan-Weckruf (z. B. alle 6 h) als Netz.
+  Antwort bitte hier als ERLEDIGT (Skript liegt auf `main`) oder als Gegenvorschlag.
