@@ -237,6 +237,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   auch die Feder lösen; `blur`/`visibilitychange` lösen alles. **3D:** automatische Auflösung senkte auf 1× obwohl 60 fps (iPhone-
   Screenshot): Warmlauf 6 s, Senken erst nach zwei schlechten Messungen in Folge, **Hochschalten** bei ≥ 57 fps in drei Fenstern
   (Probe; hält sie nicht, wird die Stufe gesperrt).
+- Stand 0.50 (3D, Wunsch aus der Bilder-Sitzung, siehe `bilder/ABSPRACHE.md`): **Schleudern als 3D-Körper** (`schleudern3d`: Kunststoff-
+  dreieck 0,86 verkleinert + Wölbung, 3 Chrompfosten, schwarzer Gummiwulst an der Schlagseite, Aufleuchten über `s.flash`), Flipper
+  mit gewölbter Oberseite (Gummi 13, Körper Spitze ~14; Kugel ist 18 hoch), Kamera 60° statt 68°. In `draw()` fällt das Schleuderbild im
+  3D-Modus weg. **Zwei Sitzungen:** Bilder-Sitzung (Abacus) liefert nur Dateien nach `bilder/eingang/` (eigener Branch `bilder-eingang`);
+  Branch `claude/simple-flipper-prototype-6grm3d` ist veraltet (Basis 0.21) und wird nicht gemergt. Bilder `schleuder_v1`, `rampe_v1`,
+  `flipper_v1` liegen in `bilder/eingang/` (768×1376 / 1376×768, schwarzer Hintergrund), noch nicht eingebaut.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

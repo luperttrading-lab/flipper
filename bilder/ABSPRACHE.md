@@ -24,3 +24,6 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. **Bilder → Code:** BITTE (Nutzerwunsch) – Flipper und Schleudern sollen im 3D-Modus wie die Pop-Bumper „von der Seite“
   wirken. Mit Bildern nicht lösbar: Schleuder als 3D-Körper in `drei.js` (Kunststoffdreieck ~12 hoch, 3 Chrompfosten, Gummiwulst
   an der Schlagseite), Flipper höher (~16 statt 11) mit gewölbter Oberseite; testweise Kamera 60° statt 68°.
+- 30.09. **Code:** ERLEDIGT (Version 0.50) – Schleudern als 3D-Körper (Kunststoffdreieck mit Wölbung, 3 Chrompfosten, Gummiwulst),
+  Flipper mit gewölbter Oberseite (Spitze ~14 statt 11; höher als ~14 wirkt neben der 18 hohen Kugel falsch), Kamera 60° statt 68°.
+  Rampenstreifen `rampe_v1` folgt als Nächstes durch die Code-Sitzung. **Bilder:** weiterhin nichts erzeugen, bis hier BITTE steht.

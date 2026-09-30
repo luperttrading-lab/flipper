@@ -101,7 +101,7 @@ kasten(0, H, W, 22, 16);
 
 // ---------- Führungsbleche (alle Wände außer Schleuder-Schlagseiten) ----------
 {
-  const liste = Z.walls.filter(w => !w.kick && !(w.schleuder && Z.schleuderBildOk()));
+  const liste = Z.walls.filter(w => !w.kick && !w.schleuder);      // Schleudern baue ich als eigene Körper
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const inst = new THREE.InstancedMesh(geo, stahl, liste.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
@@ -151,23 +151,54 @@ const bumperKappen = Z.bumpers.map(b => {
 });
 
 // ---------- Flipper: weißer Körper, rotes Gummi, Chromachse ----------
-function flipperGeo(r0, r1, hoehe) {
+function flipperGeo(r0, r1, hoehe, bt, bs, seg) {
+  // r0/r1: Radien der Grundform (Bevel wächst um bs nach außen), hoehe: gerader Teil, bt: Wölbung oben/unten
   const l = Z.FL, s = Math.asin((r0 - r1) / l), sh = new THREE.Shape();
   sh.absarc(0, 0, r0, Math.PI / 2 + s, Math.PI * 1.5 - s, false);
   sh.absarc(l, 0, r1, -Math.PI / 2 - s, Math.PI / 2 + s, false);
   sh.closePath();
-  const g = new THREE.ExtrudeGeometry(sh, { depth: hoehe, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.6, bevelSegments: 2, curveSegments: 18 });
-  g.rotateX(-Math.PI / 2);          // Form liegt flach, Höhe nach oben
+  const g = new THREE.ExtrudeGeometry(sh, { depth: hoehe, bevelEnabled: true, bevelThickness: bt, bevelSize: bs, bevelSegments: seg, curveSegments: 18 });
+  g.rotateX(-Math.PI / 2);          // Form liegt flach, Höhe nach oben (von −bt bis hoehe + bt)
+  g.translate(0, bt, 0);            // Unterkante auf y = 0
   return g;
 }
 const flipper3d = Z.flippers.map(f => {
   const g = new THREE.Group();
-  const gummi = new THREE.Mesh(flipperGeo(9, 5.5, 7), gummiRot); gummi.position.y = 1;
-  const koerper = new THREE.Mesh(flipperGeo(6.8, 3.6, 10), weiss); koerper.position.y = 1;
-  const achse = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 13, 12), chrom); achse.position.y = 6.5;
-  for (const m of [gummi, koerper, achse]) { m.castShadow = true; m.receiveShadow = true; g.add(m); }
+  // Gummiring: 13 hoch, leicht gerundet; weißer Körper darin mit gewölbter Oberseite, Spitze ~14 (Kugel ist 18 hoch)
+  const gummi = new THREE.Mesh(flipperGeo(8.4, 4.9, 10.6, 1.2, 0.6, 3), gummiRot); gummi.position.y = 0.6;
+  const koerper = new THREE.Mesh(flipperGeo(4.6, 1.5, 6.6, 3.6, 2.2, 6), weiss); koerper.position.y = 0.8;
+  const achse = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 3, 16), chrom); achse.position.y = 15.6;
+  const kappe = new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), chrom); kappe.position.y = 17;
+  for (const m of [gummi, koerper, achse, kappe]) { m.castShadow = true; m.receiveShadow = true; g.add(m); }
   scene.add(g);
   return { f, g };
+});
+
+// ---------- Schleudern: Kunststoffdreieck mit Wölbung, drei Chrompfosten, schwarzer Gummiwulst an der Schlagseite ----------
+const schleuderMat = new THREE.MeshPhysicalMaterial({ color: 0xc41f2c, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08,
+  emissive: 0xff2a2a, emissiveIntensity: 0.15, transparent: true, opacity: 0.94 });
+const schleudern3d = Z.slings.map(sl => {
+  const g = new THREE.Group(), pk = sl.pts;
+  // Dreieck etwas nach innen ziehen, damit die Wölbung (Bevel) an den Pfosten nicht über die Kante hinauswächst
+  const cx = (pk[0][0] + pk[1][0] + pk[2][0]) / 3, cy = (pk[0][1] + pk[1][1] + pk[2][1]) / 3, k = 0.86;
+  const sh = new THREE.Shape(pk.map(([x, y]) => new THREE.Vector2((cx + (x - cx) * k) - X0, Y0 - (cy + (y - cy) * k))));
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: 5, bevelEnabled: true, bevelThickness: 3, bevelSize: 2.2, bevelSegments: 5 });
+  geo.rotateX(-Math.PI / 2); geo.translate(0, 3, 0);
+  const koerper = new THREE.Mesh(geo, schleuderMat); koerper.castShadow = true; koerper.receiveShadow = true; g.add(koerper);
+  for (const [x, y] of pk) {                                   // drei Chrompfosten an den Ecken
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.6, 15, 18), chrom); p.position.copy(P(x, y, 7.5)); p.castShadow = true; g.add(p);
+    const kp = new THREE.Mesh(new THREE.SphereGeometry(3.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), chrom); kp.position.copy(P(x, y, 15)); g.add(kp);
+  }
+  // Gummiwulst zwischen den Pfosten 0 und 2 (lange Schlagseite), leicht nach außen versetzt
+  const a = pk[0], b = pk[2], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+  let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }   // nach außen
+  const wulst = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, l, 12), gummiSchwarz);
+  wulst.rotation.z = Math.PI / 2;                              // Achse entlang x
+  const holder = new THREE.Group(); holder.add(wulst);
+  holder.position.copy(P((a[0] + b[0]) / 2 + nx * 3.2, (a[1] + b[1]) / 2 + ny * 3.2, 7));
+  holder.rotation.y = -Math.atan2(dy, dx); wulst.castShadow = true; g.add(holder);
+  scene.add(g);
+  return { sl, mat: schleuderMat };
 });
 
 // ---------- Drahtrampen entlang der bisherigen Tunnelbahnen ----------
@@ -282,7 +313,7 @@ function kugelMesh(i) {
 }
 
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
-const NEIG = 68 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben)
+const NEIG = 60 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben)
 let bw = 0, bh = 0;
 function einpassen() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -376,6 +407,7 @@ function bild(jetzt) {
     const f = k.b.flash;
     k.kappeMat.emissiveIntensity = 0.25 + 2.2 * f;
   }
+  { const fl = Math.max(...Z.slings.map(x => x.flash)); schleuderMat.emissiveIntensity = 0.15 + 2.4 * fl; }
   kanone3d.dreh.rotation.y = -Z.kanone.a;
   kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;
   kanone3d.kernMat.emissiveIntensity = Z.kanone.kugel ? 1.2 + 0.8 * Math.sin(Z.zeit * 9) : 0;

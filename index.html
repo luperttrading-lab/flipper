@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.49';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.50';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1551,6 +1551,7 @@ const dmd = (() => {
     // Schleudern: rote Kunststoffkappe, leuchtet beim Schlag
     for (const s of slings) {
       s.flash = Math.max(0, s.flash - dt * 8);
+      if (DREI) continue;                                    // 3D: Schleuder ist ein Körper in drei.js (Aufblitzen über s.flash)
       const drei = () => { ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath(); };
       if (schleuderBildOk()) {
         // Bild samt Gummi und Pfosten (links gebaut, Pfosten exakt auf den drei Ecken; Ausschnitt ab 60/562, 54 × 96);
@@ -1923,7 +1924,7 @@ const dmd = (() => {
 
   // 3D-Ansicht (Test): Daten für drei.js
   if (DREI) {
-    window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, tip, FL, bez, RAMP_T, kanone, drops, standups,
+    window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
       get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF,
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
     const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION; document.body.appendChild(s);
