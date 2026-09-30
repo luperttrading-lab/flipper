@@ -205,6 +205,28 @@ const schleudern3d = Z.slings.map(sl => {
 // Höhenverlauf: steigt vom Einlauf an, höchster Punkt ~ Mitte, läuft flach in die Rückkehrgasse aus.
 // Beide Rampen kreuzen sich – die linke liegt höher, damit sie übereinander weglaufen.
 const RAMPE_SPITZE = [72, 46];
+// Band entlang der Bahn, 18 breit; v = Bogenlänge / Kachelhöhe (Kachel wiederholt sich, Pfeile zeigen in Fahrtrichtung)
+const rampeTex = new THREE.TextureLoader().load('rampe.png', t => { t.needsUpdate = true; });
+rampeTex.colorSpace = THREE.SRGBColorSpace; rampeTex.wrapT = THREE.RepeatWrapping; rampeTex.anisotropy = 8;
+const rampeMat = new THREE.MeshStandardMaterial({ map: rampeTex, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+  roughness: 0.2, metalness: 0.1, emissive: 0xffffff, emissiveMap: rampeTex, emissiveIntensity: 0.35 });
+const KACHEL = 476 / 16;                     // Höhe der Kachel in Tischeinheiten (288 × 476 px, 16 px je Einheit)
+function rampenBand(pkt) {
+  const pos = [], uv = [], idx = [];
+  let s = 0;
+  pkt.forEach((p, k) => {
+    const a = pkt[Math.max(0, k - 1)], b = pkt[Math.min(pkt.length - 1, k + 1)];
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+    if (k) { const q = pkt[k - 1]; s += Math.hypot(p.x - q.x, p.y - q.y, p.h - q.h); }
+    for (const [sd, u] of [[-9, 0], [9, 1]]) { const v = P(p.x + nx * sd, p.y + ny * sd, p.h + 0.4); pos.push(v.x, v.y, v.z); uv.push(u, s / KACHEL); }
+    if (k) { const i = 2 * k; idx.push(i - 2, i - 1, i, i - 1, i + 1, i); }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, rampeMat); m.renderOrder = 2; m.receiveShadow = true; scene.add(m);
+}
 const rampenHoehe = (i, t) => RAMPE_SPITZE[i] * Math.pow(Math.sin(Math.PI * Math.min(1, t)), 0.8);
 Z.ramps.forEach((r, i) => {
   const N = 90, pkt = [];
@@ -218,7 +240,7 @@ Z.ramps.forEach((r, i) => {
     const m = new THREE.Mesh(new THREE.TubeGeometry(kurve, 220, 1.15, 8, false), chrom);
     m.castShadow = true; scene.add(m);
   };
-  draht(-5.5, 0.5); draht(5.5, 0.5);          // Laufdrähte unten
+  rampenBand(pkt);                            // Laufbahn: Kunststoffband mit rampe.png (statt der zwei Laufdrähte)
   draht(-10, 9); draht(10, 9);                // Seitendrähte oben
   // Stützen: alle paar Punkte ein dünner Stab zum Boden, wo die Rampe hoch genug ist
   const stuetze = new THREE.CylinderGeometry(1, 1, 1, 8);

@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.50';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.51';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -485,6 +485,10 @@ const dmd = (() => {
   const schleuderBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schleuder.png' }) : null;
   const schleuderBildOk = () => !!(schleuderBild && schleuderBild.complete && schleuderBild.naturalWidth);          // Hilfsebene für die Rampenschienen
   const schaedelBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'schaedel.png' }) : null;
+  // Flipperarm und Rampenstreifen als Bild (aufbereitet mit tools/bilder_einbau.py aus bilder/eingang/); ohne Bild: gezeichnet
+  const flipperBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'flipper.png' }) : null;
+  const rampeBild = typeof Image !== 'undefined' ? Object.assign(new Image(), { src: 'rampe.png' }) : null;
+  const bildOk = b => !!(b && b.complete && b.naturalWidth);
 
   // ---------- Geometrie ----------
   // Wände: {x1,y1,x2,y2, nurRunter?: Einweg-Tor, kick?: Schleuder}
@@ -1365,6 +1369,38 @@ const dmd = (() => {
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
 
+  // ================= Rampen mit Bild (einmal je Auflösung vorgerechnet) =================
+  // Die Kachel rampe.png (18 Einheiten breit, 16 px je Einheit) wird in Scheiben entlang der Bézier-Bahn gelegt,
+  // Pfeile zeigen in Fahrtrichtung. Neu gerechnet nur, wenn sich die Auflösung ändert.
+  let rampenCache = null, rampenPx = 0;
+  function rampenEbene() {
+    if (!bildOk(rampeBild)) return null;
+    const px = Math.min(3, scale * (window.devicePixelRatio || 1));
+    if (rampenCache && rampenPx === px) return rampenCache;
+    const c = document.createElement('canvas'); c.width = Math.round(W * px); c.height = Math.round(H * px);
+    const g = c.getContext('2d'); g.scale(px, px);
+    const TB = rampeBild.naturalWidth, TH = rampeBild.naturalHeight, PXE = TB / 18, KH = TH / PXE;   // Kachelhöhe in Einheiten
+    const N = 12, ds = KH / N;
+    for (const r of ramps) {
+      g.save(); g.translate(5, 7);                                                   // Schatten
+      g.beginPath(); g.moveTo(...r.pfad[0]); g.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]);
+      g.strokeStyle = 'rgba(0,0,0,.22)'; g.lineWidth = 18; g.stroke(); g.restore();
+      const pk = []; let L = 0;                                                      // Bahn nach Bogenlänge
+      for (let i = 0; i <= 600; i++) { const p = bez(r.pfad, i / 600); if (i) L += Math.hypot(p[0] - pk[i - 1][0], p[1] - pk[i - 1][1]); pk.push([p[0], p[1], L]); }
+      let j = 0;
+      const bei = s => { while (j < 599 && pk[j + 1][2] < s) j++; const a = pk[j], b = pk[j + 1], u = (s - a[2]) / ((b[2] - a[2]) || 1);
+        return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, Math.atan2(b[1] - a[1], b[0] - a[0])]; };
+      for (let k = 0, s = 0; s < L; k++, s += ds) {
+        const [x, y, w] = bei(s + Math.min(ds, L - s) / 2), n = k % N, h = Math.min(ds, L - s);
+        g.save(); g.translate(x, y); g.rotate(w + PI / 2);                            // lokal −y = Fahrtrichtung
+        g.drawImage(rampeBild, 0, (N - n) * ds * PXE - h * PXE, TB, h * PXE, -9, -h / 2 - 0.35, 18, h + 0.7);
+        g.restore();
+      }
+    }
+    rampenCache = c; rampenPx = px;
+    return c;
+  }
+
   // ================= Spielfeld-Grund (einmal vorgerechnet) =================
   let grund = null;
   function baueGrund(px) {
@@ -1663,6 +1699,14 @@ const dmd = (() => {
     if (!DREI) for (const f of flippers) {
       const t = tip(f);
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.save(); ctx.translate(3, 4); flipperForm(f, t, 9, 5.5); ctx.fill(); ctx.restore();
+      if (bildOk(flipperBild)) {
+        // Bild: 10 px je Einheit, Rand 0,2, Drehpunkt bei x = 9,2; rechter Flipper gespiegelt, damit das Licht oben bleibt
+        const w = Math.atan2(t.y - f.py, t.x - f.px);
+        ctx.save(); ctx.translate(f.px, f.py); ctx.rotate(w); if (Math.cos(w) < 0) ctx.scale(1, -1);
+        ctx.drawImage(flipperBild, -9.2, -9.2, flipperBild.naturalWidth / 10, flipperBild.naturalHeight / 10);
+        ctx.restore();
+        continue;
+      }
       ctx.fillStyle = '#c21f2f'; flipperForm(f, t, 9, 5.5); ctx.fill();                          // rotes Gummi
       const g = ctx.createLinearGradient(f.px, f.py - 7, f.px, f.py + 7);
       g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d9d4c8');
@@ -1678,10 +1722,17 @@ const dmd = (() => {
     ctx.fillStyle = 'rgba(0,0,0,.45)';
     if (!DREI) for (const p of lage) if (!p.hoch) { ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 4, R, R * 0.8, 0, 0, 2 * PI); ctx.fill(); }
 
-    // Rampen: klarer Kunststoff mit Drahtschienen
+    // Rampen: klarer Kunststoff mit Drahtschienen (mit Bild: vorgerechnete Ebene, darüber nur das Aufblitzen)
+    const rampenBild = !DREI && rampenEbene();
+    if (rampenBild) ctx.drawImage(rampenBild, 0, 0, W, H);
     for (const r of ramps) {
       r.flash = Math.max(0, r.flash - dt * 2.5);
       if (DREI) continue;
+      if (rampenBild) {
+        ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]);
+        ctx.strokeStyle = `rgba(150,200,255,${0.5 * r.flash})`; ctx.lineWidth = 12; ctx.stroke();
+        continue;
+      }
       const bahn = () => { ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]); };
       // Die Rampe liegt ÜBER dem Spielfeld (auch über den Bumpern): Schatten, getönter Kunststoff, zwei helle Schienen
       ctx.save(); ctx.translate(5, 7);

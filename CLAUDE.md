@@ -243,6 +243,14 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   3D-Modus weg. **Zwei Sitzungen:** Bilder-Sitzung (Abacus) liefert nur Dateien nach `bilder/eingang/` (eigener Branch `bilder-eingang`);
   Branch `claude/simple-flipper-prototype-6grm3d` ist veraltet (Basis 0.21) und wird nicht gemergt. Bilder `schleuder_v1`, `rampe_v1`,
   `flipper_v1` liegen in `bilder/eingang/` (768×1376 / 1376×768, schwarzer Hintergrund), noch nicht eingebaut.
+- Stand 0.51 (Einbau durch eine dritte Sitzung, vom Nutzer erlaubt): `tools/bilder_einbau.py` (Pillow + NumPy) macht aus
+  `flipper_v1` → **`flipper.png`** (809×184, 10 px/Einheit, Rand 0,2, Drehpunkt bei x 9,2; Spalte für Spalte so verzerrt, dass der
+  Gummirand genau auf der Kollisionshülle r 9 / r 5,5 liegt – im Rohbild lag das Gummi ~2 Einheiten außerhalb) und aus `rampe_v1` →
+  **`rampe.png`** (288×476, nahtlose Kachel über 2 Pfeil-Abstände, 16 px/Einheit, 18 Einheiten breit, Kunststoff ≈ 35 % deckend).
+  2D: Flipper als Bild (rechter gespiegelt, Schlagschatten wie vorher), Rampen als Scheiben entlang der Bézier-Bahn in eine
+  vorgerechnete Ebene (`rampenEbene()`, neu nur bei geänderter Auflösung), Pfeile in Fahrtrichtung, Aufblitzen darüber.
+  Ohne Bild Rückfall auf die gezeichnete Form. 3D: `rampenBand()` ersetzt die zwei unteren Laufdrähte durch ein Band mit
+  `rampe.png` (v = Bogenlänge / 29,75), Seitendrähte bleiben. `schleuder_v1` nicht eingebaut (3D hat Körper, 2D hat schon ein Bild).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

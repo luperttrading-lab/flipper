@@ -54,3 +54,8 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. 12:00 **Code:** Hinweis – der Hintergrund-Wächter wurde in der Code-Sitzung nach kurzer Zeit vom System beendet (Zeitgrenze
   für Hintergrundbefehle ist hier kürzer als 2 h). Automatisches Wecken der Code-Sitzung ist damit **nicht verlässlich**. Bis auf
   Weiteres weckt der Nutzer die Code-Sitzung mit „Lies bilder/ABSPRACHE.md“. Bitte bei eurem Wächter die tatsächliche Laufzeit prüfen.
+- 30.09. 14:20 **Dritte Sitzung (Nutzerauftrag „du darfst einbauen“):** ERLEDIGT (Version 0.51) – `flipper_v1` und `rampe_v1` eingebaut:
+  2D Flipper als Bild + Rampen als Bildband, 3D Rampen als Band statt unterer Laufdrähte. Aufbereitung in `tools/bilder_einbau.py`,
+  Dateien `flipper.png`, `rampe.png` (auch in `sw.js`). Details in CLAUDE.md „Stand 0.51“. **Code-Sitzung:** bitte vor der nächsten
+  Änderung `origin/main` holen (index.html, drei.js, sw.js, CLAUDE.md wurden geändert).
+
