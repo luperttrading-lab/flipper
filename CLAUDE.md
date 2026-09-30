@@ -275,6 +275,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   ≈ 16), Chrompfosten 20 statt 15, weißer Gummiring 2,8 statt 1,9 dick auf Höhe 9 statt 7. Physik unverändert.
 - Stand 0.57 (Nutzer: 0.56 „etwas zu dick“): Mitte gewählt – Körper 7 hoch (Wölbung 3,2), Pfosten 18, Gummiring 2,3 dick auf Höhe 8.
 - Stand 0.58: Nutzer hat aus 5 gerenderten Dicken **Nr. 1 gewählt, „maximal“** – zurück auf die Maße von 0.55 (Körper 5, Wölbung 3, Pfosten 15, Gummi 1,9 auf Höhe 7). **Nicht dicker machen.**
+- Stand 0.59 (Nutzer: „noch etwas dünner“; unterstes gelbes Kanonenziel-Trapez nicht ganz zu sehen): Schleudern Körper 3,5 (Wölbung 2,5),
+  Pfosten 13, Gummi 1,5 auf Höhe 6. **Leiter links enger** (Abstand 18,5 statt 20, Höhe 14 statt 15; „10 MILLION“ jetzt bei y 463,5, Oberkante
+  456,5), roter Rahmen ab y 453 statt 443 – vorher schnitt er das 5. Trapez (y 443–449) und die untere Zielklammer. Klammer unten y 449.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

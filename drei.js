@@ -187,15 +187,15 @@ const schleudern3d = Z.slings.map(sl => {
   // Dreieck etwas nach innen ziehen, damit die Wölbung (Bevel) an den Pfosten nicht über die Kante hinauswächst
   const cx = (pk[0][0] + pk[1][0] + pk[2][0]) / 3, cy = (pk[0][1] + pk[1][1] + pk[2][1]) / 3, k = 0.86;
   const sh = new THREE.Shape(pk.map(([x, y]) => new THREE.Vector2((cx + (x - cx) * k) - X0, Y0 - (cy + (y - cy) * k))));
-  const geo = new THREE.ExtrudeGeometry(sh, { depth: 5, bevelEnabled: true, bevelThickness: 3, bevelSize: 2.2, bevelSegments: 5 });   // 0.58: Nutzerwahl Nr. 1 (= 0.55), höchstens so dick
-  geo.rotateX(-Math.PI / 2); geo.translate(0, 3, 0);
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: 3.5, bevelEnabled: true, bevelThickness: 2.5, bevelSize: 2, bevelSegments: 5 });   // 0.59: dünner als Nr. 1 (Nutzer)
+  geo.rotateX(-Math.PI / 2); geo.translate(0, 2.5, 0);
   const koerper = new THREE.Mesh(geo, schleuderMat); koerper.castShadow = true; koerper.receiveShadow = true; g.add(koerper);
   for (const [x, y] of pk) {                                   // drei Chrompfosten an den Ecken
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.6, 15, 18), chrom); p.position.copy(P(x, y, 7.5)); p.castShadow = true; g.add(p);
-    const kp = new THREE.Mesh(new THREE.SphereGeometry(3.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), chrom); kp.position.copy(P(x, y, 15)); g.add(kp);
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.6, 13, 18), chrom); p.position.copy(P(x, y, 6.5)); p.castShadow = true; g.add(p);
+    const kp = new THREE.Mesh(new THREE.SphereGeometry(3.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), chrom); kp.position.copy(P(x, y, 13)); g.add(kp);
   }
   // Weißer Gummiring rund um alle drei Pfosten (wie im Schleuder-Bild; 0.55 statt schwarzem Wulst nur an der Schlagseite)
-  const RP = 3.6, RG = 1.9, HG = 7;                              // Pfostenradius, Gummidicke, Höhe
+  const RP = 3.6, RG = 1.5, HG = 6;                              // Pfostenradius, Gummidicke, Höhe
   for (let i = 0; i < 3; i++) {
     const a = pk[i], b = pk[(i + 1) % 3], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
     let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }   // nach außen

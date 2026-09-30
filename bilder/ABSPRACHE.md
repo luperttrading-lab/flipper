@@ -71,3 +71,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 17:00 **Dritte Sitzung:** ERLEDIGT (Version 0.57) – Schleudern wieder etwas dünner (nur Optik, drei.js). **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 17:10 **Dritte Sitzung:** ERLEDIGT (Version 0.58) – Schleudern auf Nutzerwahl Nr. 1 (Maße wie 0.55). **Code-Sitzung:** bitte `origin/main` holen.
+- 30.09. 17:25 **Dritte Sitzung:** ERLEDIGT (Version 0.59) – Schleudern dünner, Leiter links enger (unterstes Kanonenziel frei). **Code-Sitzung:** bitte `origin/main` holen.

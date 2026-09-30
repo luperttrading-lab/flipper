@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.58';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.59';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1214,7 +1214,7 @@ const dmd = (() => {
 
   // Leiter links = Escape Route (unten → oben): an = kassiert, blinkt = bereit zum Kassieren
   FLUCHT.forEach((t, k) =>
-    L({ form: 'rechteck', x: 84, y: 556 - k * 20, w: 58, h: 15, farbe: 'rot', label: t, gruppe: 'leiter',
+    L({ form: 'rechteck', x: 84, y: 556 - k * 18.5, w: 58, h: 14, farbe: 'rot', label: t, gruppe: 'leiter',   // 0.59: enger, damit das unterste Kanonenziel frei bleibt
       z: () => k < fluchtGeholt ? 1 : (k < fluchtLit ? 2 : 0) }));
   // Leiter rechts: aktueller Schädel-Wert
   ['250K', '500K', '1M', '3M', '5M'].forEach((t, k) =>
@@ -1429,7 +1429,7 @@ const dmd = (() => {
     }
     // Rote Bänder hinter den Leitern (wie gedruckte Rahmen)
     g.strokeStyle = 'rgba(200,40,50,.55)'; g.lineWidth = 2;
-    g.strokeRect(84 - 33, 443, 66, 124); g.strokeRect(294 - 33, 446, 66, 118);
+    g.strokeRect(84 - 33, 453, 66, 114); g.strokeRect(294 - 33, 446, 66, 118);
     g.strokeRect(166, 348, 44, 54);
     // Umlauf-Gassen etwas dunkler
     g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(12, 200, 46, 280); g.fillRect(326, 200, 38, 182); g.fillRect(LANE_X, 300, 28, 460);
@@ -1542,7 +1542,7 @@ const dmd = (() => {
   function zeichneZielmarke() {
     const geladen = !!kanone.kugel, p = geladen ? 0.55 + 0.45 * Math.sin(zeit * 8) : 0;
     const farbe = a => geladen ? `rgba(255, 70, 55, ${a})` : `rgba(255, 196, 140, ${a * 0.8})`;
-    const x0 = 50, x1 = 93, y0 = 371, y1 = 447, l = 7;          // unten frei vor der Leiter („10 MILLION“ ab y 448)
+    const x0 = 50, x1 = 93, y0 = 371, y1 = 449, l = 7;          // unten frei vor der Leiter (Rahmen ab y 453, „10 MILLION“ ab y 456)
     ctx.save();
     ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.strokeStyle = farbe(0.65 + 0.35 * p);
     ctx.beginPath();
