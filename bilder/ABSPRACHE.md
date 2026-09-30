@@ -69,4 +69,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   mit weißem Gummiring. Geändert: index.html, drei.js, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 16:55 **Dritte Sitzung:** ERLEDIGT (Version 0.56) – 3D-Schleudern dicker (nur Optik). Geändert: index.html (Version), drei.js,
   CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
-
+- 30.09. 17:00 **Dritte Sitzung:** ERLEDIGT (Version 0.57) – Schleudern wieder etwas dünner (nur Optik, drei.js). **Code-Sitzung:** bitte `origin/main` holen.
