@@ -209,6 +209,28 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   pruefe(k1 === 1 && k2 === 2 && plus >= 1250000, `Chase Loop zählt und bildet Kombo (Kette ${k1} → ${k2}, +${plus})`);
 }
 
+// 2h. Feder dosieren: Bereiche, Gassen-Zone, zu schwacher Schuss kehrt zurück, Tipp = voller Schuss
+{
+  const api = lade();
+  const v = c => api.federV(c);
+  let mono = true; for (let c = 0.01; c <= 1; c += 0.01) if (api.federV(c) < api.federV(c - 0.01) - 1e-9 && Math.abs(c - 0.2) > 0.005 && Math.abs(c - 0.4) > 0.005) mono = false;
+  pruefe(v(0.1) < 1310 && v(0.3) > 1326 && v(0.3) < 1350 && v(0.9) >= 1900 && mono, `federV: schwach ${v(0.1).toFixed(0)}, Gassen ${v(0.3).toFixed(0)}, voll ${v(0.9).toFixed(0)}, steigt monoton`);
+  // Gassen-Zone: Kugel fällt oben durch die Gassen (mit ±6 Streuung, 5 Versuche über die Zone)
+  let treffer = 0;
+  for (const c of [0.22, 0.26, 0.3, 0.34, 0.38]) {
+    const a = lade(), g0 = a.gassen; a.abschuss(a.federV(c) + (Math.random() - 0.5) * 12); lauf(a, 4); if (a.gassen > g0) treffer++;
+  }
+  pruefe(treffer >= 4, `Gassen-Zone: ${treffer}/5 Schüsse laufen durch eine obere Gasse`);
+  // zu schwach: Kugel liegt danach wieder an der Feder, Abschuss erneut möglich
+  let zurueck = 0;
+  for (const vv of [960, 1000, 1020, 1025]) { const a = lade(); a.abschuss(vv); lauf(a, 7); if (a.abschussBereit()) zurueck++; }
+  pruefe(zurueck === 4, `zu schwacher Schuss (960–1025) kehrt zurück und ist wieder abschussbereit (${zurueck}/4)`);
+  // Tipp = voller Schuss, Halten = gemessene Stärke
+  const t1 = lade(); t1.federSpannen(1); t1.federLoslassen(); const vTipp = -t1.balls[0].vy;
+  const t2 = lade(); t2.federSpannen(1); t2.feder.t = 0.5; t2.feder.c = 0.3; t2.federLoslassen(); const vHalt = -t2.balls[0].vy;
+  pruefe(vTipp > 1850 && vHalt > 1320 && vHalt < 1365, `Tipp schießt voll (${vTipp.toFixed(0)}), Halten mit c 0,3 schießt ${vHalt.toFixed(0)}`);
+}
+
 // 3. Autoplay
 {
   const min = +(process.argv[2] || 10);
@@ -219,7 +241,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   for (let i = 0; i < min * 60 / DT; i++) {
     if (api.gameOver) { api.restart(); spiele++; }
     if (api.wahl) api.wahlFertig();
-    if (api.loaded) api.abzug();
+    if (api.abschussBereit()) { const r = Math.random(); if (r < 0.5) api.abzug(); else api.abschuss(r < 0.75 ? 1320 + Math.random() * 45 : 1000 + Math.random() * 320); }   // Mix: voll, Gassen-Zone, schwach
     if (api.kanone.kugel && Math.random() < 0.002) { api.feuer(); schuesse++; }
     // Flipper: kurz schlagen, wenn eine Kugel darüber ist, dann loslassen (kein Festhalten)
     api.flippers.forEach((f, k) => {

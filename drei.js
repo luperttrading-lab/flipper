@@ -225,26 +225,52 @@ new THREE.TextureLoader().load('schaedel.png', t => {
   scene.add(m);
 });
 
-// ---------- Kanone: Sockel mit blauem Ring, Kasten, Lauf; dreht mit dem Schwenkwinkel ----------
+// ---------- Kanone (Entwurf 2): Drehkranz mit blauem Leuchtring, Kuppel, keilförmiges Gehäuse, Lauf mit Kühlringen ----------
+// Alles dreht mit dem Schwenkwinkel; die Mündung sitzt bei K_LAUF + 6 (dort verlässt die Kugel den Lauf).
 const kanone3d = (() => {
-  const g = new THREE.Group(), K = Z.kanone;
-  const sockel = new THREE.Mesh(new THREE.CylinderGeometry(20, 22, 7, 32),
-    new THREE.MeshStandardMaterial({ color: 0x1d5fb8, roughness: 0.35, metalness: 0.4, emissive: 0x1d5fb8, emissiveIntensity: 0.35 }));
-  sockel.position.y = 3.5;
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(20, 1.6, 10, 40), new THREE.MeshStandardMaterial({ color: 0x7fc0ff, emissive: 0x4fa0ff, emissiveIntensity: 0.9 }));
-  ring.rotation.x = Math.PI / 2; ring.position.y = 7;
-  const dreh = new THREE.Group(); dreh.position.y = 7;
-  const kasten = new THREE.Mesh(new THREE.BoxGeometry(28, 15, 26), chrom); kasten.position.y = 7.5;
-  const lauf = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, Z.K_LAUF - 4, 20), stahl);
-  lauf.rotation.z = Math.PI / 2; lauf.position.set(10 + (Z.K_LAUF - 4) / 2, 8, 0);
-  const muendung = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 3, 20), gummiSchwarz);
-  muendung.rotation.z = Math.PI / 2; muendung.position.set(Z.K_LAUF + 6, 8, 0);
+  const g = new THREE.Group(), K = Z.kanone, L = Z.K_LAUF;
+  const dunkel = new THREE.MeshStandardMaterial({ color: 0x6d7c8e, metalness: 0.8, roughness: 0.3 });
+  const blauGlut = new THREE.MeshStandardMaterial({ color: 0x1d5fb8, emissive: 0x3d8fff, emissiveIntensity: 1.1, roughness: 0.3 });
+  // Drehkranz: flacher Stahlteller, darauf ein leuchtender blauer Ring
+  const teller = new THREE.Mesh(new THREE.CylinderGeometry(21, 23, 4, 40), dunkel); teller.position.y = 2;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(19, 1.5, 10, 48), blauGlut); ring.rotation.x = Math.PI / 2; ring.position.y = 4.4;
+  const kranz = new THREE.Mesh(new THREE.CylinderGeometry(15, 17, 4, 32), chrom); kranz.position.y = 6.5;
+  // Drehteil
+  const dreh = new THREE.Group(); dreh.position.y = 8.5;
+  // Gehäuse: Seitenprofil (x = Laufrichtung, y = Höhe) als Keil, in die Breite (z) ausgezogen
+  const prof = new THREE.Shape();
+  prof.moveTo(-15, 0); prof.lineTo(-15, 9); prof.lineTo(-8, 15); prof.lineTo(6, 15.5); prof.lineTo(15, 11); prof.lineTo(15, 4); prof.lineTo(11, 0); prof.closePath();
+  const gehGeo = new THREE.ExtrudeGeometry(prof, { depth: 20, bevelEnabled: true, bevelThickness: 1.4, bevelSize: 1.4, bevelSegments: 2 });
+  gehGeo.translate(0, 0, -10);
+  const gehaeuse = new THREE.Mesh(gehGeo, dunkel);
+  // Kuppel oben auf dem Gehäuse (Sichtfenster des Zielers)
+  const kuppel = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshPhysicalMaterial({ color: 0x9fd0ff, metalness: 0.2, roughness: 0.05, clearcoat: 1, emissive: 0x2a6fd0, emissiveIntensity: 0.5 }));
+  kuppel.position.set(-3, 15.5, 0); kuppel.scale.y = 0.7;
+  // Energiezellen an den Flanken
+  const zellen = [-1, 1].map(sd => {
+    const z = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 14, 16), blauGlut);
+    z.rotation.z = Math.PI / 2; z.position.set(-2, 6, sd * 13.5); return z;
+  });
+  // Lauf: Mantel, Kühlringe, Mündungsbremse, innen ein leuchtender Kern
+  const mantel = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.8, 16, 24), chrom);
+  mantel.rotation.z = Math.PI / 2; mantel.position.set(14 + 8, 9, 0);
+  const rohr = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.4, L - 6, 20), stahl);
+  rohr.rotation.z = Math.PI / 2; rohr.position.set(12 + (L - 6) / 2 + 3, 9, 0);
+  const kuehl = [0, 1, 2].map(k => {
+    const r = new THREE.Mesh(new THREE.TorusGeometry(5.4, 1, 8, 24), gummiSchwarz);
+    r.rotation.y = Math.PI / 2; r.position.set(27 + k * 3.4, 9, 0); return r;
+  });
+  const muendung = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 5, 4.5, 24), dunkel);
+  muendung.rotation.z = Math.PI / 2; muendung.position.set(L + 4, 9, 0);
+  const kernMat = new THREE.MeshStandardMaterial({ color: 0x300808, emissive: 0xff3a2a, emissiveIntensity: 0, roughness: 0.4 });
+  const kern = new THREE.Mesh(new THREE.CircleGeometry(3.4, 20), kernMat); kern.rotation.y = Math.PI / 2; kern.position.set(L + 6.3, 9, 0);
   const lampeMat = new THREE.MeshStandardMaterial({ color: 0x5a1a1a, emissive: 0xff3a3a, emissiveIntensity: 0 });
-  const lampe = new THREE.Mesh(new THREE.BoxGeometry(8, 1.5, 8), lampeMat); lampe.position.set(-5, 15.8, 0);
-  for (const m of [sockel, kasten, lauf, muendung]) { m.castShadow = true; m.receiveShadow = true; }
-  dreh.add(kasten, lauf, muendung, lampe);
-  g.add(sockel, ring, dreh); g.position.copy(P(K.x, K.y)); scene.add(g);
-  return { dreh, lampeMat };
+  const lampe = new THREE.Mesh(new THREE.BoxGeometry(5, 1.4, 9), lampeMat); lampe.position.set(-10, 16.3, 0);
+  dreh.add(gehaeuse, kuppel, mantel, rohr, muendung, kern, lampe, ...zellen, ...kuehl);
+  for (const m of [teller, kranz, gehaeuse, mantel, rohr, muendung, ...zellen, ...kuehl]) { m.castShadow = true; m.receiveShadow = true; }
+  g.add(teller, ring, kranz, dreh); g.position.copy(P(K.x, K.y)); scene.add(g);
+  return { dreh, lampeMat, kernMat, blauGlut };
 })();
 
 // ---------- Kugeln ----------
@@ -311,7 +337,8 @@ function messeFps(jetzt) {
   fZaehler++;
   if (jetzt - fStart < 1500) return;
   const fps = fZaehler * 1000 / (jetzt - fStart); fZaehler = 0; fStart = jetzt;
-  if (jetzt > fWarm && fps < 40 && stufe < STUFEN.length - 1) {          // zu langsam: gröber rechnen, dann erneut messen
+  if (window.__ZT_FEST) { /* Bildaufnahmen in der Sandbox: Auflösung nicht absenken */ }
+  else if (jetzt > fWarm && fps < 40 && stufe < STUFEN.length - 1) {          // zu langsam: gröber rechnen, dann erneut messen
     stufe++; renderer.setPixelRatio(Math.min(STUFEN[stufe], GERAET_DPR)); renderer.setSize(bw, bh, false); fWarm = jetzt + 2500;
   } else if (jetzt > fWarm && fps < 30 && stufe === STUFEN.length - 1 && sonne.castShadow) {
     sonne.castShadow = false; fWarm = jetzt + 2500;                        // letzte Stufe: Schatten aus
@@ -335,6 +362,8 @@ function bild(jetzt) {
   }
   kanone3d.dreh.rotation.y = -Z.kanone.a;
   kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;
+  kanone3d.kernMat.emissiveIntensity = Z.kanone.kugel ? 1.2 + 0.8 * Math.sin(Z.zeit * 9) : 0;
+  kanone3d.blauGlut.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0.9;
   const glut = Z.haelt() ? 1 : 0.35 + 0.3 * Math.sin(Z.zeit * 3);
   for (const a of augen) a.material.opacity = glut;
   for (const { f, g } of flipper3d) {

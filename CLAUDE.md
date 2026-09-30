@@ -219,6 +219,17 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   PCF 1024 statt PCFSoft 2048, **automatische Auflösung** 2× → 1,5× → 1,25× → 1× wenn < 40 fps (nach 3 s Warmlauf, je 1,5 s
   Messfenster), zuletzt Schatten aus bei < 30 fps. **FPS-Anzeige** unten links im 3D-Modus („58 fps · 2×“) – für die Rückmeldung
   vom iPhone. Sandbox (Software-Rendering, 2 fps) fällt erwartungsgemäß auf 1×.
+- Stand 0.48 (Nutzeridee: Fingerspitzengefühl beim Abschuss): **Feder dosieren.** Tipp auf die Kugel < 0,22 s = voller Schuss wie
+  bisher (1880–1960); **Halten** spannt in 1,6 s (Echtzeit), Loslassen schießt: `federV(c)` c 0–0,2 → 960–1310 (schwach), 0,2–0,4 →
+  1326–1350 (**Gassen-Zone**), ab 0,4 → 1385…1960 (voll ab 0,85), ±6 Streuung. **Gemessen** (Abschussgeschwindigkeit → Ergebnis):
+  ≤1025 fällt die Kugel in die Rinne zurück (neu: liegt danach wieder an der Feder, `ruht`), 1050–1225 verlässt sie die Rinne durch
+  das Einweg-Tor und fällt unten ins Feld, 1250–1300 kommt nicht um die Kurve (fällt seitlich), **1315–1358 fällt sie durch die
+  oberen Gassen** (Fenster nur ±22 breit – deshalb Zone im Balken auf 20 % gestreckt), ≥1385 fliegt sie mit Mittelpunkt y≈19 über die
+  Gassen und läuft den linken Umlauf hinunter. Anzeige: Balken mit drei Bereichen und Text „ZU SCHWACH / GASSEN / VOLLE KRAFT“,
+  Ring um die Kugel wird rot / grün / weiß und wächst. Leertaste: Halten/Loslassen. Schädel-Loch von unten: 20/20 Testschüsse fangen
+  (x 70–130, v 500–1200) – dort kein Befund. **3D-Kanone Entwurf 2** (`drei.js`): Drehkranz mit blauem Leuchtring, keilförmiges Gehäuse
+  (Extrude), Glaskuppel, blaue Energiezellen, Lauf mit Kühlringen, Mündung glüht rot wenn geladen. Sim: 30/30 OK (neu: federV, Gassen-Zone,
+  Rückkehr, Tipp/Halten), 10 min Autoplay mit gemischten Schussstärken ohne Fehler.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
