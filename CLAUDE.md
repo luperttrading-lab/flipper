@@ -212,6 +212,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Leuchtflächen). Kamera 68° geneigt, passt Spielfeld auf Breite, unten bündig. `tischPunkt` per Raycast (`window.__ZT3D`),
   geprüft: Tisch→Bildschirm→Tisch exakt. Daten für drei.js in `window.__ZT`. Offen: Leistung auf dem iPhone (in der Sandbox nur
   Software-Rendering, nicht messbar), Schädel/Kanone/Ziele noch flach auf der Textur, Rampen-Physik weiter als Tunnel.
+- Stand 0.47 (3D-Prototyp, Verbesserungen ohne Gerätemessung): **Schädel aufrecht** (Bild als Ebene, 32° nach hinten geneigt,
+  Augen als additive Sprites, pulsieren wie in 2D) und **Kanone als 3D-Teil** (Sockel mit blauem Ring, Kasten, Lauf, rote Lampe,
+  dreht mit `kanone.a`); beides wird im 3D-Modus nicht mehr auf die Textur gemalt (Ziellinie und Tipp-Ring bleiben 2D).
+  **Leistung:** 2D-Zeichnung + Textur-Upload nur noch jedes 2. Bild (`gezeichnet`-Zähler, dt wird aufsummiert), Schatten
+  PCF 1024 statt PCFSoft 2048, **automatische Auflösung** 2× → 1,5× → 1,25× → 1× wenn < 40 fps (nach 3 s Warmlauf, je 1,5 s
+  Messfenster), zuletzt Schatten aus bei < 30 fps. **FPS-Anzeige** unten links im 3D-Modus („58 fps · 2×“) – für die Rückmeldung
+  vom iPhone. Sandbox (Software-Rendering, 2 fps) fällt erwartungsgemäß auf 1×.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

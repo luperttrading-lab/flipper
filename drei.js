@@ -12,12 +12,15 @@ const P = (x, y, h = 0) => new THREE.Vector3(x - X0, h, y - Y0);
 // ---------- Renderer, Szene, Kamera ----------
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+const GERAET_DPR = window.devicePixelRatio || 1;
+const STUFEN = [2, 1.5, 1.25, 1];            // Auflösung; fällt automatisch, wenn die Bildrate einbricht
+let stufe = 0;
+renderer.setPixelRatio(Math.min(STUFEN[0], GERAET_DPR));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 const gl = renderer.domElement;
 gl.id = 'c3d';
 Object.assign(gl.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', touchAction: 'none', display: 'block' });
@@ -52,10 +55,10 @@ const sonne = new THREE.DirectionalLight(0xfff4e6, 1.6);
 sonne.position.set(-120, 700, 520);
 sonne.target.position.set(0, 0, 0);
 sonne.castShadow = true;
-sonne.shadow.mapSize.set(2048, 2048);
+sonne.shadow.mapSize.set(1024, 1024);
 Object.assign(sonne.shadow.camera, { left: -230, right: 230, top: 420, bottom: -420, near: 100, far: 1600 });
-sonne.shadow.bias = -0.0006;
-sonne.shadow.normalBias = 0.6;
+sonne.shadow.bias = -0.001;
+sonne.shadow.normalBias = 0.8;
 scene.add(sonne, sonne.target);
 const akzentL = new THREE.PointLight(0x4f7dff, 900, 500, 1.6); akzentL.position.set(-200, 120, -200); scene.add(akzentL);
 const akzentR = new THREE.PointLight(0xff5a3a, 700, 500, 1.6); akzentR.position.set(200, 120, 150); scene.add(akzentR);
@@ -199,6 +202,51 @@ Z.ramps.forEach((r, i) => {
   ein.rotation.y = -Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2; ein.receiveShadow = true; scene.add(ein);
 });
 
+// ---------- Schädel: steht aufrecht (leicht nach hinten geneigt) über dem Loch, Augen glühen ----------
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,190,90,1)'); gr.addColorStop(0.35, 'rgba(255,130,30,.55)'); gr.addColorStop(1, 'rgba(255,90,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const augen = [];
+new THREE.TextureLoader().load('schaedel.png', t => {
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const sw = 66, sh = sw * t.image.naturalHeight / t.image.naturalWidth;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.02 }));
+  m.geometry.translate(0, sh / 2, 0);                       // Drehpunkt an der Unterkante
+  m.position.copy(P(Z.SKULL.x, Z.SKULL.y - 6, 3));
+  m.rotation.x = -32 * Math.PI / 180;                       // nach hinten geneigt: wirkt räumlich, bleibt gut lesbar
+  for (const ax of [0.268, 0.723]) {
+    const a = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    a.scale.set(26, 26, 1); a.position.set(ax * sw - sw / 2, 0.403 * sh, 2); m.add(a); augen.push(a);
+  }
+  scene.add(m);
+});
+
+// ---------- Kanone: Sockel mit blauem Ring, Kasten, Lauf; dreht mit dem Schwenkwinkel ----------
+const kanone3d = (() => {
+  const g = new THREE.Group(), K = Z.kanone;
+  const sockel = new THREE.Mesh(new THREE.CylinderGeometry(20, 22, 7, 32),
+    new THREE.MeshStandardMaterial({ color: 0x1d5fb8, roughness: 0.35, metalness: 0.4, emissive: 0x1d5fb8, emissiveIntensity: 0.35 }));
+  sockel.position.y = 3.5;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(20, 1.6, 10, 40), new THREE.MeshStandardMaterial({ color: 0x7fc0ff, emissive: 0x4fa0ff, emissiveIntensity: 0.9 }));
+  ring.rotation.x = Math.PI / 2; ring.position.y = 7;
+  const dreh = new THREE.Group(); dreh.position.y = 7;
+  const kasten = new THREE.Mesh(new THREE.BoxGeometry(28, 15, 26), chrom); kasten.position.y = 7.5;
+  const lauf = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, Z.K_LAUF - 4, 20), stahl);
+  lauf.rotation.z = Math.PI / 2; lauf.position.set(10 + (Z.K_LAUF - 4) / 2, 8, 0);
+  const muendung = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 3, 20), gummiSchwarz);
+  muendung.rotation.z = Math.PI / 2; muendung.position.set(Z.K_LAUF + 6, 8, 0);
+  const lampeMat = new THREE.MeshStandardMaterial({ color: 0x5a1a1a, emissive: 0xff3a3a, emissiveIntensity: 0 });
+  const lampe = new THREE.Mesh(new THREE.BoxGeometry(8, 1.5, 8), lampeMat); lampe.position.set(-5, 15.8, 0);
+  for (const m of [sockel, kasten, lauf, muendung]) { m.castShadow = true; m.receiveShadow = true; }
+  dreh.add(kasten, lauf, muendung, lampe);
+  g.add(sockel, ring, dreh); g.position.copy(P(K.x, K.y)); scene.add(g);
+  return { dreh, lampeMat };
+})();
+
 // ---------- Kugeln ----------
 const kugelGeo = new THREE.SphereGeometry(R, 32, 20);
 const kugeln = [];
@@ -209,8 +257,10 @@ function kugelMesh(i) {
 
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
 const NEIG = 68 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben)
+let bw = 0, bh = 0;
 function einpassen() {
   const w = stage.clientWidth, h = stage.clientHeight;
+  bw = w; bh = h;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   const ecken = [];
@@ -251,10 +301,30 @@ window.__ZT3D = {
   },
 };
 
+// ---------- Bildrate messen, anzeigen, bei Einbruch Auflösung senken ----------
+const fpsAnz = document.createElement('div');
+Object.assign(fpsAnz.style, { position: 'fixed', left: '6px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)', zIndex: 5,
+  font: '600 11px system-ui, sans-serif', color: 'rgba(200,220,255,.7)', pointerEvents: 'none', textShadow: '0 1px 2px #000' });
+document.body.appendChild(fpsAnz);
+let fZaehler = 0, fStart = performance.now(), fWarm = performance.now() + 3000;
+function messeFps(jetzt) {
+  fZaehler++;
+  if (jetzt - fStart < 1500) return;
+  const fps = fZaehler * 1000 / (jetzt - fStart); fZaehler = 0; fStart = jetzt;
+  if (jetzt > fWarm && fps < 40 && stufe < STUFEN.length - 1) {          // zu langsam: gröber rechnen, dann erneut messen
+    stufe++; renderer.setPixelRatio(Math.min(STUFEN[stufe], GERAET_DPR)); renderer.setSize(bw, bh, false); fWarm = jetzt + 2500;
+  } else if (jetzt > fWarm && fps < 30 && stufe === STUFEN.length - 1 && sonne.castShadow) {
+    sonne.castShadow = false; fWarm = jetzt + 2500;                        // letzte Stufe: Schatten aus
+  }
+  fpsAnz.textContent = `${Math.round(fps)} fps · ${Math.min(STUFEN[stufe], GERAET_DPR)}× ${sonne.castShadow ? '' : '· ohne Schatten'}`;
+}
+
 // ---------- Schleife ----------
 const basis = { hemi: hemi.intensity, sonne: sonne.intensity, l: akzentL.intensity, r: akzentR.intensity };
-function bild() {
-  tex.needsUpdate = true;
+let letzteZeichnung = -1;
+function bild(jetzt) {
+  messeFps(jetzt || performance.now());
+  if (Z.gezeichnet !== letzteZeichnung) { letzteZeichnung = Z.gezeichnet; tex.needsUpdate = true; }
   const gi = Math.max(0.12, Math.min(1.4, Z.grundLicht()));
   hemi.intensity = basis.hemi * gi; sonne.intensity = basis.sonne * gi;
   akzentL.intensity = basis.l * gi; akzentR.intensity = basis.r * gi;
@@ -263,6 +333,10 @@ function bild() {
     const f = k.b.flash;
     k.kappeMat.emissiveIntensity = 0.25 + 2.2 * f;
   }
+  kanone3d.dreh.rotation.y = -Z.kanone.a;
+  kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;
+  const glut = Z.haelt() ? 1 : 0.35 + 0.3 * Math.sin(Z.zeit * 3);
+  for (const a of augen) a.material.opacity = glut;
   for (const { f, g } of flipper3d) {
     const t = Z.tip(f), dx = t.x - f.px, dy = t.y - f.py;
     g.position.copy(P(f.px, f.py));

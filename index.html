@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.46';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.47';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1420,14 +1420,14 @@ const dmd = (() => {
   function zeichneKanone() {
     const { x, y, a } = kanone, c = Math.cos(a), s = Math.sin(a);
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.4)';
-    ctx.beginPath(); ctx.arc(x + 7, y + 9, 22, 0, 2 * PI); ctx.fill();
+    if (!DREI) { ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.arc(x + 7, y + 9, 22, 0, 2 * PI); ctx.fill(); }
     if (kanone.kugel) {
       // Ziellinie bis hinüber zu den Rundzielen: zeigt, wohin der Schuss geht
       ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(255,90,80,.7)'; ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.moveTo(x + c * (K_LAUF + 12), y + s * (K_LAUF + 12)); ctx.lineTo(x + c * 300, y + s * 300); ctx.stroke();
       ctx.setLineDash([]);
     }
+    if (DREI) { ctx.restore(); return; }                        // Sockel, Kasten und Lauf sind in drei.js echte 3D-Teile
     // Drehsockel: blauer Ring (größer als zuvor)
     ctx.beginPath(); ctx.arc(x, y, 20, 0, 2 * PI); ctx.fillStyle = '#1d5fb8'; ctx.fill();
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#7fc0ff'; ctx.stroke();
@@ -1595,7 +1595,7 @@ const dmd = (() => {
     }
 
     // Schädel über dem Loch: Stahlplatten-Schädel (Bild schaedel.png), Augen glühen orange
-    if (schaedelBild && schaedelBild.complete && schaedelBild.naturalWidth) {
+    if (!DREI && schaedelBild && schaedelBild.complete && schaedelBild.naturalWidth) {
       const sw = 66, sh = sw * schaedelBild.naturalHeight / schaedelBild.naturalWidth, sx = SKULL.x - sw / 2, sy = SKULL.y - 8 - sh;
       ctx.drawImage(schaedelBild, sx, sy, sw, sh);
       const glut = haelt() ? 1 : 0.35 + 0.3 * Math.sin(zeit * 3);
@@ -1836,7 +1836,7 @@ const dmd = (() => {
   });
 
   // ---------- Loop ----------
-  let last = performance.now();
+  let last = performance.now(), drawAcc = 0, frameNr = 0, gezeichnet = 0;
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
@@ -1847,7 +1847,8 @@ const dmd = (() => {
     else zeit += pause ? 0 : sdt;             // Lichtshow läuft auch bei Game over
     sfx.musik(multiball && !pause && !gameOver);
     lampenZustand(dt);
-    draw(dt);
+    if (DREI) { drawAcc += dt; if ((++frameNr & 1) === 0) { draw(drawAcc); drawAcc = 0; gezeichnet++; } }
+    else draw(dt);
     anzeige();
     requestAnimationFrame(frame);
   }
@@ -1856,7 +1857,8 @@ const dmd = (() => {
   // 3D-Ansicht (Test): Daten für drei.js
   if (DREI) {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, tip, FL, bez, RAMP_T, kanone, drops, standups,
-      get balls() { return balls; }, schleuderBildOk, grundLicht };
+      get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF,
+      get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
     const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION; document.body.appendChild(s);
   }
 
