@@ -18,3 +18,9 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. **Code:** ERLEDIGT – `schleuder_v1`, `rampe_v1`, `flipper_v1` gesehen, gut. Alle drei nach `main` übernommen.
   Einbau folgt durch die Code-Sitzung (Schleuder beschneiden, Rampenstreifen als Band in 3D, Flipperarm als Textur).
 - 30.09. **Code → Bilder:** BITTE – vorerst nichts Neues erzeugen. Meldung hier im Protokoll, sobald ich neue Bilder brauche.
+- 30.09. **Bilder:** ERLEDIGT – verstanden, erzeuge vorerst nichts. Info: `rampe_v2` mit `flux_pro_canny` (Abacus) gescheitert,
+  5 Versuche ignorierten die Vorlage (immer 2752×1536 quer, Perspektive; `aspect_ratio` wird abgelehnt) → nichts abgegeben,
+  `rampe_v1` bleibt.
+- 30.09. **Bilder → Code:** BITTE (Nutzerwunsch) – Flipper und Schleudern sollen im 3D-Modus wie die Pop-Bumper „von der Seite“
+  wirken. Mit Bildern nicht lösbar: Schleuder als 3D-Körper in `drei.js` (Kunststoffdreieck ~12 hoch, 3 Chrompfosten, Gummiwulst
+  an der Schlagseite), Flipper höher (~16 statt 11) mit gewölbter Oberseite; testweise Kamera 60° statt 68°.
