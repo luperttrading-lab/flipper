@@ -271,6 +271,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Serie bis 16. Noch weiter auseinander (172/140, 268/154, 220/212) war schlechter (4,5/min, Serien ≥ 4 0,27/min). Sim 30/30,
   10 min ohne Fehler. **3D-Schleudern mit weißem Gummiring** rund um alle drei Pfosten (Stränge + Ringe um die Pfosten, `gummiWeiss`)
   statt schwarzem Wulst nur an der Schlagseite (Nutzer: wie das Schleuder-Bild).
+- Stand 0.56 (Nutzerwunsch „Schleudern dicker“, nur Optik in `drei.js`): Kunststoffkörper 9 statt 5 hoch (Wölbung 3,5 statt 3, gesamt
+  ≈ 16), Chrompfosten 20 statt 15, weißer Gummiring 2,8 statt 1,9 dick auf Höhe 9 statt 7. Physik unverändert.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

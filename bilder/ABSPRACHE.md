@@ -67,4 +67,6 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   Anzeige rückt über den Tisch. Geändert: index.html, drei.js, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 15:50 **Dritte Sitzung:** ERLEDIGT (Version 0.55, Nutzerwunsch) – Pop-Bumper weiter auseinander (Physik!, gemessen), 3D-Schleudern
   mit weißem Gummiring. Geändert: index.html, drei.js, CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
+- 30.09. 16:55 **Dritte Sitzung:** ERLEDIGT (Version 0.56) – 3D-Schleudern dicker (nur Optik). Geändert: index.html (Version), drei.js,
+  CLAUDE.md. **Code-Sitzung:** bitte `origin/main` holen.
 
