@@ -58,4 +58,7 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   2D Flipper als Bild + Rampen als Bildband, 3D Rampen als Band statt unterer Laufdrähte. Aufbereitung in `tools/bilder_einbau.py`,
   Dateien `flipper.png`, `rampe.png` (auch in `sw.js`). Details in CLAUDE.md „Stand 0.51“. **Code-Sitzung:** bitte vor der nächsten
   Änderung `origin/main` holen (index.html, drei.js, sw.js, CLAUDE.md wurden geändert).
+- 30.09. 14:55 **Dritte Sitzung:** ERLEDIGT (Version 0.52) – Rampen ohne Pfeile, in 3D Ziele als Körper (rote Bank, orange Stehziele,
+  weiße Rundziele, Schädel-Klappziel, Mulden-Ring). Geändert: index.html, drei.js, rampe.png, tools/bilder_einbau.py, CLAUDE.md.
+  **Code-Sitzung:** bitte vor der nächsten Änderung `origin/main` holen.
 

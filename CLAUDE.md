@@ -251,6 +251,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   vorgerechnete Ebene (`rampenEbene()`, neu nur bei geänderter Auflösung), Pfeile in Fahrtrichtung, Aufblitzen darüber.
   Ohne Bild Rückfall auf die gezeichnete Form. 3D: `rampenBand()` ersetzt die zwei unteren Laufdrähte durch ein Band mit
   `rampe.png` (v = Bogenlänge / 29,75), Seitendrähte bleiben. `schleuder_v1` nicht eingebaut (3D hat Körper, 2D hat schon ein Bild).
+- Stand 0.52 (Nutzer nutzt die App als `…/flipper/?3d`; Wunsch „alles plastisch, Rampen ohne Pfeile“): **`rampe.png` ohne Pfeile**
+  (Median je Spalte über die pfeilfreien Zeilen, 288×64, entlang der Bahn gleichförmig, Kunststoff ≈ 30 %; 2D-Scheiben jetzt 4 Einheiten
+  lang, 3D-Band emissiv 0,15). **3D-Ziele als Körper** (`ziele3d` in `drei.js`, in `draw()` bei `DREI` nicht mehr flach gemalt):
+  rote Dreierbank als stehende Scheiben mit Niete und Halterung (leuchten bei `an`/`blitz`), orange Stehziele als Platten (leuchten bei
+  `an`), fünf weiße Rundziele als Scheiben auf Halter (beleuchtetes Ziel glüht gelb), Klappziel vor dem Schädel als Chromplatte mit
+  Lampe (grün bei LOAD GUN, versinkt weich bei `sdrop.unten`), Chromring um die Mulde. `__ZT` liefert dafür `rund`, `sdrop`, `MULDE`, `gunLit`.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

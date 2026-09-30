@@ -6,9 +6,8 @@ flipper.png: aus flipper_v1.png (Drehpunkt 262/384, Spitze 1114/384). Das Gummi 
   der Arm wäre 1:1 rund 2 Einheiten dicker als seine Kollisionsform. Deshalb Spalte für Spalte verzerrt, sodass der
   Außenrand genau auf der Hülle der Kreise r 9 (Drehpunkt) und r 5,5 (Spitze, FL 66) liegt. 10 px je Tischeinheit,
   Drehpunkt bei (9 + RAND) · 10 px, Mitte der Höhe.
-rampe.png: aus rampe_v1.png eine nahtlos wiederholbare Kachel über zwei Pfeil-Abstände (Zeilen 438–921, Pfeile im
-  Abstand ≈ 241,5 px), Übergang über 40 Zeilen überblendet. Durchsichtigkeit nach Helligkeit: Schienen und Pfeile fast
-  deckend, Kunststoff ≈ 35 %. Breite = Rampe außen 18 Einheiten (288 px)."""
+rampe.png: aus rampe_v1.png ohne Pfeile – Median je Spalte, 288 × 64 px (16 px je Einheit, 18 Einheiten breit).
+  Durchsichtigkeit nach Helligkeit: Schienen fast deckend, Kunststoff ≈ 30 %."""
 from PIL import Image
 import numpy as np
 
@@ -55,18 +54,20 @@ Image.fromarray(out.clip(0, 255).astype(np.uint8), 'RGBA').save('flipper.png', o
 print('flipper.png', w, h)
 
 # ---------- Rampenstreifen ----------
+# Ohne Pfeile (Nutzerwunsch 0.52): je Spalte der Median über alle Zeilen ohne Pfeil-Bereiche → glatter Klarsicht-
+# Kunststoff mit Chromschienen, entlang der Bahn gleichförmig (keine Naht, keine sich wiederholenden Flecken).
 r = np.asarray(Image.open('bilder/eingang/rampe_v1.png').convert('RGB')).astype(float)
-X0, X1, A, B, F = 238, 530, 438, 921, 40
-kachel = r[A:B, X0:X1].copy()
-for i in range(F):
-    wgt = i / F
-    kachel[i] = (1 - wgt) * r[B + i, X0:X1] + wgt * r[A + i, X0:X1]
-hell = kachel.max(axis=2)
-alpha = np.clip(0.35 + (hell - 110) / 140 * 0.65, 0.35, 1.0)
+X0, X1 = 238, 530
+PFEILE = [(40, 120), (280, 360), (520, 600), (760, 840), (1000, 1080), (1240, 1320)]   # Zeilen mit Pfeil samt Schein
+frei = np.ones(r.shape[0], bool)
+for a0, a1 in PFEILE: frei[a0:a1] = False
+streifen = np.median(r[frei, X0:X1], axis=0)                     # eine Zeile, (Breite, 3)
+hell = streifen.max(axis=1)
+alpha = np.clip(0.3 + (hell - 110) / 140 * 0.7, 0.3, 1.0)
 spalten = np.arange(X1 - X0) + X0
-alpha[:, (spalten < 241) | (spalten > 526)] = 0          # außerhalb der Schienen
-rgba = np.dstack([kachel, alpha * 255]).clip(0, 255).astype(np.uint8)
-bild = Image.fromarray(rgba, 'RGBA')
-bild = bild.resize((288, round(288 * (B - A) / (X1 - X0))), Image.LANCZOS)    # 16 px je Einheit bei 18 Einheiten Breite
+alpha[(spalten < 241) | (spalten > 526)] = 0                     # außerhalb der Schienen
+zeile = np.concatenate([streifen, alpha[:, None] * 255], axis=1)
+rgba = np.repeat(zeile[None], 64, axis=0).clip(0, 255).astype(np.uint8)
+bild = Image.fromarray(rgba, 'RGBA').resize((288, 64), Image.LANCZOS)   # 16 px je Einheit, Kachel 4 Einheiten hoch
 bild.save('rampe.png', optimize=True)
 print('rampe.png', bild.size)

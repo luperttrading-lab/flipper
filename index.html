@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.51';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.52';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1380,7 +1380,7 @@ const dmd = (() => {
     const c = document.createElement('canvas'); c.width = Math.round(W * px); c.height = Math.round(H * px);
     const g = c.getContext('2d'); g.scale(px, px);
     const TB = rampeBild.naturalWidth, TH = rampeBild.naturalHeight, PXE = TB / 18, KH = TH / PXE;   // Kachelhöhe in Einheiten
-    const N = 12, ds = KH / N;
+    const N = 1, ds = KH / N;
     for (const r of ramps) {
       g.save(); g.translate(5, 7);                                                   // Schatten
       g.beginPath(); g.moveTo(...r.pfad[0]); g.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]);
@@ -1567,6 +1567,7 @@ const dmd = (() => {
     for (const [k, r] of rund.entries()) {
       r.blitz = Math.max(0, r.blitz - 0.05);
       const lit = kanone.ziel === k;
+      if (DREI) continue;                                    // 3D: Rundziele sind Körper in drei.js
       ctx.fillStyle = '#c9d4df'; ctx.fillRect(r.x - 3, r.y - r.h / 2, 3, r.h);             // Halter
       ctx.beginPath(); ctx.arc(r.x + 3, r.y, 6, 0, 2 * PI);
       ctx.fillStyle = r.blitz > 0 ? '#ffffff' : lit ? '#fffbe8' : '#d8dde3'; ctx.fill();
@@ -1615,9 +1616,10 @@ const dmd = (() => {
 
     // Klappziele + Stehziele
     // Rote Stehziele: runde Scheibe mit Niete auf schwarzer Halterung; getroffen = hell leuchtend
-    ctx.fillStyle = '#15171c'; ctx.fillRect(drops[0].x - 12, drops[0].y + 2, drops[2].x - drops[0].x + 24, 5);   // Halterung
+    if (!DREI) { ctx.fillStyle = '#15171c'; ctx.fillRect(drops[0].x - 12, drops[0].y + 2, drops[2].x - drops[0].x + 24, 5); }  // Halterung
     for (const d of drops) {
       d.blitz = Math.max(0, d.blitz - dt * 6);
+      if (DREI) continue;                                    // 3D: Stehziele, Klappziel und Mulden-Ring sind Körper in drei.js
       const hell = d.an ? 1 : d.blitz;
       const dg = ctx.createRadialGradient(d.x - 3, d.y - 4, 1, d.x, d.y, 10);
       dg.addColorStop(0, hell ? '#ffd0d4' : '#ff8a94'); dg.addColorStop(0.55, hell ? '#ff4050' : '#c8202e'); dg.addColorStop(1, '#6e0a14');
@@ -1627,16 +1629,17 @@ const dmd = (() => {
       if (hell) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * hell;
         ctx.drawImage(glow('#ff3040'), d.x - 16, d.y - 17, 32, 32); ctx.restore(); }
     }
-    for (const s of standups) {
+    if (!DREI) for (const s of standups) {
       ctx.fillStyle = s.an ? '#ffe7b0' : '#e9eef4';
       ctx.fillRect(s.x - 3, s.y - s.h / 2, 6, s.h);
     }
     zeichneRundziele();
     // Mulde oben rechts (Escape Route)
-    ctx.beginPath(); ctx.arc(MULDE.x, MULDE.y, 12, 0, 2 * PI); ctx.fillStyle = '#c9d4df'; ctx.fill();
+    if (!DREI) { ctx.beginPath(); ctx.arc(MULDE.x, MULDE.y, 12, 0, 2 * PI); ctx.fillStyle = '#c9d4df'; ctx.fill(); }
     ctx.beginPath(); ctx.arc(MULDE.x, MULDE.y, 9, 0, 2 * PI); ctx.fillStyle = '#030406'; ctx.fill();
     // Klappziel vor dem Schädel: Chromplatte über die ganze Gasse
-    if (sdrop.unten) { ctx.fillStyle = '#2a1a20'; ctx.fillRect(sdrop.x0 + 4, sdrop.y - 1.5, sdrop.x1 - sdrop.x0 - 8, 3); }
+    if (DREI) { /* Klappziel: Körper in drei.js */ }
+    else if (sdrop.unten) { ctx.fillStyle = '#2a1a20'; ctx.fillRect(sdrop.x0 + 4, sdrop.y - 1.5, sdrop.x1 - sdrop.x0 - 8, 3); }
     else {
       const pg = ctx.createLinearGradient(0, sdrop.y - 5, 0, sdrop.y + 5);
       pg.addColorStop(0, '#f4f8fc'); pg.addColorStop(0.5, '#7d8a98'); pg.addColorStop(1, '#c9d4df');
@@ -1976,7 +1979,7 @@ const dmd = (() => {
   // 3D-Ansicht (Test): Daten für drei.js
   if (DREI) {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
-      get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF,
+      get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF, rund, sdrop, MULDE, get gunLit() { return gunLit; },
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
     const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION; document.body.appendChild(s);
   }

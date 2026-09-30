@@ -209,8 +209,8 @@ const RAMPE_SPITZE = [72, 46];
 const rampeTex = new THREE.TextureLoader().load('rampe.png', t => { t.needsUpdate = true; });
 rampeTex.colorSpace = THREE.SRGBColorSpace; rampeTex.wrapT = THREE.RepeatWrapping; rampeTex.anisotropy = 8;
 const rampeMat = new THREE.MeshStandardMaterial({ map: rampeTex, transparent: true, side: THREE.DoubleSide, depthWrite: false,
-  roughness: 0.2, metalness: 0.1, emissive: 0xffffff, emissiveMap: rampeTex, emissiveIntensity: 0.35 });
-const KACHEL = 476 / 16;                     // Höhe der Kachel in Tischeinheiten (288 × 476 px, 16 px je Einheit)
+  roughness: 0.2, metalness: 0.1, emissive: 0xffffff, emissiveMap: rampeTex, emissiveIntensity: 0.15 });
+const KACHEL = 64 / 16;                      // Höhe der Kachel in Tischeinheiten (288 × 64 px, 16 px je Einheit)
 function rampenBand(pkt) {
   const pos = [], uv = [], idx = [];
   let s = 0;
@@ -326,6 +326,59 @@ const kanone3d = (() => {
   return { dreh, lampeMat, kernMat, blauGlut };
 })();
 
+// ---------- Ziele als Körper (vorher flach auf der Bodentextur) ----------
+const ziele3d = (() => {
+  const schwarz = new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.6, metalness: 0.3 });
+  const teil = (geo, mat, x, y, h, rx = 0, rz = 0) => {
+    const m = new THREE.Mesh(geo, mat); m.position.copy(P(x, y, h)); m.rotation.set(rx, 0, rz);
+    m.castShadow = true; m.receiveShadow = true; scene.add(m); return m;
+  };
+  // Rote Dreierbank: runde Scheiben mit Niete, stehend, Blick zum Spieler; dahinter eine schwarze Halterung
+  const d0 = Z.drops[0], d2 = Z.drops[Z.drops.length - 1];
+  teil(new THREE.BoxGeometry(d2.x - d0.x + 24, 6, 4), schwarz, (d0.x + d2.x) / 2, d0.y - 3.5, 3);
+  const niete = new THREE.SphereGeometry(1.8, 12, 8);
+  const rot = Z.drops.map(d => {
+    const mat = new THREE.MeshPhysicalMaterial({ color: 0xc8202e, roughness: 0.3, clearcoat: 1, emissive: 0xff3040, emissiveIntensity: 0.1 });
+    teil(new THREE.BoxGeometry(3, 8, 2), schwarz, d.x, d.y - 2, 4);                               // Stiel
+    teil(new THREE.CylinderGeometry(9, 9, 2.6, 32), mat, d.x, d.y, 11, Math.PI / 2);                 // Scheibe
+    teil(niete, chrom, d.x, d.y + 1.4, 11);
+    return { d, mat };
+  });
+  // Orange Stehziele rechts: flache Platten, Blick nach links ins Feld
+  const orange = Z.standups.map(st => {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf0e6d4, roughness: 0.35, emissive: 0xffa030, emissiveIntensity: 0 });
+    teil(new THREE.BoxGeometry(3, 16, st.h), mat, st.x, st.y, 8);
+    teil(new THREE.BoxGeometry(3, 10, 4), schwarz, st.x + 3, st.y, 5);
+    return { st, mat };
+  });
+  // Fünf weiße Rundziele links: Scheibe auf Halter, Blick nach rechts
+  const weissZ = Z.rund.map(r => {
+    const mat = new THREE.MeshPhysicalMaterial({ color: 0xdfe4ea, roughness: 0.3, clearcoat: 1, emissive: 0xffd23a, emissiveIntensity: 0 });
+    teil(new THREE.BoxGeometry(3, 10, r.h), stahl, r.x - 1.5, r.y, 5);
+    teil(new THREE.CylinderGeometry(6, 6, 2.2, 24), mat, r.x + 3, r.y, 9, 0, Math.PI / 2);
+    return { r, mat };
+  });
+  // Klappziel vor dem Schädel: Chromplatte über die Gasse, grüne Lampe bei LOAD GUN; versinkt, wenn umgeworfen
+  const sd = Z.sdrop, klapp = new THREE.Group();
+  const platte = new THREE.Mesh(new THREE.BoxGeometry(sd.x1 - sd.x0 - 4, 14, 3), chrom); platte.position.y = 7;
+  const lampeMat = new THREE.MeshStandardMaterial({ color: 0x5a1a20, emissive: 0x2fe07a, emissiveIntensity: 0 });
+  const lampe = new THREE.Mesh(new THREE.BoxGeometry(16, 4, 1), lampeMat); lampe.position.set(0, 8, 1.8);
+  platte.castShadow = true; klapp.add(platte, lampe); klapp.position.copy(P((sd.x0 + sd.x1) / 2, sd.y)); scene.add(klapp);
+  // Mulde oben rechts: Chromring um das Loch
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(10.5, 1.8, 10, 32), chrom);
+  ring.rotation.x = Math.PI / 2; ring.position.copy(P(Z.MULDE.x, Z.MULDE.y, 1)); ring.castShadow = true; scene.add(ring);
+  let tiefe = 0;
+  return function aktualisiere() {
+    for (const { d, mat } of rot) { const h = d.an ? 1 : d.blitz; mat.emissiveIntensity = 0.1 + 1.8 * h; }
+    for (const { st, mat } of orange) mat.emissiveIntensity = st.an ? 0.9 : 0;
+    Z.rund.forEach((r, k) => { weissZ[k].mat.emissiveIntensity = r.blitz > 0 ? 1.6 : Z.kanone.ziel === k ? 0.8 : 0; });
+    tiefe += ((sd.unten ? -15 : 0) - tiefe) * 0.3;                // weich versenken / aufstellen
+    klapp.position.y = tiefe; klapp.visible = tiefe > -14.5;
+    lampeMat.emissiveIntensity = Z.gunLit ? 1.5 : 0.2;
+    lampeMat.emissive.setHex(Z.gunLit ? 0x2fe07a : 0x8a1e2b);
+  };
+})();
+
 // ---------- Kugeln ----------
 const kugelGeo = new THREE.SphereGeometry(R, 32, 20);
 const kugeln = [];
@@ -430,6 +483,7 @@ function bild(jetzt) {
     k.kappeMat.emissiveIntensity = 0.25 + 2.2 * f;
   }
   { const fl = Math.max(...Z.slings.map(x => x.flash)); schleuderMat.emissiveIntensity = 0.15 + 2.4 * fl; }
+  ziele3d();
   kanone3d.dreh.rotation.y = -Z.kanone.a;
   kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;
   kanone3d.kernMat.emissiveIntensity = Z.kanone.kugel ? 1.2 + 0.8 * Math.sin(Z.zeit * 9) : 0;
