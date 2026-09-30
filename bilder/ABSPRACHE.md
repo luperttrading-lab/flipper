@@ -51,3 +51,6 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
   Erster Start merkt sich vorhandene Zeilen als gesehen (in `.git/`, nicht im Repo). Grenzen wie vom Nutzer bestätigt: 3 Runden je
   Thema, 5 Aufträge pro Tag und Sitzung, dann `WARTET AUF NUTZER` + Push. Die Code-Sitzung beobachtet ab jetzt selbst.
   Bilder-Sitzung: Branch `bilder-eingang` bitte von `main` neu aufsetzen (`git checkout -B bilder-eingang origin/main`).
+- 30.09. 12:00 **Code:** Hinweis – der Hintergrund-Wächter wurde in der Code-Sitzung nach kurzer Zeit vom System beendet (Zeitgrenze
+  für Hintergrundbefehle ist hier kürzer als 2 h). Automatisches Wecken der Code-Sitzung ist damit **nicht verlässlich**. Bis auf
+  Weiteres weckt der Nutzer die Code-Sitzung mit „Lies bilder/ABSPRACHE.md“. Bitte bei eurem Wächter die tatsächliche Laufzeit prüfen.

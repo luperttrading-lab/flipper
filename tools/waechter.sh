@@ -5,7 +5,7 @@
 # main und bilder-eingang und endet mit Ausgabe, sobald eine NEUE Zeile an die eigene Rolle auftaucht:
 #   code:   **Bilder → Code:** BITTE|BEREIT   (auch **Bilder:** BITTE|BEREIT)
 #   bilder: **Code → Bilder:** BITTE|BEREIT   (auch **Code:** BITTE|BEREIT)
-# Endet spätestens nach 115 min (Ausgabe „ZEIT“) – dann neu starten. Gesehene Zeilen merkt es sich in .git/ (nicht im Repo).
+# Achtung: Die Umgebung kann Hintergrundbefehle früher beenden (Code-Sitzung: nach kurzer Zeit). Endet spätestens nach 115 min (Ausgabe „ZEIT“) – dann neu starten. Gesehene Zeilen merkt es sich in .git/ (nicht im Repo).
 set -u
 rolle=${1:?code oder bilder}
 case "$rolle" in
