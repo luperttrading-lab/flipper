@@ -416,16 +416,46 @@ function kugelMesh(i) {
   return kugeln[i];
 }
 
+// ---------- Rückkasten mit Anzeige (0.68): steht hinten auf dem Tisch, leicht nach hinten geneigt ----------
+const RK = { b: W + 44, h: 150, t: 26, neig: 12 * Math.PI / 180 };   // Breite, Höhe, Tiefe, Neigung nach hinten
+const dmdTex = new THREE.CanvasTexture(document.getElementById('dmd'));
+dmdTex.colorSpace = THREE.SRGBColorSpace; dmdTex.anisotropy = 4;
+let dmdStand = -1;
+{
+  const g = new THREE.Group();
+  const kasten = new THREE.Mesh(new THREE.BoxGeometry(RK.b, RK.h, RK.t), holz);
+  kasten.position.set(0, RK.h / 2, -RK.t / 2); kasten.castShadow = true; g.add(kasten);
+  const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
+  for (const [w, h, x, y] of [[RK.b + 4, 4, 0, RK.h], [RK.b + 4, 4, 0, 0], [4, RK.h, -RK.b / 2, RK.h / 2], [4, RK.h, RK.b / 2, RK.h / 2]]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 4), randMat); m.position.set(x, y, 1); g.add(m);
+  }
+  // Bildschirm im Seitenverhältnis der Punktmatrix (4:1), schwarzer Einfassrahmen, leuchtet selbst (kein Licht nötig)
+  const sb = RK.b - 36, sh = sb / 4;
+  const rahmen = new THREE.Mesh(new THREE.PlaneGeometry(sb + 10, sh + 10), new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.6 }));
+  rahmen.position.set(0, RK.h * 0.55, 0.6); g.add(rahmen);
+  const schirm = new THREE.Mesh(new THREE.PlaneGeometry(sb, sh), new THREE.MeshBasicMaterial({ map: dmdTex, toneMapped: false }));
+  schirm.position.set(0, RK.h * 0.55, 1); g.add(schirm);
+  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, RK.h * 0.55, 30); g.add(glimm);
+  g.position.copy(P(X0, -22, 0)); g.rotation.x = -RK.neig;
+  scene.add(g);
+}
+
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
 const NEIG = 50 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben; 0.54: 50° statt 60°, mehr von vorn)
 let bw = 0, bh = 0;
 function einpassen() {
-  const w = stage.clientWidth, h = stage.clientHeight;
+  // 0.68: Ränder der Bühne (Statusleiste oben, Home-Leiste unten) freilassen
+  const cs = getComputedStyle(stage), pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+  Object.assign(gl.style, { inset: '', left: '0', right: '0', top: pt + 'px', bottom: pb + 'px', height: 'auto' });
+  const w = stage.clientWidth, h = stage.clientHeight - pt - pb;
   bw = w; bh = h;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   const ecken = [];
   for (const x of [4, W - 4]) for (const y of [0, H + 6]) for (const hh of [0, 14]) ecken.push(P(x, y, hh));   // Spielfeld; Gehäuse darf angeschnitten sein
+  // Oberkante des Rückkastens (geneigt) gehört mit ins Bild
+  const oz = -22 - Math.sin(RK.neig) * RK.h, oy = Math.cos(RK.neig) * RK.h;
+  for (const x of [4, W - 4]) ecken.push(P(x, oz, oy));
   const dir = new THREE.Vector3(0, Math.sin(NEIG), Math.cos(NEIG));
   let ziel = new THREE.Vector3(0, 0, 40), dist = 1200;
   const passt = d => {
@@ -439,17 +469,10 @@ function einpassen() {
     for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2, b = passt(m); if (b.x0 < -1 || b.x1 > 1 || b.y0 < -1.001 || b.y1 > 0.99) lo = m; else hi = m; }
     dist = hi;
     const b = passt(dist);
-    // Tisch unten bündig (oben bleibt ggf. Luft unter der Anzeige)
-    ziel.z -= (b.y0 + 1) * 300;
+    // 0.68: Tisch samt Rückkasten senkrecht mittig (vorher unten bündig, oben blieb Luft)
+    ziel.z -= ((b.y0 + b.y1) / 2) * 300;
   }
   passt(dist);
-  // Luft über dem Tisch (Breite begrenzt): Anzeige direkt über die Rückwand rücken, die Restluft bleibt ganz oben
-  const kopf = document.getElementById('kopf');
-  if (kopf) {
-    const oben = (1 - P(X0, -22, 46).project(camera).y) / 2 * h;          // Oberkante der Rückwand in Bühnen-Pixeln
-    const luecke = Math.max(0, oben - 4);
-    Object.assign(kopf.style, { position: 'relative', zIndex: 3, transform: luecke ? `translateY(${luecke}px)` : '' });
-  }
 }
 window.addEventListener('resize', einpassen);
 einpassen();
@@ -510,6 +533,7 @@ let letzteZeichnung = -1;
 function bild(jetzt) {
   messeFps(jetzt || performance.now());
   if (Z.gezeichnet !== letzteZeichnung) { letzteZeichnung = Z.gezeichnet; tex.needsUpdate = true; }
+  if (window.__dmdStand !== dmdStand) { dmdStand = window.__dmdStand; dmdTex.needsUpdate = true; }
   const gi = Math.max(0.12, Math.min(1.4, Z.grundLicht()));
   hemi.intensity = basis.hemi * gi; sonne.intensity = basis.sonne * gi;
   akzentL.intensity = basis.l * gi; akzentR.intensity = basis.r * gi;

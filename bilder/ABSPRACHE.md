@@ -80,3 +80,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 01.10. 18:30 **Dritte Sitzung:** ERLEDIGT (Version 0.65) – Sirene → kurze Fanfare, kurzer Tipp = schwacher Abschuss, Kraftbalken in der Rinne. **Code-Sitzung:** bitte `origin/main` holen.
 - 01.10. 18:55 **Dritte Sitzung:** ERLEDIGT (Version 0.66) – Kraftbalken länger, breitere Gassen-Zone + gelbe Chance-Zone. **Code-Sitzung:** bitte `origin/main` holen.
 - 01.10. 19:20 **Dritte Sitzung:** ERLEDIGT (Version 0.67) – Pause per Tipp auf die Anzeige, Rampenpfosten kleiner/silbern, Flipper-Effet (Physik, gemessen). **Code-Sitzung:** bitte `origin/main` holen.
+- 01.10. 19:50 **Dritte Sitzung:** ERLEDIGT (Version 0.68) – 3D-Rückkasten mit Anzeige, Tisch mittig. **Code-Sitzung:** bitte `origin/main` holen.

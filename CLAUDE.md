@@ -323,6 +323,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Raster mit fallenden Kugeln (u 0,1–0,95 × vy 250/450/650 × Flip-Verzögerung 0–0,16 s): **Seitenziele waren auch vorher direkt
   erreichbar** (rechter Flipper → Rundziele 13 %, linker → orange Stehziele 15 %). Rechter Flipper erste Hälfte → linke Rampe 15 % → 10 %,
   zweite Hälfte → Rundziele 13 % → 20 % (je 135 Schüsse, grob). Autoplay 3 × 30 min: Spielenden unverändert (Rauschen), Mulde Ø 50 statt 28.
+- Stand 0.68 (Nutzer: Tisch zu weit unten, oben Platz; Anzeige perspektivisch/plastisch): In 3D ist die Anzeige ein **Rückkasten** hinten
+  auf dem Tisch (`drei.js`: Kasten W+44 × 150 × 26, 12° nach hinten geneigt, Chromrand, Bildschirm 4:1 mit dem `#dmd`-Canvas als
+  `CanvasTexture`, neu geladen nur wenn `window.__dmdStand` sich ändert; oranges Glimmlicht). Die HTML-Anzeige bleibt als unsichtbare
+  Zeichenfläche (`body.drei #kopf` absolut, opacity 0). Kamera-Einpassung schließt die Oberkante des Rückkastens ein und setzt alles
+  **senkrecht mittig** (vorher unten bündig). Canvas lässt Status- und Home-Leiste frei (Padding der Bühne). **Pause** in 3D: Tipp auf
+  alles hinter der Rückwand (`tischPunkt().y < −30`). Tisch bleibt durch die **Breite** begrenzt – mehr Höhe nur mit steilerem Winkel
+  (gerendert 50/55/60° zur Auswahl, Stand 50°).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

@@ -48,6 +48,9 @@
     width: min(100%, 320px); display: block; border-radius: 6px;
     background: #090402; box-shadow: 0 0 0 2px #1c1510, 0 0 18px rgba(255, 70, 30, .14);
   }
+  /* 0.68: In 3D sitzt die Anzeige als Bildschirm im Rückkasten (drei.js); die HTML-Anzeige zeichnet nur noch die Textur */
+  body.drei #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
+  body.drei #stage { padding-top: calc(env(safe-area-inset-top, 0px) + 4px); }
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
@@ -141,7 +144,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.67';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.68';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -445,6 +448,7 @@ const dmd = (() => {
         if (buf[y * DW + x] === v) cx.rect(x * p + o, y * p + o, d, d);
       cx.fill();
     }
+    window.__dmdStand = (window.__dmdStand || 0) + 1;     // 3D-Rückkasten lädt die Textur nur bei Änderung neu
   }
   return { leer, text, mitte, rechts, breite, rahmen, zeichne, groesse, punkt };
 })();
@@ -1918,7 +1922,10 @@ const dmd = (() => {
   window.addEventListener('pointerdown', e => {
     if (e.target.closest && e.target.closest('#start, #update')) return;
     e.preventDefault();
-    if (e.target.closest && e.target.closest('#kopf')) {          // 0.67: Tipp auf die Anzeige = Pause
+    // 0.67: Tipp auf die Anzeige = Pause; 0.68 in 3D: Tipp auf den Rückkasten (alles hinter der Rückwand des Tisches)
+    const aufAnzeige = (e.target.closest && e.target.closest('#kopf')) ||
+      (DREI && window.__ZT3D && window.__ZT3D.tischPunkt(e.clientX, e.clientY).y < -30);
+    if (aufAnzeige) {
       alleLos(); document.getElementById('start-text').textContent = 'Pause – antippen';
       document.getElementById('start').classList.remove('splash'); document.getElementById('start').hidden = false; return;
     }
@@ -2013,6 +2020,7 @@ const dmd = (() => {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
       get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF, rund, sdrop, MULDE, get gunLit() { return gunLit; },
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
+    document.body.classList.add('drei');
     const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION;
     // Lädt die 3D-Ansicht nicht (Modul fehlt, WebGL-Fehler), auf die flache Ansicht ausweichen statt schwarzem Bild
     const flach = () => { if (!window.__ZT3D) location.replace(location.pathname + '?2d'); };
