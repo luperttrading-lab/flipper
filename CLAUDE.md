@@ -310,6 +310,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `TIPP_T` nur noch für die Anzeige. **Kraftbalken in der Abschussrinne** (y 572–734, statt „ABZUG“, solange gehalten): füllt sich von
   unten, rot < 0,2 schwach, grün 0,2–0,4 Gassen, weiß ab 0,4. Texte: „Kugel halten = Abschuss“, Anzeige „KUGEL HALTEN“ / „LANG = STARK“.
   Sim-Test „Tipp schießt voll“ → „kurzer Tipp schießt schwach“. Autoplay (`api.abzug()`) schießt weiter voll.
+- Stand 0.66 (Nutzer: Balken länger nach oben, Finger verdeckt unten; mehr Chance auf die Gassen): Kraftbalken y 320–700 statt 572–734.
+  **Zonen `FZ = [0.15, 0.45, 0.6]`:** rot < 0,15 schwach (960–1310), **grün 0,15–0,45 Gassen** (1326–1350, vorher 0,2–0,4), **gelb 0,45–0,6
+  „GASSE ODER BOGEN“**: mit Wahrscheinlichkeit `gassenChance` (60 % → 0 % linear) wird mit Gassen-Stärke geschossen, sonst 1390–1450 über den
+  Bogen; weiß ab 0,6 (voll ab 0,9). `federV` bleibt monoton (Zufall nur in `federLoslassen`). Gemessen je 30 Schüsse, Anteil durch die Gassen:
+  c 0,2 93 %, 0,3/0,4 63 %, 0,47 50 %, 0,52 33 %, 0,57 13 %, ab 0,65 0 %. Original (Recherche): T2 hat einen Auto-Plunger mit festem Schuss
+  über den Bogen auf die weißen Ziele links (Skill Shot = Timing) – die dosierbare Feder mit Gassen ist unsere eigene Regel.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

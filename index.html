@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.65';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.66';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -1104,12 +1104,17 @@ const dmd = (() => {
   //   c ab 0,4  läuft um die Kurve (Umlauf links); ab c 0,85 voll
   const FEDER_T = 1.6, TIPP_T = 0.22;
   const feder = { an: false, t: 0, c: 0, id: null };
+  // 0.66: Gassen-Zone breiter (c 0,15–0,45 statt 0,2–0,4), dazu eine gelbe Übergangszone 0,45–0,6 mit CHANCE auf die Gassen
+  // (Wahrscheinlichkeit sinkt von 60 % auf 0), darüber sicher über den Bogen; voll ab c 0,9
+  const FZ = [0.15, 0.45, 0.6];
   function federV(c) {
     const z = (a, b, u) => a + (b - a) * u;
-    if (c < 0.2) return z(960, 1310, c / 0.2);
-    if (c < 0.4) return z(1326, 1350, (c - 0.2) / 0.2);       // gemessen: Gassen laufen bei 1315–1358, mit ±6 Streuung innen bleiben
-    return z(1385, 1960, Math.min(1, (c - 0.4) / 0.45));
+    if (c < FZ[0]) return z(960, 1310, c / FZ[0]);
+    if (c < FZ[1]) return z(1326, 1350, (c - FZ[0]) / (FZ[1] - FZ[0]));   // gemessen: Gassen laufen bei 1315–1358
+    if (c < FZ[2]) return z(1390, 1450, (c - FZ[1]) / (FZ[2] - FZ[1]));
+    return z(1450, 1960, Math.min(1, (c - FZ[2]) / 0.3));
   }
+  const gassenChance = c => c >= FZ[1] && c < FZ[2] ? 0.6 * (1 - (c - FZ[1]) / (FZ[2] - FZ[1])) : 0;
   function federSpannen(id) {
     if (feder.an || !abschussBereit()) return false;
     feder.an = true; feder.t = 0; feder.c = 0; feder.id = id; return true;
@@ -1117,9 +1122,10 @@ const dmd = (() => {
   function federLoslassen() {
     if (!feder.an) return;
     feder.an = false;
-    abschuss(federV(feder.c) + (Math.random() - 0.5) * 12);
+    const c = Math.random() < gassenChance(feder.c) ? FZ[0] + Math.random() * (FZ[1] - FZ[0]) : feder.c;   // Übergang: Glück → Gassen-Stärke
+    abschuss(federV(c) + (Math.random() - 0.5) * 12);
   }
-  const federZone = c => c < 0.2 ? 0 : c < 0.4 ? 1 : 2;
+  const federZone = c => c < FZ[0] ? 0 : c < FZ[1] ? 1 : c < FZ[2] ? 2 : 3;
   // ---- Auswahlmenü: Flipper-Knöpfe wählen, Abzug bestätigt, nach 8 s automatisch ----
   let wahl = null;
   const WAHL = [
@@ -1516,14 +1522,14 @@ const dmd = (() => {
     const puls = bereit ? 0.55 + 0.45 * Math.sin(zeit * 6) : 0.25, an = zeit < abzugGedrueckt;
     if (feder.an) {
       // 0.65: Kraftbalken in der Rinne über der Kugel – füllt sich von unten, rot = schwach, grün = Gassen, weiß = volle Kraft
-      const y0 = 734, y1 = 572, h = y0 - y1, bx = x - 6, bw = 12, c = feder.c;
+      const y0 = 700, y1 = 320, h = y0 - y1, bx = x - 6, bw = 12, c = feder.c;      // 0.66: länger und höher (Finger verdeckt unten)
       ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, y1, bw, h);
-      for (const [a, b, f] of [[0, 0.2, '255,70,60'], [0.2, 0.4, '70,255,130'], [0.4, 1, '235,240,255']]) {
+      for (const [a, b, f] of [[0, FZ[0], '255,70,60'], [FZ[0], FZ[1], '70,255,130'], [FZ[1], FZ[2], '255,220,60'], [FZ[2], 1, '235,240,255']]) {
         ctx.fillStyle = `rgba(${f},.18)`; ctx.fillRect(bx, y0 - b * h, bw, (b - a) * h);
         if (c > a) { ctx.fillStyle = `rgba(${f},.95)`; ctx.fillRect(bx, y0 - Math.min(c, b) * h, bw, (Math.min(c, b) - a) * h); }
       }
       ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.strokeRect(bx, y1, bw, h);
-      for (const u of [0.2, 0.4]) { ctx.beginPath(); ctx.moveTo(bx - 3, y0 - u * h); ctx.lineTo(bx + bw + 3, y0 - u * h); ctx.stroke(); }
+      for (const u of FZ) { ctx.beginPath(); ctx.moveTo(bx - 3, y0 - u * h); ctx.lineTo(bx + bw + 3, y0 - u * h); ctx.stroke(); }
     } else {
       ctx.save();
       ctx.translate(x, 660); ctx.rotate(-PI / 2);
@@ -1535,7 +1541,7 @@ const dmd = (() => {
     if (abschussBereit()) {
       const gespannt = feder.an && feder.t >= TIPP_T, z = federZone(feder.c);
       ctx.beginPath(); ctx.arc(SHOOT_X, SHOOT_Y, R + 3 + 2 * puls + (gespannt ? 9 * feder.c : 0), 0, 2 * PI);
-      ctx.strokeStyle = gespannt ? ['rgba(255,70,60,.95)', 'rgba(70,255,130,.95)', 'rgba(230,240,255,.95)'][z] : `rgba(255, 70, 60, ${puls})`;
+      ctx.strokeStyle = gespannt ? ['rgba(255,70,60,.95)', 'rgba(70,255,130,.95)', 'rgba(255,220,60,.95)', 'rgba(230,240,255,.95)'][z] : `rgba(255, 70, 60, ${puls})`;
       ctx.lineWidth = gespannt ? 3 : 2; ctx.stroke();
     }
     if (kanone.kugel) {                                  // geladene Kanone: hier antippen = Feuer
@@ -1802,13 +1808,13 @@ const dmd = (() => {
     if (feder.an && feder.t >= TIPP_T) {
       // Feder gespannt: Balken mit drei Bereichen, Text nennt, was der Schuss jetzt täte
       const z = federZone(feder.c), x0 = 10, br = 108;
-      dmd.mitte(['ZU SCHWACH', 'GASSEN', 'VOLLE KRAFT'][z], 3, 1, z === 1 ? (blink ? 3 : 2) : 3);
+      dmd.mitte(['ZU SCHWACH', 'GASSEN', 'GASSE ODER BOGEN', 'VOLLE KRAFT'][z], 3, 1, z === 1 ? (blink ? 3 : 2) : 3);
       for (let x = 0; x <= br; x++) {
         const u = x / br, zn = federZone(u), fuell = u <= feder.c;
         dmd.punkt(x0 + x, 15, fuell ? 3 : 1); dmd.punkt(x0 + x, 16, fuell ? 3 : 1); dmd.punkt(x0 + x, 17, fuell ? 3 : 1);
         if (zn === 1) { dmd.punkt(x0 + x, 13, 2); dmd.punkt(x0 + x, 19, 2); }       // Gassen-Zone eingerahmt
       }
-      for (const u of [0.2, 0.4]) for (let y = 11; y <= 21; y++) dmd.punkt(x0 + Math.round(u * br), y, 3);
+      for (const u of FZ) for (let y = 11; y <= 21; y++) dmd.punkt(x0 + Math.round(u * br), y, 3);
       dmd.mitte('LOSLASSEN SCHIESST', 25, 1, 2);
     } else if (zeit - jpShow >= 0.6 && zeit - jpShow < 1.2) {
       // Jackpot-Dunkelphase: nur die Punktzahl, groß
@@ -2005,7 +2011,7 @@ const dmd = (() => {
   if (window.__TEST__) window.__TEST__.api = { step, abzug, imAbzugFeld, tischPunkt, get ball() { return balls[0] || { x: 0, y: 0, vx: 0, vy: 0 }; },
     get balls() { return balls; }, kanone, feuer, rund, K_MITTE, K_AMP, kLage, ladeKanone,
     get rundTreffer() { return rundTreffer; }, get zeit() { return zeit; }, get jpMult() { return jpMult; }, grundLicht, jackpot, restart, starteWahl, get wahl() { return wahl; }, wahlFertig, schaedelLaden: () => { gunLit = true; }, sdrop, get gunLit() { return gunLit; }, get multiball() { return multiball; },
-    get score() { return score; }, abschuss, feder, federV, federSpannen, federLoslassen, federZone, get gassen() { return topLaneZaehler; }, finger, halte, abgleich,
+    get score() { return score; }, abschuss, feder, federV, federSpannen, federLoslassen, federZone, gassenChance, FZ, get gassen() { return topLaneZaehler; }, finger, halte, abgleich,
     get loaded() { return loaded; }, get chase() { return { kette: chaseKette, bis: chaseBis }; }, drops, gassenWechsel, topLanes, abschussBereit, flippers, get flucht() { return { lit: fluchtLit, geholt: fluchtGeholt, holdBonus, lanesLit }; }, MULDE, lampenZustand, draw, anzeige, get gameOver() { return gameOver; } };
 })();
 </script>

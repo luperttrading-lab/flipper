@@ -213,7 +213,7 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
 {
   const api = lade();
   const v = c => api.federV(c);
-  let mono = true; for (let c = 0.01; c <= 1; c += 0.01) if (api.federV(c) < api.federV(c - 0.01) - 1e-9 && Math.abs(c - 0.2) > 0.005 && Math.abs(c - 0.4) > 0.005) mono = false;
+  let mono = true; for (let c = 0.01; c <= 1; c += 0.01) if (api.federV(c) < api.federV(c - 0.01) - 1e-9 && true) mono = false;   // seit 0.66 überall steigend
   pruefe(v(0.1) < 1310 && v(0.3) > 1326 && v(0.3) < 1350 && v(0.9) >= 1900 && mono, `federV: schwach ${v(0.1).toFixed(0)}, Gassen ${v(0.3).toFixed(0)}, voll ${v(0.9).toFixed(0)}, steigt monoton`);
   // Gassen-Zone: Kugel fällt oben durch die Gassen (mit ±6 Streuung, 5 Versuche über die Zone)
   let treffer = 0;
