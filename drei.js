@@ -196,9 +196,26 @@ const schleudern3d = Z.slings.map(sl => {
   }
   // Weißer Gummiring rund um alle drei Pfosten (wie im Schleuder-Bild; 0.55 statt schwarzem Wulst nur an der Schlagseite)
   const RP = 3.6, RG = 2.0, HG = 9;                              // Pfostenradius, Gummidicke, Höhe
+  let bogen = null;
   for (let i = 0; i < 3; i++) {
     const a = pk[i], b = pk[(i + 1) % 3], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
     let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }   // nach außen
+    if (i === 2) {
+      // 0.64: Schlagseite (Pfosten 2 → 0) aus zwei Hälften, die sich beim Schlag in der Mitte nach außen wölben (wie am Original)
+      const haelften = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(RG, RG, 1, 12), gummiWeiss); m.castShadow = true; g.add(m); return m; });
+      const A = [a[0] + nx * RP, a[1] + ny * RP], B = [b[0] + nx * RP, b[1] + ny * RP], oben = new THREE.Vector3(0, 1, 0);
+      bogen = d => {
+        const M = [(A[0] + B[0]) / 2 + nx * d, (A[1] + B[1]) / 2 + ny * d];
+        [[A, M], [M, B]].forEach(([u, v], k) => {
+          const p0 = P(u[0], u[1], HG), p1 = P(v[0], v[1], HG), dir = p1.clone().sub(p0), len = dir.length();
+          haelften[k].position.copy(p0).addScaledVector(dir, 0.5);
+          haelften[k].quaternion.setFromUnitVectors(oben, dir.normalize());
+          haelften[k].scale.set(1, len + RG * 0.6, 1);           // etwas länger, damit die Mitte geschlossen bleibt
+        });
+      };
+      bogen(0);
+      continue;
+    }
     const strang = new THREE.Mesh(new THREE.CylinderGeometry(RG, RG, l, 12), gummiWeiss);
     strang.rotation.z = Math.PI / 2;                             // Achse entlang x
     const holder = new THREE.Group(); holder.add(strang);
@@ -210,7 +227,7 @@ const schleudern3d = Z.slings.map(sl => {
     t.rotation.x = Math.PI / 2; t.position.copy(P(x, y, HG)); t.castShadow = true; g.add(t);
   }
   scene.add(g);
-  return { sl, mat: schleuderMat };
+  return { sl, mat: schleuderMat, bogen };
 });
 
 // ---------- Drahtrampen entlang der bisherigen Tunnelbahnen ----------
@@ -502,6 +519,7 @@ function bild(jetzt) {
     k.kappeMat.emissiveIntensity = 0.25 + 2.2 * f;
   }
   { const fl = Math.max(...Z.slings.map(x => x.flash)); schleuderMat.emissiveIntensity = 0.15 + 2.4 * fl; }
+  for (const s3 of schleudern3d) if (s3.bogen) s3.bogen(3.5 * Math.max(0, Math.min(1, s3.sl.flash)));   // Gummi schnellt beim Schlag nach außen
   ziele3d();
   kanone3d.dreh.rotation.y = -Z.kanone.a;
   kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;

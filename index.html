@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.63';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.64';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -541,15 +541,18 @@ const dmd = (() => {
   seg(336, 578, 336, 640.6);                // rechts
   seg(336, 640.6, 260.6, 681.9);
   // Schleudern (Dreiecke über den Flippern), Schlagseite = kick
+  const SCHLEUDER_DICK = 5.6;
   const slings = [
     { pts: [[70, 572], [70, 628], [104, 648]], seite: 1, flash: 0 },
     { pts: [[306, 572], [306, 628], [272, 648]], seite: -1, flash: 0 },
   ];
   for (const s of slings) {
     const [a, b, c] = s.pts;
-    seg(a[0], a[1], b[0], b[1], { schleuder: true });   // Außenkanten: Gummi und Pfosten zeigt das Schleuder-Bild
-    seg(b[0], b[1], c[0], c[1], { schleuder: true });
-    seg(c[0], c[1], a[0], a[1], { kick: s });
+    // 0.64: Kollision um SCHLEUDER_DICK weiter außen = Außenkante des Gummirings (Pfosten r 3,6 + Gummi 2,0 in drei.js),
+    // vorher prallte die Kugel an der Linie durch die Pfostenmitten ab und tauchte sichtbar ins Gummi ein
+    seg(a[0], a[1], b[0], b[1], { schleuder: true, dick: SCHLEUDER_DICK });   // Außenkanten: Gummi und Pfosten zeigt das Schleuder-Bild
+    seg(b[0], b[1], c[0], c[1], { schleuder: true, dick: SCHLEUDER_DICK });
+    seg(c[0], c[1], a[0], a[1], { kick: s, dick: SCHLEUDER_DICK });
   }
 
   // Pfosten an den Rampeneinläufen
@@ -967,7 +970,7 @@ const dmd = (() => {
     else {
       for (const w of walls) {
         if (w.nurRunter && ball.vy <= 0) continue;
-        const c = collideSeg(w.x1, w.y1, w.x2, w.y2, R, REST_WALL);
+        const c = collideSeg(w.x1, w.y1, w.x2, w.y2, R + (w.dick || 0), REST_WALL);
         if (c && w.kick && -c.vn > 60 && frei('sling' + w.kick.seite, 0.15)) {
           ball.vx += c.nx * 420; ball.vy += c.ny * 420;
           w.kick.flash = 1;

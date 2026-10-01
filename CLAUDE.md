@@ -299,6 +299,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.63 (Nutzerwahl aus gerenderten Varianten 14/18/22 und 25): **Schleudern 18 hoch** (Körper depth 13 + Wölbung 2 × 2,5), Pfosten 20,
   **weißer Gummiring 2,0 dick auf Höhe 9 = Kugelmitte** (Gummi in der Mitte der Schleuder statt am Boden). Ersetzt den Hinweis „nicht dicker“
   aus 0.58 – gemeint war dort die Gummidicke, nicht die Höhe.
+- Stand 0.64 (Nutzer: Kugel läuft sichtbar durch das Schleuder-Gummi): Ursache – Kollision an der Linie durch die Pfostenmitten, das
+  3D-Gummi liegt aber 5,6 weiter außen (Pfosten r 3,6 + Gummi 2,0). Jetzt `SCHLEUDER_DICK = 5.6` als `dick` an allen drei Schleuder-Wänden,
+  Kollision mit `R + w.dick` (abgerundete Ecken = Gummi um die Pfosten). Bei Änderung von RP/RG in `drei.js` mitziehen! Geprüft: Sim grün,
+  2 × 10 min ohne Hänger; Rückkehrgassen links/rechts je 20/20 zum Flipper (0,7 s statt 0,5 s, streift am Gummi). **Gummi wölbt sich beim
+  Schlag** (wie am Original): Schlagseite in `drei.js` aus zwei Hälften, Mitte um 3,5 × `flash` nach außen (`bogen`).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
