@@ -416,27 +416,57 @@ function kugelMesh(i) {
   return kugeln[i];
 }
 
-// ---------- Rückkasten mit Anzeige (0.68): steht hinten auf dem Tisch, leicht nach hinten geneigt ----------
-const RK = { b: W + 44, h: 150, t: 26, neig: 12 * Math.PI / 180 };   // Breite, Höhe, Tiefe, Neigung nach hinten
+// ---------- Kopfteil wie am echten Automaten (0.69): großes Bild oben, darunter Anzeige zwischen zwei Lautsprechern ----------
+// Steht hinten auf dem Tisch, leicht nach hinten geneigt, deutlich tiefer als vorher. Bild: kopf.jpg (falls vorhanden), sonst Platzhalter.
+const RK = { b: W + 44, h: 470, t: 70, neig: 8 * Math.PI / 180, unten: 120, sockel: 40 };   // Breite, Höhe, Tiefe, Neigung, Höhe Anzeige-Leiste
 const dmdTex = new THREE.CanvasTexture(document.getElementById('dmd'));
 dmdTex.colorSpace = THREE.SRGBColorSpace; dmdTex.anisotropy = 4;
 let dmdStand = -1;
+const kopfBildTex = (() => {                  // Platzhalter: eigenes Motiv aus Verlauf, Uhr und Schriftzug (wird durch kopf.jpg ersetzt)
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 720;
+  const g = c.getContext('2d');
+  const v = g.createLinearGradient(0, 0, 0, 720); v.addColorStop(0, '#05070d'); v.addColorStop(0.6, '#10213f'); v.addColorStop(1, '#2a0d08');
+  g.fillStyle = v; g.fillRect(0, 0, 1024, 720);
+  for (let k = 0; k < 7; k++) {                // Suchscheinwerfer
+    g.save(); g.translate(150 + k * 120, 720); g.rotate(-0.5 + k * 0.17);
+    const l = g.createLinearGradient(0, 0, 0, -720); l.addColorStop(0, 'rgba(160,200,255,.25)'); l.addColorStop(1, 'rgba(160,200,255,0)');
+    g.fillStyle = l; g.beginPath(); g.moveTo(-8, 0); g.lineTo(-60, -720); g.lineTo(60, -720); g.lineTo(8, 0); g.fill(); g.restore();
+  }
+  g.strokeStyle = 'rgba(255,120,50,.9)'; g.lineWidth = 10; g.beginPath(); g.arc(512, 300, 190, 0, Math.PI * 2); g.stroke();
+  for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; g.beginPath(); g.moveTo(512 + Math.cos(a) * 160, 300 + Math.sin(a) * 160); g.lineTo(512 + Math.cos(a) * 180, 300 + Math.sin(a) * 180); g.stroke(); }
+  g.lineWidth = 14; g.beginPath(); g.moveTo(512, 300); g.lineTo(512, 140); g.moveTo(512, 300); g.lineTo(540, 175); g.stroke();
+  g.font = '900 120px Bungee, Impact, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ff5a26';
+  g.shadowColor = '#ff3a10'; g.shadowBlur = 30; g.fillText('ZERO TIME', 512, 640);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const kopfBildMat = new THREE.MeshBasicMaterial({ map: kopfBildTex, toneMapped: false });
+new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; }, undefined, () => {});
 {
   const g = new THREE.Group();
   const kasten = new THREE.Mesh(new THREE.BoxGeometry(RK.b, RK.h, RK.t), holz);
   kasten.position.set(0, RK.h / 2, -RK.t / 2); kasten.castShadow = true; g.add(kasten);
   const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
-  for (const [w, h, x, y] of [[RK.b + 4, 4, 0, RK.h], [RK.b + 4, 4, 0, 0], [4, RK.h, -RK.b / 2, RK.h / 2], [4, RK.h, RK.b / 2, RK.h / 2]]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 4), randMat); m.position.set(x, y, 1); g.add(m);
-  }
-  // Bildschirm im Seitenverhältnis der Punktmatrix (4:1), schwarzer Einfassrahmen, leuchtet selbst (kein Licht nötig)
-  const sb = RK.b - 36, sh = sb / 4;
-  const rahmen = new THREE.Mesh(new THREE.PlaneGeometry(sb + 10, sh + 10), new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.6 }));
-  rahmen.position.set(0, RK.h * 0.55, 0.6); g.add(rahmen);
+  const rand = (w, h, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5), randMat); m.position.set(x, y, 1.5); g.add(m); };
+  rand(RK.b + 4, 5, 0, RK.h); rand(RK.b + 4, 5, 0, 0); rand(5, RK.h, -RK.b / 2, RK.h / 2); rand(5, RK.h, RK.b / 2, RK.h / 2);
+  rand(RK.b, 4, 0, RK.unten);                                      // Trennleiste Bild / Anzeige
+  // Bild (Hinterglas) oben
+  const bb = RK.b - 24, bh = RK.h - RK.unten - 20;
+  const bild = new THREE.Mesh(new THREE.PlaneGeometry(bb, bh), kopfBildMat); bild.position.set(0, RK.unten + 10 + bh / 2, 1); g.add(bild);
+  // Anzeige in der Mitte der unteren Leiste, links und rechts ein runder Lautsprecher (roter Kegel, Chromring)
+  const sb = 250, sh = sb / 4, my = RK.unten / 2;
+  const rahmen = new THREE.Mesh(new THREE.PlaneGeometry(sb + 12, sh + 12), new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.6 }));
+  rahmen.position.set(0, my, 0.6); g.add(rahmen);
   const schirm = new THREE.Mesh(new THREE.PlaneGeometry(sb, sh), new THREE.MeshBasicMaterial({ map: dmdTex, toneMapped: false }));
-  schirm.position.set(0, RK.h * 0.55, 1); g.add(schirm);
-  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, RK.h * 0.55, 30); g.add(glimm);
-  g.position.copy(P(X0, -22, 0)); g.rotation.x = -RK.neig;
+  schirm.position.set(0, my, 1); g.add(schirm);
+  const kegel = new THREE.MeshStandardMaterial({ color: 0x8a1410, roughness: 0.5, emissive: 0x400000, emissiveIntensity: 0.4 });
+  for (const sx of [-1, 1]) {
+    const x = sx * (RK.b / 2 - 52);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(34, 4, 12, 40), randMat); ring.position.set(x, my, 3); g.add(ring);
+    const k = new THREE.Mesh(new THREE.CircleGeometry(31, 40), kegel); k.position.set(x, my, 1.2); g.add(k);
+    const m = new THREE.Mesh(new THREE.CircleGeometry(8, 24), new THREE.MeshStandardMaterial({ color: 0x2a0606, roughness: 0.4 })); m.position.set(x, my, 1.4); g.add(m);
+  }
+  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, my, 30); g.add(glimm);
+  g.position.copy(P(X0, -22, RK.sockel)); g.rotation.x = -RK.neig;     // steht auf der Rückwand (46 hoch), Anzeige ganz sichtbar
   scene.add(g);
 }
 
@@ -454,7 +484,7 @@ function einpassen() {
   const ecken = [];
   for (const x of [4, W - 4]) for (const y of [0, H + 6]) for (const hh of [0, 14]) ecken.push(P(x, y, hh));   // Spielfeld; Gehäuse darf angeschnitten sein
   // Oberkante des Rückkastens (geneigt) gehört mit ins Bild
-  const oz = -22 - Math.sin(RK.neig) * RK.h, oy = Math.cos(RK.neig) * RK.h;
+  const oz = -22 - Math.sin(RK.neig) * RK.h, oy = RK.sockel + Math.cos(RK.neig) * RK.h;
   for (const x of [4, W - 4]) ecken.push(P(x, oz, oy));
   const dir = new THREE.Vector3(0, Math.sin(NEIG), Math.cos(NEIG));
   let ziel = new THREE.Vector3(0, 0, 40), dist = 1200;

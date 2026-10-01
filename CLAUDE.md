@@ -330,6 +330,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   **senkrecht mittig** (vorher unten bündig). Canvas lässt Status- und Home-Leiste frei (Padding der Bühne). **Pause** in 3D: Tipp auf
   alles hinter der Rückwand (`tischPunkt().y < −30`). Tisch bleibt durch die **Breite** begrenzt – mehr Höhe nur mit steilerem Winkel
   (gerendert 50/55/60° zur Auswahl, Stand 50°).
+- Stand 0.69 (Nutzer: Kopfteil wie am echten Automaten, viel größer, mit Bild, nach hinten dicker): **Kopfteil** in `drei.js` 444 × 470,
+  70 tief, 8° geneigt, steht 40 hoch auf der Rückwand (`RK.sockel`). Oben **Hinterglas-Bild** `kopf.jpg` (fehlt es: gezeichneter Platzhalter
+  mit Suchscheinwerfern, Uhr auf zwölf und „ZERO TIME“), darunter Leiste (120) mit der Punktmatrix (250 × 62,5) zwischen **zwei runden
+  Lautsprechern** (roter Kegel, Chromring). Kamera passt Tisch + Kopfteil ein → Tisch etwas kleiner (jetzt höhenbegrenzt), Bildschirm
+  gefüllt. Bild-Auftrag mit Prompt: `bilder/AUFTRAG_KOPF.md`. Abacus aus diesem Container gesperrt (Proxy 403 auf routellm.abacus.ai).
+  Wenn `kopf.jpg` kommt: in `sw.js`-Cache-Liste aufnehmen (nicht vorher – `addAll` schlägt bei fehlender Datei fehl).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
