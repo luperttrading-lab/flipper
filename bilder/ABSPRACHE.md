@@ -75,3 +75,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 30.09. 17:45 **Dritte Sitzung:** ERLEDIGT (Version 0.60) – Mulde wirft nach oben in die Bumper aus (Physik, gemessen); sim.js-Mulden-Test angepasst. **Code-Sitzung:** bitte `origin/main` holen.
 - 30.09. 17:50 **Dritte Sitzung:** ERLEDIGT (Version 0.61) – manuelles Update lädt nach 0,5 s. **Code-Sitzung:** bitte `origin/main` holen.
 - 01.10. 17:00 **Dritte Sitzung:** ERLEDIGT (Version 0.62) – Mulde wie im Original oben rechts über den Bumpern, Auswurf in die Bumper (Physik, gemessen). **Code-Sitzung:** bitte `origin/main` holen.
+- 01.10. 17:05 **Dritte Sitzung:** ERLEDIGT (Version 0.63) – Schleudern 18 hoch, Gummi auf 9 (nur Optik, drei.js). **Code-Sitzung:** bitte `origin/main` holen.

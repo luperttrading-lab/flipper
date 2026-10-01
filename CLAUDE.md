@@ -296,6 +296,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Grüner Fluchtweg-Pfeil jetzt im linken Orbit (35/448). Autoplay je 6 × 60 min gegen 0.61: Bumper 8,2 statt 6,3/min, Serien ≥ 4 0,65 statt
   0,44/min, Mulde 0,96 statt 0,39/min. **Durchlass rechter Orbit → Bumper geprüft und verworfen:** Innenführung ab 1,75π/1,82π/1,88π/1,93π,
   je 160 Schüsse 700–1400: alle 1,1–1,2 Bumper-Treffer/Schuss – schwache Schüsse fallen schon heute durch die Lücke zwischen Gassen und Führung.
+- Stand 0.63 (Nutzerwahl aus gerenderten Varianten 14/18/22 und 25): **Schleudern 18 hoch** (Körper depth 13 + Wölbung 2 × 2,5), Pfosten 20,
+  **weißer Gummiring 2,0 dick auf Höhe 9 = Kugelmitte** (Gummi in der Mitte der Schleuder statt am Boden). Ersetzt den Hinweis „nicht dicker“
+  aus 0.58 – gemeint war dort die Gummidicke, nicht die Höhe.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
