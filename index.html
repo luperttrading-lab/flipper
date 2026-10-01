@@ -51,6 +51,7 @@
   /* 0.68: In 3D sitzt die Anzeige als Bildschirm im Rückkasten (drei.js); die HTML-Anzeige zeichnet nur noch die Textur */
   body.drei #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
   body.drei #stage { padding-top: calc(env(safe-area-inset-top, 0px) + 4px); }
+  body.drei #dmd { width: min(100%, 520px); }        /* größere Zeichenfläche = schärfere Anzeige im Kopfteil */
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
@@ -144,7 +145,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.69';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.70';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------

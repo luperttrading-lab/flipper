@@ -336,6 +336,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Lautsprechern** (roter Kegel, Chromring). Kamera passt Tisch + Kopfteil ein → Tisch etwas kleiner (jetzt höhenbegrenzt), Bildschirm
   gefüllt. Bild-Auftrag mit Prompt: `bilder/AUFTRAG_KOPF.md`. Abacus aus diesem Container gesperrt (Proxy 403 auf routellm.abacus.ai).
   Wenn `kopf.jpg` kommt: in `sw.js`-Cache-Liste aufnehmen (nicht vorher – `addAll` schlägt bei fehlender Datei fehl).
+- Stand 0.70 (Nutzer: Anzeige maximal, Lautsprecher weg, Kopfteil nicht so hoch, Spielfeld maximal): Kopfteil = feste Leiste (122) mit der
+  **Punktmatrix in voller Breite** (W+16 × /4) + Bildteil mit **variabler Höhe `RK.hb`**, gewählt in `einpassen()`: größte Höhe (≤ 340, in
+  10er-Schritten), bei der der Tisch höchstens **2,5 %** kleiner wird als nur mit Anzeige-Leiste (gemessen 430×932: jede Bildhöhe kostet
+  Tischgröße, volle 270 ≈ 5 %; Ergebnis ≈ 120). Bild wird mittig zugeschnitten (`bildZuschnitt`, Seitenverhältnis bleibt). Einpassen jetzt
+  10 Runden (4 konvergierten nicht). `body.drei #dmd` bis 520 px breit → schärfere Textur. Lautsprecher entfernt.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

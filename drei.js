@@ -416,58 +416,62 @@ function kugelMesh(i) {
   return kugeln[i];
 }
 
-// ---------- Kopfteil wie am echten Automaten (0.69): großes Bild oben, darunter Anzeige zwischen zwei Lautsprechern ----------
-// Steht hinten auf dem Tisch, leicht nach hinten geneigt, deutlich tiefer als vorher. Bild: kopf.jpg (falls vorhanden), sonst Platzhalter.
-const RK = { b: W + 44, h: 470, t: 70, neig: 8 * Math.PI / 180, unten: 120, sockel: 40 };   // Breite, Höhe, Tiefe, Neigung, Höhe Anzeige-Leiste
+// ---------- Kopfteil (0.70): unten die Anzeige in voller Breite, darüber das Bild – nur so hoch, wie Platz ist ----------
+// Die Bildhöhe `hb` wählt einpassen(): so groß wie möglich, ohne dass der Tisch kleiner wird (Tisch bleibt breitenbegrenzt).
+// Bild: kopf.jpg (falls vorhanden), sonst Platzhalter; es wird mittig auf die verfügbare Höhe zugeschnitten.
+const RK = { b: W + 44, t: 60, neig: 8 * Math.PI / 180, unten: 122, sockel: 40, hb: 0, hbMax: 340 };
 const dmdTex = new THREE.CanvasTexture(document.getElementById('dmd'));
 dmdTex.colorSpace = THREE.SRGBColorSpace; dmdTex.anisotropy = 4;
 let dmdStand = -1;
 const kopfBildTex = (() => {                  // Platzhalter: eigenes Motiv aus Verlauf, Uhr und Schriftzug (wird durch kopf.jpg ersetzt)
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 720;
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 768;
   const g = c.getContext('2d');
-  const v = g.createLinearGradient(0, 0, 0, 720); v.addColorStop(0, '#05070d'); v.addColorStop(0.6, '#10213f'); v.addColorStop(1, '#2a0d08');
-  g.fillStyle = v; g.fillRect(0, 0, 1024, 720);
+  const v = g.createLinearGradient(0, 0, 0, 768); v.addColorStop(0, '#05070d'); v.addColorStop(0.6, '#10213f'); v.addColorStop(1, '#2a0d08');
+  g.fillStyle = v; g.fillRect(0, 0, 1024, 768);
   for (let k = 0; k < 7; k++) {                // Suchscheinwerfer
-    g.save(); g.translate(150 + k * 120, 720); g.rotate(-0.5 + k * 0.17);
-    const l = g.createLinearGradient(0, 0, 0, -720); l.addColorStop(0, 'rgba(160,200,255,.25)'); l.addColorStop(1, 'rgba(160,200,255,0)');
-    g.fillStyle = l; g.beginPath(); g.moveTo(-8, 0); g.lineTo(-60, -720); g.lineTo(60, -720); g.lineTo(8, 0); g.fill(); g.restore();
+    g.save(); g.translate(150 + k * 120, 768); g.rotate(-0.5 + k * 0.17);
+    const l = g.createLinearGradient(0, 0, 0, -768); l.addColorStop(0, 'rgba(160,200,255,.25)'); l.addColorStop(1, 'rgba(160,200,255,0)');
+    g.fillStyle = l; g.beginPath(); g.moveTo(-8, 0); g.lineTo(-60, -768); g.lineTo(60, -768); g.lineTo(8, 0); g.fill(); g.restore();
   }
-  g.strokeStyle = 'rgba(255,120,50,.9)'; g.lineWidth = 10; g.beginPath(); g.arc(512, 300, 190, 0, Math.PI * 2); g.stroke();
-  for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; g.beginPath(); g.moveTo(512 + Math.cos(a) * 160, 300 + Math.sin(a) * 160); g.lineTo(512 + Math.cos(a) * 180, 300 + Math.sin(a) * 180); g.stroke(); }
-  g.lineWidth = 14; g.beginPath(); g.moveTo(512, 300); g.lineTo(512, 140); g.moveTo(512, 300); g.lineTo(540, 175); g.stroke();
-  g.font = '900 120px Bungee, Impact, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ff5a26';
-  g.shadowColor = '#ff3a10'; g.shadowBlur = 30; g.fillText('ZERO TIME', 512, 640);
+  g.strokeStyle = 'rgba(255,120,50,.9)'; g.lineWidth = 10; g.beginPath(); g.arc(512, 330, 170, 0, Math.PI * 2); g.stroke();
+  for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; g.beginPath(); g.moveTo(512 + Math.cos(a) * 142, 330 + Math.sin(a) * 142); g.lineTo(512 + Math.cos(a) * 160, 330 + Math.sin(a) * 160); g.stroke(); }
+  g.lineWidth = 14; g.beginPath(); g.moveTo(512, 330); g.lineTo(512, 190); g.moveTo(512, 330); g.lineTo(537, 222); g.stroke();
+  g.font = '900 110px Bungee, Impact, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ff5a26';
+  g.shadowColor = '#ff3a10'; g.shadowBlur = 30; g.fillText('ZERO TIME', 512, 600);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 })();
 const kopfBildMat = new THREE.MeshBasicMaterial({ map: kopfBildTex, toneMapped: false });
-new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; }, undefined, () => {});
-{
-  const g = new THREE.Group();
-  const kasten = new THREE.Mesh(new THREE.BoxGeometry(RK.b, RK.h, RK.t), holz);
-  kasten.position.set(0, RK.h / 2, -RK.t / 2); kasten.castShadow = true; g.add(kasten);
-  const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
-  const rand = (w, h, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5), randMat); m.position.set(x, y, 1.5); g.add(m); };
-  rand(RK.b + 4, 5, 0, RK.h); rand(RK.b + 4, 5, 0, 0); rand(5, RK.h, -RK.b / 2, RK.h / 2); rand(5, RK.h, RK.b / 2, RK.h / 2);
-  rand(RK.b, 4, 0, RK.unten);                                      // Trennleiste Bild / Anzeige
-  // Bild (Hinterglas) oben
-  const bb = RK.b - 24, bh = RK.h - RK.unten - 20;
-  const bild = new THREE.Mesh(new THREE.PlaneGeometry(bb, bh), kopfBildMat); bild.position.set(0, RK.unten + 10 + bh / 2, 1); g.add(bild);
-  // Anzeige in der Mitte der unteren Leiste, links und rechts ein runder Lautsprecher (roter Kegel, Chromring)
-  const sb = 250, sh = sb / 4, my = RK.unten / 2;
-  const rahmen = new THREE.Mesh(new THREE.PlaneGeometry(sb + 12, sh + 12), new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.6 }));
-  rahmen.position.set(0, my, 0.6); g.add(rahmen);
+const bildZuschnitt = () => {                 // Bild mittig auf die sichtbare Höhe zuschneiden (Seitenverhältnis bleibt)
+  const t = kopfBildMat.map, img = t.image, bb = RK.b - 24, bh = Math.max(1, RK.hb - 14);
+  const asp = img && img.width ? img.height / img.width : 0.75, voll = bb * asp;
+  t.repeat.set(1, Math.min(1, bh / voll)); t.offset.set(0, (1 - t.repeat.y) / 2); t.needsUpdate = true;
+};
+new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; bildZuschnitt(); }, undefined, () => {});
+const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
+const kopf = new THREE.Group();
+kopf.position.copy(P(X0, -22, RK.sockel)); kopf.rotation.x = -RK.neig;     // steht auf der Rückwand
+scene.add(kopf);
+{ // feste Leiste unten mit der Anzeige in voller Breite
+  const kasten = new THREE.Mesh(new THREE.BoxGeometry(RK.b, RK.unten, RK.t), holz);
+  kasten.position.set(0, RK.unten / 2, -RK.t / 2); kasten.castShadow = true; kopf.add(kasten);
+  const sb = RK.b - 28, sh = sb / 4, my = RK.unten / 2;
+  const rahmen = new THREE.Mesh(new THREE.PlaneGeometry(sb + 10, sh + 10), new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.6 }));
+  rahmen.position.set(0, my, 0.6); kopf.add(rahmen);
   const schirm = new THREE.Mesh(new THREE.PlaneGeometry(sb, sh), new THREE.MeshBasicMaterial({ map: dmdTex, toneMapped: false }));
-  schirm.position.set(0, my, 1); g.add(schirm);
-  const kegel = new THREE.MeshStandardMaterial({ color: 0x8a1410, roughness: 0.5, emissive: 0x400000, emissiveIntensity: 0.4 });
-  for (const sx of [-1, 1]) {
-    const x = sx * (RK.b / 2 - 52);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(34, 4, 12, 40), randMat); ring.position.set(x, my, 3); g.add(ring);
-    const k = new THREE.Mesh(new THREE.CircleGeometry(31, 40), kegel); k.position.set(x, my, 1.2); g.add(k);
-    const m = new THREE.Mesh(new THREE.CircleGeometry(8, 24), new THREE.MeshStandardMaterial({ color: 0x2a0606, roughness: 0.4 })); m.position.set(x, my, 1.4); g.add(m);
+  schirm.position.set(0, my, 1); kopf.add(schirm);
+  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, my, 30); kopf.add(glimm);
+}
+const kopfOben = new THREE.Group(); kopf.add(kopfOben);
+function setzeKopf(hb) {                      // oberer Teil mit Bild, Höhe hb (0 = nur die Anzeige-Leiste)
+  RK.hb = hb;
+  for (const c of [...kopfOben.children]) { kopfOben.remove(c); c.geometry && c.geometry.dispose(); }
+  const H = RK.unten + hb, rand = (w, h, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5), randMat); m.position.set(x, y, 1.5); kopfOben.add(m); };
+  if (hb > 20) {
+    const k = new THREE.Mesh(new THREE.BoxGeometry(RK.b, hb, RK.t), holz); k.position.set(0, RK.unten + hb / 2, -RK.t / 2); k.castShadow = true; kopfOben.add(k);
+    const bild = new THREE.Mesh(new THREE.PlaneGeometry(RK.b - 24, hb - 14), kopfBildMat); bild.position.set(0, RK.unten + hb / 2, 1); kopfOben.add(bild);
+    rand(RK.b, 4, 0, RK.unten); bildZuschnitt();
   }
-  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, my, 30); g.add(glimm);
-  g.position.copy(P(X0, -22, RK.sockel)); g.rotation.x = -RK.neig;     // steht auf der Rückwand (46 hoch), Anzeige ganz sichtbar
-  scene.add(g);
+  rand(RK.b + 4, 5, 0, H); rand(RK.b + 4, 5, 0, 0); rand(5, H, -RK.b / 2, H / 2); rand(5, H, RK.b / 2, H / 2);
 }
 
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
@@ -483,9 +487,9 @@ function einpassen() {
   camera.aspect = w / h;
   const ecken = [];
   for (const x of [4, W - 4]) for (const y of [0, H + 6]) for (const hh of [0, 14]) ecken.push(P(x, y, hh));   // Spielfeld; Gehäuse darf angeschnitten sein
-  // Oberkante des Rückkastens (geneigt) gehört mit ins Bild
-  const oz = -22 - Math.sin(RK.neig) * RK.h, oy = RK.sockel + Math.cos(RK.neig) * RK.h;
-  for (const x of [4, W - 4]) ecken.push(P(x, oz, oy));
+  const nurTisch = ecken.length;
+  const kopfEcken = hb => { const h = RK.unten + hb, oz = -22 - Math.sin(RK.neig) * h, oy = RK.sockel + Math.cos(RK.neig) * h;
+    ecken.length = nurTisch; for (const x of [4, W - 4]) ecken.push(P(x, oz, oy)); };
   const dir = new THREE.Vector3(0, Math.sin(NEIG), Math.cos(NEIG));
   let ziel = new THREE.Vector3(0, 0, 40), dist = 1200;
   const passt = d => {
@@ -494,14 +498,21 @@ function einpassen() {
     for (const e of ecken) { const v = e.clone().project(camera); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
     return { x0, x1, y0, y1 };
   };
-  for (let runde = 0; runde < 4; runde++) {
-    let lo = 200, hi = 6000;
-    for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2, b = passt(m); if (b.x0 < -1 || b.x1 > 1 || b.y0 < -1.001 || b.y1 > 0.99) lo = m; else hi = m; }
-    dist = hi;
-    const b = passt(dist);
-    // 0.68: Tisch samt Rückkasten senkrecht mittig (vorher unten bündig, oben blieb Luft)
-    ziel.z -= ((b.y0 + b.y1) / 2) * 300;
-  }
+  const einpass = () => {
+    for (let runde = 0; runde < 10; runde++) {
+      let lo = 200, hi = 6000;
+      for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2, b = passt(m); if (b.x0 < -1 || b.x1 > 1 || b.y0 < -1.001 || b.y1 > 0.99) lo = m; else hi = m; }
+      dist = hi;
+      const b = passt(dist);
+      ziel.z -= ((b.y0 + b.y1) / 2) * 300;          // senkrecht mittig
+    }
+    return dist;
+  };
+  // 0.70: Bildhöhe so groß wie möglich, solange der Tisch höchstens 2,5 % kleiner wird als nur mit Anzeige (gemessen: jede
+  // Bildhöhe kostet etwas Tischgröße, volle Höhe 270 ≈ 5 %)
+  kopfEcken(0); ziel.set(0, 0, 40); const d0 = einpass(); let best = 0;
+  for (let hb = RK.hbMax; hb >= 30; hb -= 10) { kopfEcken(hb); ziel.set(0, 0, 40); if (einpass() <= d0 * 1.025) { best = hb; break; } }
+  kopfEcken(best); ziel.set(0, 0, 40); einpass(); setzeKopf(best);
   passt(dist);
 }
 window.addEventListener('resize', einpassen);
