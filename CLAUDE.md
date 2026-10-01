@@ -287,6 +287,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `tools/sim.js`: Mulden-Test prüft jetzt „verlässt die Mulde“ statt „fällt nach unten“. Hinweis: Test „Gassen-Zone“ ist unabhängig davon
   wacklig (je Schuss ~85 % → Test besteht nur ~84 %), gemessen vor 0.55 und danach gleich.
 - Stand 0.61: Tipp auf die Versionsnummer (manuelle Update-Prüfung) lädt bei neuer Version nach **0,5 s** statt 1,5 s neu (Nutzerwunsch); automatisch im Ruhezustand weiter 3 s.
+- Stand 0.62 (Recherche zum Original: Fluchtweg-Mulde liegt **oben rechts über den Bumpern**, wird über **starke Schüsse in den linken Orbit**
+  erreicht und füttert die Bumper – laut Fachquellen der einzige verlässliche Weg in die Bumper; schwache rechte Orbit-Schüsse fallen auch
+  hinein): **Mulde von 350/250 nach 318/64** (Scheitel des Bogens; linker Orbit ≥ 1300 läuft dort auf ≤ 2 Einheiten vorbei). Fängt jede Kugel,
+  die im Uhrzeigersinn kommt (`vx > 100`, Abstand < 12; `fluchtBis` ist dafür nicht mehr nötig), Sperre nach Auswurf 0,4 s statt 1 s (sonst
+  verpasst ein schneller zweiter Orbit-Schuss sie). **Auswurf Richtung 250/110 mit 300** (`MULDE_AUS`, ±3 % / ±0,04 rad) direkt in die Bumper –
+  gemessen je 40 Würfe: Plateau 260–340 mit Ø ~4 Bumper-Treffern in 5 s, ~70 % ≥ 3; der Behelf aus 0.60 (nach oben auswerfen) ist entfallen.
+  Grüner Fluchtweg-Pfeil jetzt im linken Orbit (35/448). Autoplay je 6 × 60 min gegen 0.61: Bumper 8,2 statt 6,3/min, Serien ≥ 4 0,65 statt
+  0,44/min, Mulde 0,96 statt 0,39/min. **Durchlass rechter Orbit → Bumper geprüft und verworfen:** Innenführung ab 1,75π/1,82π/1,88π/1,93π,
+  je 160 Schüsse 700–1400: alle 1,1–1,2 Bumper-Treffer/Schuss – schwache Schüsse fallen schon heute durch die Lücke zwischen Gassen und Führung.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

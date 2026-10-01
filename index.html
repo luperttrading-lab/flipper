@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.61';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.62';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -607,7 +607,8 @@ const dmd = (() => {
   // kassiert das unterste blinkende Feld (eins je Umlauf). Nach allen sechs beginnt die Leiter von vorn.
   let fluchtLit = 1, fluchtGeholt = 0, holdBonus = false, lanesLit = false;
   const FLUCHT = ['SEC. PASS', 'HOLD BONUS', 'LITE LANES', 'MULTIBALL', 'EXTRA BALL', '10 MILLION'];
-  const MULDE = { x: 350, y: 250 };
+  const MULDE = { x: 318, y: 64 };          // 0.62: oben rechts im Scheitel über den Bumpern (wie Original; vorher 350/250 in der Umlaufgasse)
+  const MULDE_AUS = 300;                     // Auswurfstärke Richtung Bumper (gemessen)
   let saveBis = 0, gestartet = false;
   let schaedelIdx = 0, bankReihen = 0, orbits = 0, bumperTreffer = 0;
   let gunLit = false, multiball = false, nachschub = 0, nachschubBis = 0, kanonenSchuss = 0;
@@ -949,8 +950,9 @@ const dmd = (() => {
       ball.halt -= dt;
       if (ball.halt <= 0) {
         if (ball.zurKanone) ladeKanone(ball);
-        else if (ball.mulde) {                   // 0.60: nach oben durch den rechten Umlauf → obere Gassen → Pop-Bumper (gemessen 675–685 am besten)
-          ball.mulde = false; ball.vx = -20 + (Math.random() - 0.5) * 6; ball.vy = -(680 + (Math.random() - 0.5) * 10); cool.mulde = zeit + 1; sfx.auswurf(); }
+        else if (ball.mulde) {                   // 0.62: schräg nach links unten direkt in die Pop-Bumper (Richtung 250/110, Stärke 300 – gemessen)
+          const a = Math.atan2(110 - MULDE.y, 250 - MULDE.x) + (Math.random() - 0.5) * 0.08, v = MULDE_AUS * (1 + (Math.random() - 0.5) * 0.06);
+          ball.mulde = false; ball.vx = Math.cos(a) * v; ball.vy = Math.sin(a) * v; cool.mulde = zeit + 0.4; sfx.auswurf(); }   // Sperre 0,4 s (gefangen wird nur nach rechts laufend)
         else { ball.vx = 70; ball.vy = 330; cool.schaedel = zeit + 1; sfx.auswurf(); }
       }
       return;
@@ -1041,7 +1043,8 @@ const dmd = (() => {
     // Die Kugel läuft über den Bogen und den linken Umlauf zurück zum linken Flipper; schnell wiederholt = Kombo
     if (ball.x > 330 && ball.x < LANE_X - 2 && Math.abs(ball.y - 340) < 10 && ball.vy < -150 && frei('chase', 1.2)) chaseLoop();
     // Aus dem linken Umlauf über den Bogen in die Mulde oben rechts
-    if (ball.fluchtBis > zeit && ball.vy > 0 && ball.x > 326 && Math.abs(ball.y - MULDE.y) < 14 &&
+    // 0.62: Mulde im Scheitel fängt Kugeln, die im Uhrzeigersinn (vom linken Orbit) über den Bogen kommen
+    if (ball.vx > 100 && Math.hypot(ball.x - MULDE.x, ball.y - MULDE.y) < 12 &&
       (cool.mulde || 0) < zeit && !balls.some(b => b.mulde)) { mulde(); return; }
     // Rückkehrgassen: beleuchtet nach LITE LANES
     if (ball.vy > 0 && Math.abs(ball.y - 600) < 8) {
@@ -1198,8 +1201,8 @@ const dmd = (() => {
   // „LOAD GUN“: nächster Schädel-Treffer lädt die Kanone
   L({ form: 'rechteck', x: 117, y: 372, w: 42, h: 10, farbe: 'gruen', label: 'LOAD GUN', gruppe: 'kanone',
     z: () => kanone.kugel ? 1 : (gunLit ? 2 : 0) });
-  // Mulde oben rechts: Pfeil blinkt, solange ein Fluchtweg-Feld zum Kassieren bereitsteht
-  L({ form: 'pfeil', x: 345, y: 280, w: 14, h: 16, dir: -PI / 2, farbe: 'gruen', gruppe: 'leiter',
+  // Fluchtweg: Pfeil im linken Orbit blinkt, solange ein Feld zum Kassieren in der Mulde oben rechts bereitsteht
+  L({ form: 'pfeil', x: 35, y: 448, w: 14, h: 16, dir: -PI / 2, farbe: 'gruen', gruppe: 'leiter',   // 0.62: im linken Orbit (dorthin schießen)
     z: () => fluchtGeholt < fluchtLit ? 2 : 0 });
   // HURRY UP vor der rechten Rampe: blinkt, solange der Countdown-Wert läuft
   L({ form: 'pfeil', x: 313, y: 425, w: 16, h: 22, dir: -PI / 2, farbe: 'weiss', label: 'HURRY', gruppe: 'hurry',
