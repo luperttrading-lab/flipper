@@ -304,6 +304,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Kollision mit `R + w.dick` (abgerundete Ecken = Gummi um die Pfosten). Bei Änderung von RP/RG in `drei.js` mitziehen! Geprüft: Sim grün,
   2 × 10 min ohne Hänger; Rückkehrgassen links/rechts je 20/20 zum Flipper (0,7 s statt 0,5 s, streift am Gummi). **Gummi wölbt sich beim
   Schlag** (wie am Original): Schlagseite in `drei.js` aus zwei Hälften, Mitte um 3,5 × `flash` nach außen (`bogen`).
+- Stand 0.65 (Nutzer): **Sirene entfernt** – `sfx.sirene()` ist jetzt eine kurze, leise Fanfare (4 aufsteigende Dreieckstöne A–C#–E–A,
+  ~0,5 s), nur noch 1,2 s nach Multiball-Start, **nicht mehr nach jedem Jackpot**. **Abschuss:** kurzer Tipp schießt jetzt **schwach**
+  (so stark, wie die Feder gespannt ist; Tipp 0,08 s ≈ 1050, ganz kurz ≤ 1025 rollt zurück), Halten spannt wie bisher (voll nach ~1,4 s).
+  `TIPP_T` nur noch für die Anzeige. **Kraftbalken in der Abschussrinne** (y 572–734, statt „ABZUG“, solange gehalten): füllt sich von
+  unten, rot < 0,2 schwach, grün 0,2–0,4 Gassen, weiß ab 0,4. Texte: „Kugel halten = Abschuss“, Anzeige „KUGEL HALTEN“ / „LANG = STARK“.
+  Sim-Test „Tipp schießt voll“ → „kurzer Tipp schießt schwach“. Autoplay (`api.abzug()`) schießt weiter voll.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

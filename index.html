@@ -126,7 +126,7 @@
 <div class="start splash" id="start">
   <div class="splash-bild">
     <button class="splash-ver" id="ver-splash" type="button" aria-label="Auf Update prüfen"></button>
-    <div class="splash-text"><span>Antippen zum Starten</span><span>Hälften tippen = Flipper · Kugel antippen = Abzug</span></div>
+    <div class="splash-text"><span>Antippen zum Starten</span><span>Hälften tippen = Flipper · Kugel halten = Abschuss</span></div>
   </div>
   <span id="start-text">Pause – antippen</span>
   <div class="start-leiste">
@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.64';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.65';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -325,18 +325,9 @@ const sfx = (() => {
       ton('sine', 170 * v, 70, 0.07, 0.5);
       ton('square', 95 * v, 60, 0.04, 0.12);
     }); },
-    // Ansteigende Sirene vor dem Jackpot (~2,5 s)
+    // 0.65: statt der Sirene (Nutzer: „nervig“) eine kurze, leise Fanfare – vier aufsteigende Töne, 0,5 s
     sirene() { spiele(() => {
-      const t = ac.currentTime, d = 2.5, lp = ac.createBiquadFilter(), g = ac.createGain();
-      lp.type = 'lowpass'; lp.frequency.value = 3000;
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.3);
-      g.gain.setValueAtTime(0.07, t + d - 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      lp.connect(g).connect(master);
-      for (const [typ, m] of [['sawtooth', 1], ['square', 1.5]]) {
-        const o = ac.createOscillator(); o.type = typ;
-        o.frequency.setValueAtTime(500 * m, t); o.frequency.exponentialRampToValueAtTime(1200 * m, t + d);
-        o.connect(lp); o.start(t); o.stop(t + d + 0.05);
-      }
+      [440, 554, 659, 880].forEach((f, k) => { ton('triangle', f, f * 1.01, 0.22, 0.06, k * 0.09); ton('sine', f * 2, f * 2, 0.12, 0.015, k * 0.09); });
     }); },
     // Multiball-Musik: eigene Bass-Schleife (a-Moll, 132 BPM), Bass + Kick + Snare, alles tief
     musik(ein) {
@@ -626,7 +617,6 @@ const dmd = (() => {
     jpMult = Math.min(16, jpMult * 2);
     folge = { ab: zeit + 3.6, z1: 'NÄCHSTER', z2: jpMult + 'X JACKPOT' };
     jpShow = zeit; sfx.multiball();
-    setTimeout(() => sfx.sirene(), 1500);
   }
   // Grundbeleuchtung 0…1: Jackpot = 3× flackern (5 Hz), 0,6 s dunkel, dann heller Rückschlag; Treffer = kurzer Einbruch
   function grundLicht() {
@@ -869,7 +859,7 @@ const dmd = (() => {
   }
   function startMultiball() {
     multiball = true; sdrop.unten = true; jpMult = 1;
-    setTimeout(() => sfx.sirene(), 2600);
+    setTimeout(() => sfx.sirene(), 1200);
     nachschub += 2; nachschubBis = zeit + 1;
     saveBis = zeit + 12;
     punkte(500000, 10000);
@@ -1107,7 +1097,8 @@ const dmd = (() => {
     sfx.schuss(Math.min(1, v / 1960));
   }
   // Abzug dosieren (wie die Feder am Original): Finger auf die Kugel und HALTEN spannt die Feder, Loslassen schießt.
-  // Kurzer Tipp (< 0,22 s) = voller Schuss wie bisher. Bereiche (gemessen, siehe CLAUDE.md 0.48):
+  // Seit 0.65 (Nutzerwunsch): auch ein kurzer Tipp schießt nur so stark, wie die Feder gespannt ist (= schwach);
+  // Kraftbalken in der Abschussrinne. TIPP_T nur noch für die Anzeige. Bereiche (gemessen, siehe CLAUDE.md 0.48):
   //   c 0–0,2   zu schwach: bis ~1025 fällt die Kugel zurück in die Rinne (wieder bereit), darüber unten ins Feld
   //   c 0,2–0,4 Gassen-Zone: Kugel verliert oben den Schwung und fällt durch die drei oberen Gassen
   //   c ab 0,4  läuft um die Kurve (Umlauf links); ab c 0,85 voll
@@ -1126,8 +1117,7 @@ const dmd = (() => {
   function federLoslassen() {
     if (!feder.an) return;
     feder.an = false;
-    if (feder.t < TIPP_T) abschuss();
-    else abschuss(federV(feder.c) + (Math.random() - 0.5) * 12);
+    abschuss(federV(feder.c) + (Math.random() - 0.5) * 12);
   }
   const federZone = c => c < 0.2 ? 0 : c < 0.4 ? 1 : 2;
   // ---- Auswahlmenü: Flipper-Knöpfe wählen, Abzug bestätigt, nach 8 s automatisch ----
@@ -1524,12 +1514,24 @@ const dmd = (() => {
   function zeichneAbzug() {
     const bereit = abschussBereit() || !!wahl, x = (LANE_X + 392) / 2;
     const puls = bereit ? 0.55 + 0.45 * Math.sin(zeit * 6) : 0.25, an = zeit < abzugGedrueckt;
-    ctx.save();
-    ctx.translate(x, 660); ctx.rotate(-PI / 2);
-    ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = an ? '#ffffff' : `rgba(255, 90, 80, ${puls})`;
-    ctx.fillText('ABZUG', 0, 0);
-    ctx.restore();
+    if (feder.an) {
+      // 0.65: Kraftbalken in der Rinne über der Kugel – füllt sich von unten, rot = schwach, grün = Gassen, weiß = volle Kraft
+      const y0 = 734, y1 = 572, h = y0 - y1, bx = x - 6, bw = 12, c = feder.c;
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, y1, bw, h);
+      for (const [a, b, f] of [[0, 0.2, '255,70,60'], [0.2, 0.4, '70,255,130'], [0.4, 1, '235,240,255']]) {
+        ctx.fillStyle = `rgba(${f},.18)`; ctx.fillRect(bx, y0 - b * h, bw, (b - a) * h);
+        if (c > a) { ctx.fillStyle = `rgba(${f},.95)`; ctx.fillRect(bx, y0 - Math.min(c, b) * h, bw, (Math.min(c, b) - a) * h); }
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.strokeRect(bx, y1, bw, h);
+      for (const u of [0.2, 0.4]) { ctx.beginPath(); ctx.moveTo(bx - 3, y0 - u * h); ctx.lineTo(bx + bw + 3, y0 - u * h); ctx.stroke(); }
+    } else {
+      ctx.save();
+      ctx.translate(x, 660); ctx.rotate(-PI / 2);
+      ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = an ? '#ffffff' : `rgba(255, 90, 80, ${puls})`;
+      ctx.fillText('ABZUG', 0, 0);
+      ctx.restore();
+    }
     if (abschussBereit()) {
       const gespannt = feder.an && feder.t >= TIPP_T, z = federZone(feder.c);
       ctx.beginPath(); ctx.arc(SHOOT_X, SHOOT_Y, R + 3 + 2 * puls + (gespannt ? 9 * feder.c : 0), 0, 2 * PI);
@@ -1846,7 +1848,7 @@ const dmd = (() => {
       else { dmd.mitte('ANTIPPEN', 8, 1, 3); dmd.mitte('FÜR NEUES SPIEL', 18, 1, 2); }
     } else if (!gestartet && loaded) {
       dmd.mitte('ZERO TIME', 3, 2, 3);
-      if (blink) dmd.mitte(ballNo === 1 && Math.floor(zeit / 3) % 2 ? 'HALTEN DOSIERT' : 'KUGEL ANTIPPEN', 22, 1, 2);
+      if (blink) dmd.mitte(ballNo === 1 && Math.floor(zeit / 3) % 2 ? 'LANG = STARK' : 'KUGEL HALTEN', 22, 1, 2);
     } else {
       const t = fmt(score), s = dmd.breite(t, 2) <= 126 ? 2 : 1;
       dmd.mitte(t, s === 2 ? 2 : 6, s, 3);

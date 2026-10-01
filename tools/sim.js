@@ -225,10 +225,10 @@ const pruefe = (ok, text) => { console.log((ok ? 'OK    ' : 'FEHLER') + ' ' + te
   let zurueck = 0;
   for (const vv of [960, 1000, 1020, 1025]) { const a = lade(); a.abschuss(vv); lauf(a, 7); if (a.abschussBereit()) zurueck++; }
   pruefe(zurueck === 4, `zu schwacher Schuss (960–1025) kehrt zurück und ist wieder abschussbereit (${zurueck}/4)`);
-  // Tipp = voller Schuss, Halten = gemessene Stärke
-  const t1 = lade(); t1.federSpannen(1); t1.federLoslassen(); const vTipp = -t1.balls[0].vy;
+  // Seit 0.65: kurzer Tipp = schwacher Schuss (Feder kaum gespannt), Halten = gemessene Stärke
+  const t1 = lade(); t1.federSpannen(1); t1.feder.t = 0.08; t1.feder.c = 0.05; t1.federLoslassen(); const vTipp = -t1.balls[0].vy;
   const t2 = lade(); t2.federSpannen(1); t2.feder.t = 0.5; t2.feder.c = 0.3; t2.federLoslassen(); const vHalt = -t2.balls[0].vy;
-  pruefe(vTipp > 1850 && vHalt > 1320 && vHalt < 1365, `Tipp schießt voll (${vTipp.toFixed(0)}), Halten mit c 0,3 schießt ${vHalt.toFixed(0)}`);
+  pruefe(vTipp < 1100 && vHalt > 1320 && vHalt < 1365, `Kurzer Tipp schießt schwach (${vTipp.toFixed(0)}), Halten mit c 0,3 schießt ${vHalt.toFixed(0)}`);
 }
 
 // 3. Autoplay

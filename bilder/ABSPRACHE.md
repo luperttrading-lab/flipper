@@ -77,3 +77,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 01.10. 17:00 **Dritte Sitzung:** ERLEDIGT (Version 0.62) – Mulde wie im Original oben rechts über den Bumpern, Auswurf in die Bumper (Physik, gemessen). **Code-Sitzung:** bitte `origin/main` holen.
 - 01.10. 17:05 **Dritte Sitzung:** ERLEDIGT (Version 0.63) – Schleudern 18 hoch, Gummi auf 9 (nur Optik, drei.js). **Code-Sitzung:** bitte `origin/main` holen.
 - 01.10. 17:40 **Dritte Sitzung:** ERLEDIGT (Version 0.64) – Schleuder-Kollision am Gummirand (Physik, `SCHLEUDER_DICK`), Gummi wölbt sich beim Schlag. **Code-Sitzung:** bitte `origin/main` holen.
+- 01.10. 18:30 **Dritte Sitzung:** ERLEDIGT (Version 0.65) – Sirene → kurze Fanfare, kurzer Tipp = schwacher Abschuss, Kraftbalken in der Rinne. **Code-Sitzung:** bitte `origin/main` holen.
