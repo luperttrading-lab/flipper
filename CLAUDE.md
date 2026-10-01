@@ -316,6 +316,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Bogen; weiß ab 0,6 (voll ab 0,9). `federV` bleibt monoton (Zufall nur in `federLoslassen`). Gemessen je 30 Schüsse, Anteil durch die Gassen:
   c 0,2 93 %, 0,3/0,4 63 %, 0,47 50 %, 0,52 33 %, 0,57 13 %, ab 0,65 0 %. Original (Recherche): T2 hat einen Auto-Plunger mit festem Schuss
   über den Bogen auf die weißen Ziele links (Skill Shot = Timing) – die dosierbare Feder mit Gassen ist unsere eigene Regel.
+- Stand 0.67 (Nutzer): **Pause:** Tipp auf die Anzeige oben (`#kopf`) zeigt den Pause-Schirm (vorher nur beim Zurückholen aus dem
+  Hintergrund); Hinweis in der Kurzanleitung. **Rampenpfosten** r 3,5 statt 5 (Physik + Optik), in 3D silberner Ring statt schwarzem Gummi.
+  **Flipper-Effet** (`EFFET = 0.8`): beim Hochschlagen wird die Abflugrichtung einmal je Schlag (`frei('effet…', 0.1)`) um
+  −side · EFFET · (u − 0,5) gedreht, u = Lage auf dem Flipper. Messung ruhende Kugel: Spreizung vorher ~28° (rechts 93–121°), jetzt ~50°.
+  Raster mit fallenden Kugeln (u 0,1–0,95 × vy 250/450/650 × Flip-Verzögerung 0–0,16 s): **Seitenziele waren auch vorher direkt
+  erreichbar** (rechter Flipper → Rundziele 13 %, linker → orange Stehziele 15 %). Rechter Flipper erste Hälfte → linke Rampe 15 % → 10 %,
+  zweite Hälfte → Rundziele 13 % → 20 % (je 135 Schüsse, grob). Autoplay 3 × 30 min: Spielenden unverändert (Rauschen), Mulde Ø 50 statt 28.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

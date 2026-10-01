@@ -126,7 +126,7 @@
 <div class="start splash" id="start">
   <div class="splash-bild">
     <button class="splash-ver" id="ver-splash" type="button" aria-label="Auf Update prüfen"></button>
-    <div class="splash-text"><span>Antippen zum Starten</span><span>Hälften tippen = Flipper · Kugel halten = Abschuss</span></div>
+    <div class="splash-text"><span>Antippen zum Starten</span><span>Hälften tippen = Flipper · Kugel halten = Abschuss · Anzeige = Pause</span></div>
   </div>
   <span id="start-text">Pause – antippen</span>
   <div class="start-leiste">
@@ -141,7 +141,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.66';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.67';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -548,8 +548,8 @@ const dmd = (() => {
 
   // Pfosten an den Rampeneinläufen
   const posts = [
-    { x: 134, y: 405, r: 5 }, { x: 178, y: 405, r: 5 },     // Einlauf 34 breit (vorher 22: nur ±2 Spiel für die Kugel)
-    { x: 256, y: 395, r: 5 }, { x: 300, y: 395, r: 5 },
+    { x: 134, y: 405, r: 3.5 }, { x: 178, y: 405, r: 3.5 },     // Einlauf 34 breit (vorher 22: nur ±2 Spiel für die Kugel); 0.67: r 3,5 statt 5
+    { x: 256, y: 395, r: 3.5 }, { x: 300, y: 395, r: 3.5 },
   ];
 
   // Pop-Bumper oben
@@ -590,6 +590,7 @@ const dmd = (() => {
     { px: 263.9, py: 688, side: -1, a: 0.5, prev: null, on: false },
   ];
   const A_REST = 0.5, A_UP = -0.45, A_SPEED = 22; // rad, rad/s
+  const EFFET = 0.8;                              // 0.67: Lenkwirkung der Trefferstelle (rad über die ganze Flipperlänge)
   const tip = f => ({ x: f.px + f.side * FL * Math.cos(f.a), y: f.py + FL * Math.sin(f.a) });
 
   // ---------- Zustand ----------
@@ -1006,7 +1007,15 @@ const dmd = (() => {
     for (const f of flippers) {
       const t = tip(f);
       const svx = (t.x - f.prev.x) / dt, svy = (t.y - f.prev.y) / dt;
-      collideSeg(f.px, f.py, t.x, t.y, R + 7, REST_FLIP, svx, svy);
+      const c = collideSeg(f.px, f.py, t.x, t.y, R + 7, REST_FLIP, svx, svy);
+      // 0.67: Trefferstelle lenkt stärker (Nutzer: rechter Flipper schoss aus der ersten Hälfte immer Richtung Rampe; die Ziele ganz
+      // links/rechts waren direkt nicht erreichbar). Nur beim Hochschlagen: Abflugrichtung um EFFET · (u − 0,5) drehen,
+      // u = Lage auf dem Flipper (0 Drehpunkt … 1 Spitze); Spitze → stärker zur Gegenseite, Ansatz → steiler / eigene Seite
+      if (c && f.on && f.a > A_UP + 0.02 && -c.vn > 150 && frei('effet' + f.side, 0.1)) {
+        const lx = t.x - f.px, ly = t.y - f.py, u = Math.max(0, Math.min(1, ((ball.x - f.px) * lx + (ball.y - f.py) * ly) / (lx * lx + ly * ly)));
+        const d = -f.side * EFFET * (u - 0.5), cs = Math.cos(d), sn = Math.sin(d), mx = ball.vx, my = -ball.vy;
+        ball.vx = mx * cs - my * sn; ball.vy = -(mx * sn + my * cs);
+      }
     }
 
     // ---- Schalter ----
@@ -1909,6 +1918,10 @@ const dmd = (() => {
   window.addEventListener('pointerdown', e => {
     if (e.target.closest && e.target.closest('#start, #update')) return;
     e.preventDefault();
+    if (e.target.closest && e.target.closest('#kopf')) {          // 0.67: Tipp auf die Anzeige = Pause
+      alleLos(); document.getElementById('start-text').textContent = 'Pause – antippen';
+      document.getElementById('start').classList.remove('splash'); document.getElementById('start').hidden = false; return;
+    }
     if (gameOver) { restart(); return; }
     if (imAbzugFeld(e.clientX, e.clientY)) {
       abzugGedrueckt = zeit + 0.15;

@@ -132,11 +132,11 @@ kasten(0, H, W, 22, 16);
   }
 }
 
-// ---------- Pfosten an den Rampeneinläufen: Chrom mit schwarzem Gummiring ----------
+// ---------- Pfosten an den Rampeneinläufen: schlanker Chrompfosten mit silbernem Ring (0.67: kleiner, silber statt schwarz) ----------
 for (const p of Z.posts) {
   const s = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 0.6, p.r * 0.6, 20, 16), chrom);
   s.position.copy(P(p.x, p.y, 10)); s.castShadow = true; scene.add(s);
-  const g = new THREE.Mesh(new THREE.TorusGeometry(p.r, 1.6, 10, 24), gummiSchwarz);
+  const g = new THREE.Mesh(new THREE.TorusGeometry(p.r - 0.8, 0.8, 10, 24), chrom);
   g.rotation.x = Math.PI / 2; g.position.copy(P(p.x, p.y, 8)); g.castShadow = true; scene.add(g);
 }
 
