@@ -419,7 +419,9 @@ function kugelMesh(i) {
 // ---------- Kopfteil (0.70): unten die Anzeige in voller Breite, darüber das Bild – nur so hoch, wie Platz ist ----------
 // Die Bildhöhe `hb` wählt einpassen(): so groß wie möglich, ohne dass der Tisch kleiner wird (Tisch bleibt breitenbegrenzt).
 // Bild: kopf.jpg (falls vorhanden), sonst Platzhalter; es wird mittig auf die verfügbare Höhe zugeschnitten.
-const RK = { b: W + 44, t: 60, neig: 8 * Math.PI / 180, unten: 122, sockel: 40, hb: 0, hbMax: 340 };
+const RK = { b: W + 44, t: 60, neig: 8 * Math.PI / 180, unten: 122, sockel: 40, hb: 0, hbMax: 400 };
+const UNTEN_RAND = 0.03;                      // Abstand Tischunterkante – Bildschirmunterkante (Anteil der halben Höhe)
+const TISCH_VERLUST = 1.035;                  // Bildteil darf den Tisch höchstens 3,5 % verkleinern
 const dmdTex = new THREE.CanvasTexture(document.getElementById('dmd'));
 dmdTex.colorSpace = THREE.SRGBColorSpace; dmdTex.anisotropy = 4;
 let dmdStand = -1;
@@ -504,14 +506,14 @@ function einpassen() {
       for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2, b = passt(m); if (b.x0 < -1 || b.x1 > 1 || b.y0 < -1.001 || b.y1 > 0.99) lo = m; else hi = m; }
       dist = hi;
       const b = passt(dist);
-      ziel.z -= ((b.y0 + b.y1) / 2) * 300;          // senkrecht mittig
+      ziel.z -= (b.y0 + 1 - UNTEN_RAND) * 300;    // 0.71: unten mit kleinem Rand (vorher mittig – unten blieb zu viel Luft)
     }
     return dist;
   };
   // 0.70: Bildhöhe so groß wie möglich, solange der Tisch höchstens 2,5 % kleiner wird als nur mit Anzeige (gemessen: jede
   // Bildhöhe kostet etwas Tischgröße, volle Höhe 270 ≈ 5 %)
   kopfEcken(0); ziel.set(0, 0, 40); const d0 = einpass(); let best = 0;
-  for (let hb = RK.hbMax; hb >= 30; hb -= 10) { kopfEcken(hb); ziel.set(0, 0, 40); if (einpass() <= d0 * 1.025) { best = hb; break; } }
+  for (let hb = RK.hbMax; hb >= 30; hb -= 10) { kopfEcken(hb); ziel.set(0, 0, 40); if (einpass() <= d0 * TISCH_VERLUST) { best = hb; break; } }
   kopfEcken(best); ziel.set(0, 0, 40); einpass(); setzeKopf(best);
   passt(dist);
 }

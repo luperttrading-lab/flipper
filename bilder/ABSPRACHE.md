@@ -84,3 +84,4 @@ Der Nutzer stößt jede Sitzung mit „Lies bilder/ABSPRACHE.md“ an.
 - 01.10. 20:15 **Dritte Sitzung:** ERLEDIGT (Version 0.69) – großer 3D-Kopfteil mit Platzhalterbild. **Code → Bilder: BITTE** – Hinterglas-Bild
   nach `bilder/AUFTRAG_KOPF.md` erzeugen (3 Varianten, beste als `bilder/eingang/kopf_v1.png`), danach BEREIT eintragen.
 - 01.10. 20:40 **Dritte Sitzung:** ERLEDIGT (Version 0.70) – Kopfteil: Anzeige volle Breite, Bildstreifen mit automatischer Höhe. Das Hinterglas-Bild wird jetzt **mittig auf einen flachen Streifen zugeschnitten** (≈ 420 × 106) – wichtig für das Motiv: Wichtiges in die Bildmitte.
+- 0.71: Kopfteil-Bildfläche jetzt deutlich höher (unten bündig, Tisch max. 3,5 % kleiner). Das Bild wird weiter mittig zugeschnitten – Motiv mittig halten, Format 4:3 passt.

@@ -341,6 +341,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   10er-Schritten), bei der der Tisch höchstens **2,5 %** kleiner wird als nur mit Anzeige-Leiste (gemessen 430×932: jede Bildhöhe kostet
   Tischgröße, volle 270 ≈ 5 %; Ergebnis ≈ 120). Bild wird mittig zugeschnitten (`bildZuschnitt`, Seitenverhältnis bleibt). Einpassen jetzt
   10 Runden (4 konvergierten nicht). `body.drei #dmd` bis 520 px breit → schärfere Textur. Lautsprecher entfernt.
+- Stand 0.71 (Nutzer: unten zu viel Luft, Kopfteil oben geschlossen mit Platz fürs Bild): Einpassung **unten bündig** (`UNTEN_RAND`
+  0,03 statt senkrecht mittig), Bildteil darf den Tisch bis **3,5 %** verkleinern (`TISCH_VERLUST`, vorher 2,5 %), `hbMax` 400. Gemessen
+  430×932: Tisch-Unterkante 912, Kopfteil reicht bis an den oberen Rand; 393×852 → 834, 375×667 → 652.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
