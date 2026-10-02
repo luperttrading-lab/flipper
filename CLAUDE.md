@@ -394,6 +394,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.84 (Nutzer: stehender blauer Rest bei 6 → 5 Uhr): Der Strudel lief im Bild über den hellblauen Innenring (r 175–190) und
   darunter bis an die Ziffern. Jetzt: Scheibe r 191 **inkl. Innenring** (dreht als Lünette mit), und in `kopf.jpg` werden bläuliche/violette
   Pixel im Ring r 189–220 um 886/319 auf Nachtblau (10/16/40) gezogen (95 %, orange Ziffern bleiben) – in `tools/zeiger_einbau.py`.
+- Stand 0.85 (Nutzer: Kugel rollt nicht, macht Mikrosprünge): **Gemessen** (Hook in `collideSeg`, 5 min Autoplay): 240 kleine Abpraller/min
+  (Aufprall 8–200), Median 62, 90 % 162 → Sprung bis ~3 Einheiten; **13,6 Hüpf-Serien/min** (≥ 3 Abpraller an derselben Führung in < 0,4 s).
+  Jetzt **geschwindigkeitsabhängiger Rückprall** `weich(rest, vn)`: unter 40 kein Rückprall (rollt an der Führung), linear bis voll ab 300
+  (`WEICH_AB`/`WEICH_VOLL`, gilt für Wände, Pfosten, Flipper). Danach: Serien ~1/min, Sprünge > 1 Einheit 158 → ~93/min; Sim 30/30, 3 min ohne
+  Fehler. Offen: Ruckeln durch die Darstellung (variable Bildzeit) – dafür Bildschirmvideo vom iPhone auswerten.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

@@ -158,7 +158,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.84';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.85';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -677,6 +677,10 @@ const dmd = (() => {
   const fmt = n => n.toLocaleString('de-DE');
 
   // ---------- Kollision ----------
+  // 0.85 (Nutzer: Kugel rollt nicht, macht Mikrosprünge): Rückprall hängt von der Aufprallgeschwindigkeit ab – unter 40 kein
+  // Rückprall (Kugel rollt an der Führung entlang), voll erst ab 300. Gemessen: Abpraller 90 %-Wert hob die Kugel ~3 Einheiten an.
+  const WEICH_AB = 40, WEICH_VOLL = 300;
+  const weich = (rest, vn) => rest * Math.min(1, Math.max(0, (-vn - WEICH_AB) / (WEICH_VOLL - WEICH_AB)));
   function collideSeg(x1, y1, x2, y2, rad, rest, svx = 0, svy = 0) {
     const dx = x2 - x1, dy = y2 - y1;
     const len2 = dx * dx + dy * dy;
@@ -693,8 +697,9 @@ const dmd = (() => {
     const rvx = ball.vx - sx, rvy = ball.vy - sy;
     const vn = rvx * nx + rvy * ny;
     if (vn < 0) {
-      ball.vx -= (1 + rest) * vn * nx;
-      ball.vy -= (1 + rest) * vn * ny;
+      const e = weich(rest, vn);
+      ball.vx -= (1 + e) * vn * nx;
+      ball.vy -= (1 + e) * vn * ny;
     }
     return { nx, ny, vn };
   }
@@ -704,7 +709,7 @@ const dmd = (() => {
     const nx = dx / d, ny = dy / d;
     ball.x = cx + nx * min; ball.y = cy + ny * min;
     const vn = ball.vx * nx + ball.vy * ny;
-    if (vn < 0) { ball.vx -= (1 + rest) * vn * nx; ball.vy -= (1 + rest) * vn * ny; }
+    if (vn < 0) { const e = weich(rest, vn); ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; }
     return { nx, ny, vn };
   }
   // Kugeln untereinander: gleich schwer, fast elastisch
