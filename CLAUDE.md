@@ -399,6 +399,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Jetzt **geschwindigkeitsabhängiger Rückprall** `weich(rest, vn)`: unter 40 kein Rückprall (rollt an der Führung), linear bis voll ab 300
   (`WEICH_AB`/`WEICH_VOLL`, gilt für Wände, Pfosten, Flipper). Danach: Serien ~1/min, Sprünge > 1 Einheit 158 → ~93/min; Sim 30/30, 3 min ohne
   Fehler. Offen: Ruckeln durch die Darstellung (variable Bildzeit) – dafür Bildschirmvideo vom iPhone auswerten.
+- Stand 0.86 (Nutzer-Bildschirmvideo 0.85, 60 Hz, 11 s, ausgewertet per OpenCV-Vorlagenabgleich der Kugel in der Abschussrinne):
+  Kugelweg je Videobild beim Einrollen **3, 9, 0, 14, 0, 5, 0, 13, 0, 17 …** Pixel – nur etwa jedes 1,5. Bild neu, Anzeige 41–47 fps bei 2×.
+  Die Physik rechnet zeitrichtig (Schritt ∝ verstrichene Zeit), das Ruckeln kommt von **verpassten Bildern**. Verdacht: jedes 2. Bild
+  zeichnet die 2D-Bodentextur neu und lädt sie hoch (Spitze). Jetzt: Bodentextur `BODEN_PX` 1,5 statt 2 (600 × 1140, −44 %), automatische
+  Auflösung senkt schon **unter 55 fps** (vorher 40; bei 41–47 fps blieb sie auf 2×), Probe nach oben gilt erst ab 57 fps als gehalten.
+  Prüfen: neues Video – Ziel ist Bewegung in jedem Bild (keine 0-Schritte).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

@@ -626,7 +626,7 @@ function messeFps(jetzt) {
   if (jetzt - fStart < 1500) return;
   const fps = fZaehler * 1000 / (jetzt - fStart); fZaehler = 0; fStart = jetzt;
   if (!window.__ZT_FEST && jetzt > fWarm) {
-    if (fps < 40) {
+    if (fps < 55) {                                         // 0.86: Ziel sind flüssige 60 fps (Video: 41–47 fps bei 2× ruckelte sichtbar)
       flott = 0;
       if (++langsam >= 2) {                                   // erst nach zwei schlechten Messungen in Folge senken
         langsam = 0;
@@ -636,7 +636,7 @@ function messeFps(jetzt) {
       }
     } else {
       langsam = 0;
-      if (probe && fps >= 50) probe = false;                  // neue Stufe läuft flüssig: behalten
+      if (probe && fps >= 57) probe = false;                  // neue Stufe läuft flüssig: behalten
       if (fps >= 57 && ++flott >= 3 && stufe > 0 && !gesperrt.has(stufe - 1) && Math.min(STUFEN[stufe - 1], GERAET_DPR) > Math.min(STUFEN[stufe], GERAET_DPR)) {
         flott = 0; probe = true; stufeSetzen(stufe - 1); fWarm = jetzt + 2500;   // wieder schärfer, wenn Luft ist
       }
