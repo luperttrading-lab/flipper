@@ -371,6 +371,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (10 MILLION) = 12:00 → Meldung **„ZERO TIME“** + Jackpot-Lichtshow (`jpShow`); bei Kanone (7 s), Hurry Up (20 s), Payback (25 s) läuft der
   Minutenzeiger als Stoppuhr eine Runde auf zwölf zu; bei jedem Jackpot wirbeln die Zeiger 1,2 s. **Schädel-Augen** im Bild glühen
   (additive Flächen, pulsierend, stärker im Multiball/Jackpot). `__ZT` liefert dafür `uhr` und `multiball`. Zeiger in der `sw.js`-Cache-Liste.
+- Stand 0.79 (Nutzer zur Uhr): Zeiger stehen **normal auf fünf vor zwölf** (keine echte Uhrzeit, kein Fortschritt, keine Kugelanzeige,
+  kein Wirbeln beim Jackpot). **Zeitmodi** (Kanone 7 s, Hurry Up 20 s, Payback 25 s): Minutenzeiger als Sekundenzeiger, startet so viele
+  Sekunden vor zwölf, wie der Modus dauert, und **tickt sekundenweise** auf zwölf. **Multiball:** beide Zeiger drehen **gegenläufig**
+  (Minute ½ Umdrehung/s rechts herum, Stunde 0,3 links herum). **Augen** glimmen und **flackern** zufällig (häufiger im Multiball/Jackpot).
+  „ZERO TIME“-Meldung beim 6. Fluchtweg-Feld aus 0.78 bleibt (Spielregel in index.html).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

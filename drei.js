@@ -491,29 +491,30 @@ const uhrLage = () => {                       // Uhr auf die Stelle des Bildes s
   uhr.visible = true;
 };
 uhrLageRuf = uhrLage;
-let mWin = Math.PI, hWin = 0;
+// 0.79 (Nutzer): Zeiger stehen normal auf fünf vor zwölf. Zeitmodi: Minutenzeiger als Sekundenzeiger – startet so viele Sekunden
+// vor zwölf, wie der Modus dauert (Hurry Up 20 s → bei 40), und tickt sekundenweise hoch. Multiball: beide Zeiger drehen gegenläufig.
 const VOLL = 2 * Math.PI, nachVorn = (a, b) => ((b - a) % VOLL + 1.5 * VOLL) % VOLL - VOLL / 2;   // kürzeste Drehung a → b
+const M_RUHE = 55 / 60 * VOLL, H_RUHE = (11 + 55 / 60) / 12 * VOLL;
+let mWin = M_RUHE, hWin = H_RUHE, flackerBis = 0, flackerTief = 1;
 function uhrSchritt(dt) {
   if (!uhr.visible) return;
   const d = Z.uhr, zt = Z.zeit;
-  let m, h;
-  if (d.attract) {                            // Ruhezustand: echte Uhrzeit
-    const n = new Date(), min = n.getMinutes() + n.getSeconds() / 60;
-    m = min / 60 * VOLL; h = ((n.getHours() % 12) + min / 60) / 12 * VOLL;
-  } else {
-    // Fortschritt: jedes kassierte Fluchtweg-Feld = 5 Minuten, von halb zwölf (Minutenzeiger auf VI) bis ZERO TIME (12:00)
-    const fort = Math.PI + d.geholt * Math.PI / 6;
-    h = (11 + fort / VOLL) / 12 * VOLL; m = fort;
-    // Zeitmodi: Minutenzeiger als Stoppuhr, läuft in einer Runde auf zwölf zu
-    const uhrLauf = (rest, ges) => { m = VOLL * (1 - Math.max(0, Math.min(1, rest / ges))); };
-    if (Z.kanone.kugel) uhrLauf(Z.kanone.feuerBis - zt, 7);
-    else if (zt < d.hurryBis) uhrLauf(d.hurryBis - zt, 20);
-    else if (zt < d.paybackBis) uhrLauf(d.paybackBis - zt, 25);
-  }
-  if (zt - d.jpShow >= 0 && zt - d.jpShow < 1.2) { mWin += dt * 2 * VOLL; hWin += dt * VOLL / 6; }   // Jackpot: Zeiger wirbeln
-  else { const k = Math.min(1, dt * 5); mWin += nachVorn(mWin, m) * k; hWin += nachVorn(hWin, h) * k; }
+  let rest = null;
+  if (Z.kanone.kugel) rest = Z.kanone.feuerBis - zt;
+  else if (zt < d.hurryBis) rest = d.hurryBis - zt;
+  else if (zt < d.paybackBis) rest = d.paybackBis - zt;
+  if (rest !== null) {                        // Sekundenzeiger: ganze Sekunden, springt wie ein Ticken
+    const m = (60 - Math.min(60, Math.ceil(Math.max(0, rest)))) / 60 * VOLL;
+    mWin += nachVorn(mWin, m) * Math.min(1, dt * 25); hWin += nachVorn(hWin, H_RUHE) * Math.min(1, dt * 5);
+  } else if (Z.multiball) { mWin += dt * VOLL * 0.5; hWin -= dt * VOLL * 0.3; }
+  else { const k = Math.min(1, dt * 4); mWin += nachVorn(mWin, M_RUHE) * k; hWin += nachVorn(hWin, H_RUHE) * k; }
   zMinute.rotation.z = -mWin; zStunde.rotation.z = -hWin;
-  const glut = zt - d.jpShow >= 0 && zt - d.jpShow < 2.5 ? 0.95 : Z.multiball ? 0.6 + 0.3 * Math.sin(zt * 8) : 0.3 + 0.18 * Math.sin(zt * 2.2);
+  // Augen: ruhiges Glimmen mit gelegentlichem Flackern; im Multiball und beim Jackpot heller
+  const jp = zt - d.jpShow >= 0 && zt - d.jpShow < 2.5;
+  const jetzt = performance.now() / 1000;
+  if (jetzt > flackerBis && Math.random() < dt * (Z.multiball || jp ? 2.5 : 0.6)) { flackerBis = jetzt + 0.05 + Math.random() * 0.12; flackerTief = 0.15 + Math.random() * 0.4; }
+  let glut = jp ? 0.95 : Z.multiball ? 0.7 : 0.38 + 0.12 * Math.sin(zt * 2.2);
+  if (jetzt < flackerBis) glut *= flackerTief;
   for (const a of augenGlut) a.material.opacity = glut;
 }
 const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
