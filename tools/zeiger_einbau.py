@@ -35,12 +35,22 @@ for name, (cx, cy, hk, aus) in TEILE.items():
 Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB').save('kopf.jpg', quality=86, optimize=True, progressive=True)
 print('kopf.jpg')
 
-# Strudel (0.80/0.81): runde Scheibe um das Auge des Strudels (885/389), Radius 100 Bildpixel (unterer blauer Ring bei ~495 bleibt fest) – innerhalb des blauen Innenrings.
-# Wird in drei.js über dem Bild gedreht; Rand weich (ab 55 % des Radius ausgeblendet), damit keine Kante zu sehen ist.
-SX, SY, SR = 885, 389, 100
-bg = Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB').crop((SX - SR, SY - SR, SX + SR, SY + SR)).resize((256, 256), Image.LANCZOS)
-yy, xx = np.mgrid[0:256, 0:256]
-r = np.hypot(xx - 127.5, yy - 127.5) / 128
-alpha = np.clip((1 - r) / 0.22, 0, 1)                  # 0.81: bis 78 % deckend (vorher ab 55 % ausgeblendet – Drehung kaum sichtbar)
-Image.fromarray(np.dstack([np.asarray(bg), (alpha * 255).astype(np.uint8)]), 'RGBA').save('strudel.png', optimize=True)
+# Strudel (0.82): der ganze Strudel innerhalb des blauen Innenrings (Ringlinie bei r ≈ 173–182 um die Uhrmitte 886/316), Scheibe r 168.
+# Das Auge des Strudels sitzt im Bild nicht in der Mitte (885/389). Damit er beim Drehen nicht eiert, wird das Bild verzerrt: für jede
+# Richtung θ wird die Strecke vom Auge bis zum Kreisrand auf die Strecke Mitte → Rand abgebildet. Am Rand stimmt die Scheibe exakt mit dem
+# Bild überein, das Auge liegt danach genau in der Mitte. Rand ab 90 % weich ausgeblendet.
+CX, CY, CR, EX, EY, N = 886, 316, 168, 885, 389, 512
+quelle = np.asarray(Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB')).astype(float)
+yy, xx = np.mgrid[0:N, 0:N]
+dx, dy = (xx + 0.5) / N * 2 - 1, (yy + 0.5) / N * 2 - 1
+r = np.hypot(dx, dy); r_ = np.maximum(r, 1e-9)
+ux, uy = dx / r_, dy / r_
+bx = (EX - CX) * ux + (EY - CY) * uy; c = (EX - CX) ** 2 + (EY - CY) ** 2 - CR ** 2
+t = -bx + np.sqrt(bx ** 2 - c)                     # Abstand Auge → Kreisrand in Richtung θ
+qx, qy = EX + ux * r * t, EY + uy * r * t
+x0, y0 = np.floor(qx).astype(int), np.floor(qy).astype(int); fx, fy = (qx - x0)[..., None], (qy - y0)[..., None]
+def px(x, y): return quelle[np.clip(y, 0, quelle.shape[0] - 1), np.clip(x, 0, quelle.shape[1] - 1)]
+farbe = (px(x0, y0) * (1 - fx) * (1 - fy) + px(x0 + 1, y0) * fx * (1 - fy) + px(x0, y0 + 1) * (1 - fx) * fy + px(x0 + 1, y0 + 1) * fx * fy)
+alpha = np.clip((1 - r) / 0.1, 0, 1)
+Image.fromarray(np.dstack([farbe.clip(0, 255), alpha * 255]).astype(np.uint8), 'RGBA').save('strudel.png', optimize=True)
 print('strudel.png')

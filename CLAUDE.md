@@ -383,6 +383,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.81 (Nutzer: Drehung des Strudels nicht zu sehen): Scheibe bis 78 % des Radius deckend (vorher ab 55 % ausgeblendet – das feste
   Bild darunter überwog), Radius 100 statt 112 (unterer blauer Innenring bei y ~495 bleibt fest), Tempo 0,6 rad/s (≈ 10 s je Umdrehung),
   im Multiball 2,6 (≈ 2,4 s). Im Test nach Drehung keine Kante sichtbar.
+- Stand 0.82 (Nutzer: nur die Mitte dreht, eiert, falsche Richtung): **ganzer Strudel** dreht sich – Scheibe r 168 um die Uhrmitte 886/316
+  (blaue Ringlinie bei r ≈ 173–182). Das Auge des Strudels liegt im Bild bei 885/389, also nicht mittig; `tools/zeiger_einbau.py` verzerrt die
+  Scheibe deshalb radial (je Richtung Strecke Auge → Kreisrand auf Mitte → Rand), sodass das Auge in der Mitte liegt und der Rand exakt zum Bild
+  passt. Drehung jetzt **im Uhrzeigersinn** (Nutzer, physikalische Logik), Tempo wie 0.81.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
