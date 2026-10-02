@@ -387,6 +387,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (blaue Ringlinie bei r ≈ 173–182). Das Auge des Strudels liegt im Bild bei 885/389, also nicht mittig; `tools/zeiger_einbau.py` verzerrt die
   Scheibe deshalb radial (je Richtung Strecke Auge → Kreisrand auf Mitte → Rand), sodass das Auge in der Mitte liegt und der Rand exakt zum Bild
   passt. Drehung jetzt **im Uhrzeigersinn** (Nutzer, physikalische Logik), Tempo wie 0.81.
+- Stand 0.83 (Nutzer: unten bei 6 Uhr stand ein Rest des Strudels still; Augen sollen stärker aufleuchten): Innenring genauer vermessen
+  (Kante oben y 143, unten 494 → Mitte 886/319, r 175) → Strudel-Scheibe r 174 um 886/319, Rand nur noch 5 % weich. **Augen:** Grundglühen
+  0,55, gelegentlich **Aufblitzen** (×1,8–2,6) oder kurzes Abdunkeln; im Multiball 1,4 ± 0,5 schnell pulsierend, beim Jackpot 2,2. Werte > 1
+  schalten einen zweiten, 2,2× größeren additiven **Hof** zu.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

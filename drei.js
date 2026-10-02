@@ -467,7 +467,7 @@ const uhrTeil = (datei, seite, z) => {
   new THREE.TextureLoader().load(datei, t => { t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; m.visible = true; });
   return m;
 };
-const strudel = uhrTeil('strudel.png', 2 * 168, 0.1);  // 0.82: ganzer Strudel, auf die Uhrmitte zentriert (tools/zeiger_einbau.py)
+const strudel = uhrTeil('strudel.png', 2 * 174, 0.1); strudel.position.y = -(319 - UHR.y);   // ganzer Strudel bis an den Innenring (tools/zeiger_einbau.py)
 const zStunde = uhrTeil('zeiger_h.png', 2 * UHR.lh / 0.967, 0.3);     // Spitze bei 0,967 bzw. 0,985 der halben Kante
 const zMinute = uhrTeil('zeiger_m.png', 2 * UHR.lm / 0.985, 0.5);
 uhrTeil('zeiger_n.png', 2 * UHR.rn * 90 / 78.5, 0.7);
@@ -480,7 +480,9 @@ const glutTex = (() => {
 const augenGlut = UHR.augen.map(([x, y, r]) => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(2 * r, 2 * r), new THREE.MeshBasicMaterial({ map: glutTex, transparent: true, depthWrite: false,
     blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.4 }));
-  m.position.set(x - UHR.x, -(y - UHR.y), 0.2); uhr.add(m); return m;
+  m.position.set(x - UHR.x, -(y - UHR.y), 0.2); uhr.add(m);
+  const hof = m.clone(); hof.material = m.material.clone(); hof.scale.setScalar(2.2); hof.position.z = 0.25; uhr.add(hof);   // 0.83: Hof beim Aufblitzen
+  return { m, hof };
 });
 const uhrLage = () => {                       // Uhr auf die Stelle des Bildes setzen, die nach dem Zuschnitt sichtbar ist
   const t = kopfBildMat.map, img = t.image;
@@ -514,10 +516,13 @@ function uhrSchritt(dt) {
   // Augen: ruhiges Glimmen mit gelegentlichem Flackern; im Multiball und beim Jackpot heller
   const jp = zt - d.jpShow >= 0 && zt - d.jpShow < 2.5;
   const jetzt = performance.now() / 1000;
-  if (jetzt > flackerBis && Math.random() < dt * (Z.multiball || jp ? 2.5 : 0.6)) { flackerBis = jetzt + 0.05 + Math.random() * 0.12; flackerTief = 0.15 + Math.random() * 0.4; }
-  let glut = jp ? 0.95 : Z.multiball ? 0.7 : 0.38 + 0.12 * Math.sin(zt * 2.2);
+  if (jetzt > flackerBis && Math.random() < dt * (Z.multiball || jp ? 3 : 0.7)) {   // 0.83: Aufblitzen statt nur Abdunkeln
+    flackerBis = jetzt + 0.05 + Math.random() * 0.12; flackerTief = Math.random() < 0.5 ? 0.2 + Math.random() * 0.3 : 1.8 + Math.random() * 0.8;
+  }
+  let glut = jp ? 2.2 : Z.multiball ? 1.4 + 0.5 * Math.sin(zt * 9) : 0.55 + 0.2 * Math.sin(zt * 2.2);
   if (jetzt < flackerBis) glut *= flackerTief;
-  for (const a of augenGlut) a.material.opacity = glut;
+  // Glut > 1: zusätzlich ein großer Hof (additiv), damit die Augen deutlich aufleuchten
+  for (const { m, hof } of augenGlut) { m.material.opacity = Math.min(1, glut); hof.material.opacity = Math.min(1, Math.max(0, glut - 1) * 0.8); }
 }
 const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
 const kopf = new THREE.Group();

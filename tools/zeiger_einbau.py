@@ -39,7 +39,7 @@ print('kopf.jpg')
 # Das Auge des Strudels sitzt im Bild nicht in der Mitte (885/389). Damit er beim Drehen nicht eiert, wird das Bild verzerrt: für jede
 # Richtung θ wird die Strecke vom Auge bis zum Kreisrand auf die Strecke Mitte → Rand abgebildet. Am Rand stimmt die Scheibe exakt mit dem
 # Bild überein, das Auge liegt danach genau in der Mitte. Rand ab 90 % weich ausgeblendet.
-CX, CY, CR, EX, EY, N = 886, 316, 168, 885, 389, 512
+CX, CY, CR, EX, EY, N = 886, 319, 174, 885, 389, 512   # 0.83: Innenring genauer vermessen (oben 143, unten 494 → Mitte 319, r 175)
 quelle = np.asarray(Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB')).astype(float)
 yy, xx = np.mgrid[0:N, 0:N]
 dx, dy = (xx + 0.5) / N * 2 - 1, (yy + 0.5) / N * 2 - 1
@@ -51,6 +51,6 @@ qx, qy = EX + ux * r * t, EY + uy * r * t
 x0, y0 = np.floor(qx).astype(int), np.floor(qy).astype(int); fx, fy = (qx - x0)[..., None], (qy - y0)[..., None]
 def px(x, y): return quelle[np.clip(y, 0, quelle.shape[0] - 1), np.clip(x, 0, quelle.shape[1] - 1)]
 farbe = (px(x0, y0) * (1 - fx) * (1 - fy) + px(x0 + 1, y0) * fx * (1 - fy) + px(x0, y0 + 1) * (1 - fx) * fy + px(x0 + 1, y0 + 1) * fx * fy)
-alpha = np.clip((1 - r) / 0.1, 0, 1)
+alpha = np.clip((1 - r) / 0.05, 0, 1)
 Image.fromarray(np.dstack([farbe.clip(0, 255), alpha * 255]).astype(np.uint8), 'RGBA').save('strudel.png', optimize=True)
 print('strudel.png')
