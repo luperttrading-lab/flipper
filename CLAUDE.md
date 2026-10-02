@@ -356,6 +356,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   sichtbar ist. `bildZuschnitt` jetzt wie „cover“: Bild breiter als Fläche → seitlich mittig abschneiden, aber höchstens auf `KOPF_MIN_BREITE`
   0,82 (Schriftzug reicht von ~11 % bis ~89 % der Bildbreite), Rest durch leichte senkrechte Streckung (bei 932 px ≈ 10 %); Bild höher →
   wie 0.73 oben/unten (unten betont). Neues Bild mit anderem Schriftzug-Bereich → Konstante prüfen.
+- Stand 0.75: `kopf.jpg` = Nutzer-Fassung mit **schmalerem Schriftzug** (1770×889, Schrift ~26–74 % der Breite). `KOPF_MIN_BREITE` 0,6 →
+  bei 932 px Höhe nur seitlicher Zuschnitt (sichtbar ~74 % der Breite), **keine Streckung**; bei 863 px ganzes Bild.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

@@ -443,12 +443,12 @@ const kopfBildTex = (() => {                  // Platzhalter: eigenes Motiv aus 
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 })();
 const kopfBildMat = new THREE.MeshBasicMaterial({ map: kopfBildTex, toneMapped: false });
-const KOPF_MIN_BREITE = 0.82;
+const KOPF_MIN_BREITE = 0.6;
 const bildZuschnitt = () => {                 // 0.74: wie CSS „cover“ – Fläche immer gefüllt, Seitenverhältnis bleibt
   const t = kopfBildMat.map, img = t.image, bb = RK.b - 24, bh = Math.max(1, RK.hb - 14);
   const ib = img && img.width ? img.width / img.height : 4 / 3, fb = bb / bh;          // Seitenverhältnis Bild / Fläche
-  // Bild breiter: seitlich mittig abschneiden, aber höchstens bis KOPF_MIN_BREITE (Schriftzug in kopf.jpg reicht von 11 % bis 89 % der
-  // Breite) – reicht das nicht, wird das Bild senkrecht leicht gestreckt (bei 932 px Höhe ≈ 10 %)
+  // Bild breiter: seitlich mittig abschneiden, aber höchstens bis KOPF_MIN_BREITE (Schriftzug in kopf.jpg reicht von ~26 % bis ~74 % der
+  // Breite) – reicht das nicht, wird das Bild senkrecht leicht gestreckt (mit diesem Bild auf allen gemessenen Höhen nicht nötig)
   if (ib > fb) { t.repeat.set(Math.max(fb / ib, KOPF_MIN_BREITE), 1); t.offset.set((1 - t.repeat.x) / 2, 0); }
   else { t.repeat.set(1, ib / fb); t.offset.set(0, (1 - t.repeat.y) * 0.35); }        // Bild höher: unten weniger abschneiden (Schriftzug)
   t.needsUpdate = true;
