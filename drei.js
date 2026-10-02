@@ -467,6 +467,7 @@ const uhrTeil = (datei, seite, z) => {
   new THREE.TextureLoader().load(datei, t => { t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; m.visible = true; });
   return m;
 };
+const strudel = uhrTeil('strudel.png', 2 * 112, 0.1); strudel.position.set(885 - UHR.x, -(389 - UHR.y), 0.1);   // 0.80: drehender Strudel
 const zStunde = uhrTeil('zeiger_h.png', 2 * UHR.lh / 0.967, 0.3);     // Spitze bei 0,967 bzw. 0,985 der halben Kante
 const zMinute = uhrTeil('zeiger_m.png', 2 * UHR.lm / 0.985, 0.5);
 uhrTeil('zeiger_n.png', 2 * UHR.rn * 90 / 78.5, 0.7);
@@ -503,11 +504,12 @@ function uhrSchritt(dt) {
   if (Z.kanone.kugel) rest = Z.kanone.feuerBis - zt;
   else if (zt < d.hurryBis) rest = d.hurryBis - zt;
   else if (zt < d.paybackBis) rest = d.paybackBis - zt;
-  if (rest !== null) {                        // Sekundenzeiger: ganze Sekunden, springt wie ein Ticken
+  strudel.rotation.z += dt * (Z.multiball ? 1.4 : 0.25);   // Strudel dreht links herum, im Multiball schnell
+  if (Z.multiball) { mWin += dt * VOLL * 0.5; hWin -= dt * VOLL * 0.3; }   // Multiball hat Vorrang (auch bei geladener Kanone)
+  else if (rest !== null) {                   // Sekundenzeiger: ganze Sekunden, springt wie ein Ticken
     const m = (60 - Math.min(60, Math.ceil(Math.max(0, rest)))) / 60 * VOLL;
     mWin += nachVorn(mWin, m) * Math.min(1, dt * 25); hWin += nachVorn(hWin, H_RUHE) * Math.min(1, dt * 5);
-  } else if (Z.multiball) { mWin += dt * VOLL * 0.5; hWin -= dt * VOLL * 0.3; }
-  else { const k = Math.min(1, dt * 4); mWin += nachVorn(mWin, M_RUHE) * k; hWin += nachVorn(hWin, H_RUHE) * k; }
+  } else { const k = Math.min(1, dt * 4); mWin += nachVorn(mWin, M_RUHE) * k; hWin += nachVorn(hWin, H_RUHE) * k; }
   zMinute.rotation.z = -mWin; zStunde.rotation.z = -hWin;
   // Augen: ruhiges Glimmen mit gelegentlichem Flackern; im Multiball und beim Jackpot heller
   const jp = zt - d.jpShow >= 0 && zt - d.jpShow < 2.5;

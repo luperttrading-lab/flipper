@@ -376,6 +376,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Sekunden vor zwölf, wie der Modus dauert, und **tickt sekundenweise** auf zwölf. **Multiball:** beide Zeiger drehen **gegenläufig**
   (Minute ½ Umdrehung/s rechts herum, Stunde 0,3 links herum). **Augen** glimmen und **flackern** zufällig (häufiger im Multiball/Jackpot).
   „ZERO TIME“-Meldung beim 6. Fluchtweg-Feld aus 0.78 bleibt (Spielregel in index.html).
+- Stand 0.80: **Strudel dreht sich** – `strudel.png` (256², aus `kopf_ohne_zeiger_v1` um das Auge 885/389, Radius 112 Bildpixel, Rand ab
+  55 % weich ausgeblendet; erzeugt in `tools/zeiger_einbau.py`) liegt unter den Zeigern und dreht links herum (0,25 rad/s, im Multiball 1,4).
+  Kante im Test nicht sichtbar. **Fehler behoben (Nutzer):** Im Multiball sprangen die Zeiger beim Laden der Kanone auf den Countdown/fünf vor
+  zwölf – Multiball hat jetzt Vorrang vor den Zeitmodi, die Zeiger drehen durchgehend, solange der Multiball läuft.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
