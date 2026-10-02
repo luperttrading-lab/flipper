@@ -78,20 +78,30 @@ const holz = new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.5, m
 const kugelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.12, envMapIntensity: 1.4 });
 
 // ---------- Boden: die 2D-Zeichnung als Textur ----------
-const tex = new THREE.CanvasTexture(Z.cv);
-tex.colorSpace = THREE.SRGBColorSpace;
-// 0.88 Rechenlast: Bodentextur wird alle 2 Bilder neu hochgeladen – Mipmaps dafür jedes Mal neu zu rechnen ist teuer, und 16-fache
-// anisotrope Filterung kostet auf der ganzen Bodenfläche. Jetzt ohne Mipmaps, 4-fach.
-tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
-tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-const bodenMat = new THREE.MeshStandardMaterial({
-  map: tex, roughness: 0.42, metalness: 0.05, envMapIntensity: 0.25,
-  emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.5,      // Einsätze leuchten auch ohne Licht
+// 0.89: Boden in zwei Hälften (oben/unten) mit je eigener Textur. Video 0.88: fps-Anzeige 57–59, aber der Bildschirm wechselte lange
+// Strecken nur jedes 2. Bild – die Grafik schaffte das Bild mit dem großen Textur-Upload (alle 2 Bilder) nicht rechtzeitig. Jetzt wird
+// in jedem Bild nur eine Hälfte hochgeladen: gleiche Gesamtmenge, aber gleichmäßig verteilt statt als Spitze.
+// Bodentextur ohne Mipmaps (würden bei jedem Hochladen neu gerechnet) und mit 4- statt 16-facher Anisotropie (0.88).
+const bodenTeile = [0, 1].map(k => {
+  const c = document.createElement('canvas'); c.width = Z.cv.width; c.height = Math.ceil(Z.cv.height / 2);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter;
+  t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  const mat = new THREE.MeshStandardMaterial({
+    map: t, roughness: 0.42, metalness: 0.05, envMapIntensity: 0.25,
+    emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.5,      // Einsätze leuchten auch ohne Licht
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H / 2), mat);
+  m.rotation.x = -Math.PI / 2; m.position.z = (k - 0.5) * H / 2; m.receiveShadow = true; scene.add(m);
+  return { c, g: c.getContext('2d'), t };
 });
-const boden = new THREE.Mesh(new THREE.PlaneGeometry(W, H), bodenMat);
-boden.rotation.x = -Math.PI / 2;
-boden.receiveShadow = true;
-scene.add(boden);
+const bodenHaelfte = k => {                     // Hälfte k aus der 2D-Zeichnung übernehmen und zum Hochladen markieren
+  const b = bodenTeile[k], h = b.c.height;
+  if (b.c.width !== Z.cv.width) { b.c.width = Z.cv.width; }
+  b.g.drawImage(Z.cv, 0, k * h, b.c.width, h, 0, 0, b.c.width, h); b.t.needsUpdate = true;
+};
+bodenHaelfte(0); bodenHaelfte(1);
+let bodenOffen = [];
 
 // Gehäuse: dunkle Seitenwände und Kopfleiste, vorn eine flache Blende
 const kasten = (x, y, w, d, h, mat = holz) => {
@@ -655,7 +665,8 @@ let uhrZuletzt = 0, uhrDt = 0;
 function bild(jetzt) {
   messeFps(jetzt || performance.now());
   { const j = (jetzt || performance.now()) / 1000; uhrDt = Math.min(0.1, Math.max(0, j - uhrZuletzt)); uhrZuletzt = j; }
-  if (Z.gezeichnet !== letzteZeichnung) { letzteZeichnung = Z.gezeichnet; tex.needsUpdate = true; }
+  if (Z.gezeichnet !== letzteZeichnung) { letzteZeichnung = Z.gezeichnet; bodenOffen = [0, 1]; }
+  if (bodenOffen.length) bodenHaelfte(bodenOffen.shift());   // je Bild nur eine Hälfte hochladen
   if (window.__dmdStand !== dmdStand) { dmdStand = window.__dmdStand; dmdTex.needsUpdate = true; }
   const gi = Math.max(0.12, Math.min(1.4, Z.grundLicht()));
   hemi.intensity = basis.hemi * gi; sonne.intensity = basis.sonne * gi;

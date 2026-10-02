@@ -415,6 +415,11 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (wurden bei jedem Hochladen alle 2 Bilder neu gerechnet), Anisotropie **4 statt 16**, **Glimm-Punktlicht der Anzeige entfernt** (jede
   Punktlichtquelle kostet in jedem Bildpunkt), Punktmatrix-Zeichenfläche höchstens **768 px** breit (vorher bis 1560 px, 1,6 MB je Änderung).
   Optik im Vergleichsbild unverändert.
+- Stand 0.89 (Video 0.88, ausgewertet: Bild-für-Bild-Vergleich des ganzen Schirms): fps-Anzeige 57–59 (zählt nur die Bildaufrufe), aber
+  der Bildschirm wechselte lange Strecken **nur jedes 2. Bild** (Muster #.#.#.) – die Grafik schaffte das Bild mit dem großen Upload der
+  Bodentextur (alle 2 Bilder) nicht rechtzeitig. Jetzt **Boden in zwei Hälften** (`bodenTeile`, je eigene Canvas/Textur/Fläche W × H/2):
+  nach jedem 2D-Zeichnen wird je Bild **nur eine Hälfte** übernommen und hochgeladen (`bodenOffen`) – gleiche Menge, gleichmäßig verteilt.
+  Kein sichtbarer Übergang zwischen den Hälften. Achtung: die fps-Anzeige misst nicht, was angezeigt wird – Videos weiter so auswerten.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
