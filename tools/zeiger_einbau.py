@@ -35,12 +35,12 @@ for name, (cx, cy, hk, aus) in TEILE.items():
 Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB').save('kopf.jpg', quality=86, optimize=True, progressive=True)
 print('kopf.jpg')
 
-# Strudel (0.80): runde Scheibe um das Auge des Strudels (885/389), Radius 112 Bildpixel – innerhalb des blauen Innenrings.
+# Strudel (0.80/0.81): runde Scheibe um das Auge des Strudels (885/389), Radius 100 Bildpixel (unterer blauer Ring bei ~495 bleibt fest) – innerhalb des blauen Innenrings.
 # Wird in drei.js über dem Bild gedreht; Rand weich (ab 55 % des Radius ausgeblendet), damit keine Kante zu sehen ist.
-SX, SY, SR = 885, 389, 112
+SX, SY, SR = 885, 389, 100
 bg = Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB').crop((SX - SR, SY - SR, SX + SR, SY + SR)).resize((256, 256), Image.LANCZOS)
 yy, xx = np.mgrid[0:256, 0:256]
 r = np.hypot(xx - 127.5, yy - 127.5) / 128
-alpha = np.clip((1 - r) / 0.45, 0, 1) ** 1.5
+alpha = np.clip((1 - r) / 0.22, 0, 1)                  # 0.81: bis 78 % deckend (vorher ab 55 % ausgeblendet – Drehung kaum sichtbar)
 Image.fromarray(np.dstack([np.asarray(bg), (alpha * 255).astype(np.uint8)]), 'RGBA').save('strudel.png', optimize=True)
 print('strudel.png')

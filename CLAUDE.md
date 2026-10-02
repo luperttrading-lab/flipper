@@ -380,6 +380,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   55 % weich ausgeblendet; erzeugt in `tools/zeiger_einbau.py`) liegt unter den Zeigern und dreht links herum (0,25 rad/s, im Multiball 1,4).
   Kante im Test nicht sichtbar. **Fehler behoben (Nutzer):** Im Multiball sprangen die Zeiger beim Laden der Kanone auf den Countdown/fünf vor
   zwölf – Multiball hat jetzt Vorrang vor den Zeitmodi, die Zeiger drehen durchgehend, solange der Multiball läuft.
+- Stand 0.81 (Nutzer: Drehung des Strudels nicht zu sehen): Scheibe bis 78 % des Radius deckend (vorher ab 55 % ausgeblendet – das feste
+  Bild darunter überwog), Radius 100 statt 112 (unterer blauer Innenring bei y ~495 bleibt fest), Tempo 0,6 rad/s (≈ 10 s je Umdrehung),
+  im Multiball 2,6 (≈ 2,4 s). Im Test nach Drehung keine Kante sichtbar.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
