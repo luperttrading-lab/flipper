@@ -158,7 +158,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.77';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.78';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -838,7 +838,9 @@ const dmd = (() => {
       if (!multiball && !kanone.kugel) { gunLit = true; sdrop.unten = true; melde(t, 'KANONE LADEN', 2.2); }
       else { punkte(1000000, 10000); melde(t, fmt(1000000), 2); }
     } else if (k === 4) { extraBall = true; melde(t, 'BELEUCHTET', 2.4); }
-    else { punkte(10000000, 20000); melde(t, fmt(10000000), 2.8); blitzen(1); lampenBlitz(() => true, 1.5); sfx.multiball(); }
+    else {                                                     // 10 MILLION = Uhr steht auf zwölf: ZERO TIME (0.78, mit Jackpot-Lichtshow)
+      punkte(10000000, 20000); melde('ZERO TIME', fmt(10000000), 2.8); blitzen(1); lampenBlitz(() => true, 1.5); sfx.multiball(); jpShow = zeit;
+    }
     if (fluchtGeholt >= FLUCHT.length) { fluchtGeholt = 0; fluchtLit = 1; }   // alle sechs: von vorn
   }
   function schaedel() {
@@ -2043,7 +2045,8 @@ const dmd = (() => {
   if (DREI) {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
       get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF, rund, sdrop, MULDE, get gunLit() { return gunLit; },
-      get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; } };
+      get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; }, get multiball() { return multiball; },
+      get uhr() { return { geholt: fluchtGeholt, hurryBis, paybackBis, jpShow, attract: gameOver || (!gestartet && loaded) }; } };
     document.body.classList.add('drei');
     const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION;
     // Lädt die 3D-Ansicht nicht (Modul fehlt, WebGL-Fehler), auf die flache Ansicht ausweichen statt schwarzem Bild

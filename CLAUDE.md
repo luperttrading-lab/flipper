@@ -363,6 +363,14 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.77 (Nutzer: „ZERO TIME“ nicht doppelt): Punktmatrix vor dem Abschuss zeigt **keinen Namen mehr** – vor Kugel 1 den **Rekord**
   (`flipper.rekord` in localStorage, gesetzt bei Game over) im Wechsel „REKORD“ / „KUGEL HALTEN“, sonst den Punktestand (bzw. „KUGEL n“).
   iPhone-Screenshot 0.76 bestätigt: Fix aus 0.72 wirkt (Tisch bis über die Home-Leiste, Bildfläche ≈ 1,47 : 1).
+- Stand 0.78 – **Uhr im Hinterglas** (Nutzeridee: Bild ohne Zeiger + Zeiger separat). `kopf.jpg` = Bild ohne Zeiger (1768×890), Zeiger per
+  `tools/zeiger_einbau.py` aus `bilder/eingang/zeiger_v1.png` freigestellt → `zeiger_h/m/n.png` (Quadrat, Drehpunkt mittig, je Teil maskiert).
+  In `drei.js` als Flächen über dem Bild (`uhr`-Gruppe an der Bildfläche, `uhrLage()` rechnet Bildpixel → Fläche über den Zuschnitt), Ringmitte
+  886/316 (Ziffernkranz; die Nabe im alten Bild saß mit 881/294 schief), Minutenzeiger 190, Stunde 125 Bildpixel. **Bedeutung:** Ruhezustand
+  (Start/Game over/vor dem Abschuss) = echte Uhrzeit; im Spiel **Fortschritt** = 11:30 + 5 min je kassiertem Fluchtweg-Feld, das 6. Feld
+  (10 MILLION) = 12:00 → Meldung **„ZERO TIME“** + Jackpot-Lichtshow (`jpShow`); bei Kanone (7 s), Hurry Up (20 s), Payback (25 s) läuft der
+  Minutenzeiger als Stoppuhr eine Runde auf zwölf zu; bei jedem Jackpot wirbeln die Zeiger 1,2 s. **Schädel-Augen** im Bild glühen
+  (additive Flächen, pulsierend, stärker im Multiball/Jackpot). `__ZT` liefert dafür `uhr` und `multiball`. Zeiger in der `sw.js`-Cache-Liste.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

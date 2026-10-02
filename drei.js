@@ -444,6 +444,7 @@ const kopfBildTex = (() => {                  // Platzhalter: eigenes Motiv aus 
 })();
 const kopfBildMat = new THREE.MeshBasicMaterial({ map: kopfBildTex, toneMapped: false });
 const KOPF_MIN_BREITE = 0.6;
+let uhrLageRuf = () => {};                    // wird gesetzt, sobald die Uhr gebaut ist (Uhr steht weiter unten)
 const bildZuschnitt = () => {                 // 0.74: wie CSS „cover“ – Fläche immer gefüllt, Seitenverhältnis bleibt
   const t = kopfBildMat.map, img = t.image, bb = RK.b - 24, bh = Math.max(1, RK.hb - 14);
   const ib = img && img.width ? img.width / img.height : 4 / 3, fb = bb / bh;          // Seitenverhältnis Bild / Fläche
@@ -452,8 +453,69 @@ const bildZuschnitt = () => {                 // 0.74: wie CSS „cover“ – F
   if (ib > fb) { t.repeat.set(Math.max(fb / ib, KOPF_MIN_BREITE), 1); t.offset.set((1 - t.repeat.x) / 2, 0); }
   else { t.repeat.set(1, ib / fb); t.offset.set(0, (1 - t.repeat.y) * 0.35); }        // Bild höher: unten weniger abschneiden (Schriftzug)
   t.needsUpdate = true;
+  uhrLageRuf();
 };
-new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; bildZuschnitt(); }, undefined, () => {});
+new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; kopfEcht = true; bildZuschnitt(); }, undefined, () => {});
+// ---------- Uhr im Hinterglas (0.78): Zeiger und Augen als eigene Flächen über kopf.jpg (Bild ohne Zeiger) ----------
+// Maße in Pixeln des Bildes 1768×890 (tools/zeiger_einbau.py): Ringmitte, Länge Minuten-/Stundenzeiger, Nabe, Augen.
+const UHR = { iw: 1768, ih: 890, x: 886, y: 316, lm: 190, lh: 125, rn: 17, augen: [[485, 310, 46], [612, 305, 40]] };
+const uhr = new THREE.Group(); uhr.visible = false;
+let kopfEcht = false, bildMesh = null;
+const uhrTeil = (datei, seite, z) => {
+  const mat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(seite, seite), mat); m.position.z = z; m.visible = false; uhr.add(m);
+  new THREE.TextureLoader().load(datei, t => { t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; m.visible = true; });
+  return m;
+};
+const zStunde = uhrTeil('zeiger_h.png', 2 * UHR.lh / 0.967, 0.3);     // Spitze bei 0,967 bzw. 0,985 der halben Kante
+const zMinute = uhrTeil('zeiger_m.png', 2 * UHR.lm / 0.985, 0.5);
+uhrTeil('zeiger_n.png', 2 * UHR.rn * 90 / 78.5, 0.7);
+const glutTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const v = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  v.addColorStop(0, 'rgba(255,220,150,1)'); v.addColorStop(0.35, 'rgba(255,120,30,.6)'); v.addColorStop(1, 'rgba(255,60,0,0)');
+  g.fillStyle = v; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
+const augenGlut = UHR.augen.map(([x, y, r]) => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2 * r, 2 * r), new THREE.MeshBasicMaterial({ map: glutTex, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.4 }));
+  m.position.set(x - UHR.x, -(y - UHR.y), 0.2); uhr.add(m); return m;
+});
+const uhrLage = () => {                       // Uhr auf die Stelle des Bildes setzen, die nach dem Zuschnitt sichtbar ist
+  const t = kopfBildMat.map, img = t.image;
+  if (!bildMesh || !kopfEcht || !img || !img.width) { uhr.visible = false; return; }
+  const bb = RK.b - 24, bh = Math.max(1, RK.hb - 14), sx = img.width / UHR.iw, sy = img.height / UHR.ih;
+  const u = UHR.x * sx / img.width, v = 1 - UHR.y * sy / img.height;
+  uhr.position.set(((u - t.offset.x) / t.repeat.x - 0.5) * bb, ((v - t.offset.y) / t.repeat.y - 0.5) * bh, 0);
+  uhr.scale.set(bb / (t.repeat.x * img.width) * sx, bh / (t.repeat.y * img.height) * sy, 1);   // Einheiten je Bildpixel
+  uhr.visible = true;
+};
+uhrLageRuf = uhrLage;
+let mWin = Math.PI, hWin = 0;
+const VOLL = 2 * Math.PI, nachVorn = (a, b) => ((b - a) % VOLL + 1.5 * VOLL) % VOLL - VOLL / 2;   // kürzeste Drehung a → b
+function uhrSchritt(dt) {
+  if (!uhr.visible) return;
+  const d = Z.uhr, zt = Z.zeit;
+  let m, h;
+  if (d.attract) {                            // Ruhezustand: echte Uhrzeit
+    const n = new Date(), min = n.getMinutes() + n.getSeconds() / 60;
+    m = min / 60 * VOLL; h = ((n.getHours() % 12) + min / 60) / 12 * VOLL;
+  } else {
+    // Fortschritt: jedes kassierte Fluchtweg-Feld = 5 Minuten, von halb zwölf (Minutenzeiger auf VI) bis ZERO TIME (12:00)
+    const fort = Math.PI + d.geholt * Math.PI / 6;
+    h = (11 + fort / VOLL) / 12 * VOLL; m = fort;
+    // Zeitmodi: Minutenzeiger als Stoppuhr, läuft in einer Runde auf zwölf zu
+    const uhrLauf = (rest, ges) => { m = VOLL * (1 - Math.max(0, Math.min(1, rest / ges))); };
+    if (Z.kanone.kugel) uhrLauf(Z.kanone.feuerBis - zt, 7);
+    else if (zt < d.hurryBis) uhrLauf(d.hurryBis - zt, 20);
+    else if (zt < d.paybackBis) uhrLauf(d.paybackBis - zt, 25);
+  }
+  if (zt - d.jpShow >= 0 && zt - d.jpShow < 1.2) { mWin += dt * 2 * VOLL; hWin += dt * VOLL / 6; }   // Jackpot: Zeiger wirbeln
+  else { const k = Math.min(1, dt * 5); mWin += nachVorn(mWin, m) * k; hWin += nachVorn(hWin, h) * k; }
+  zMinute.rotation.z = -mWin; zStunde.rotation.z = -hWin;
+  const glut = zt - d.jpShow >= 0 && zt - d.jpShow < 2.5 ? 0.95 : Z.multiball ? 0.6 + 0.3 * Math.sin(zt * 8) : 0.3 + 0.18 * Math.sin(zt * 2.2);
+  for (const a of augenGlut) a.material.opacity = glut;
+}
 const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
 const kopf = new THREE.Group();
 kopf.position.copy(P(X0, -22, RK.sockel)); kopf.rotation.x = -RK.neig;     // steht auf der Rückwand
@@ -475,7 +537,7 @@ function setzeKopf(hb) {                      // oberer Teil mit Bild, Höhe hb 
   const H = RK.unten + hb, rand = (w, h, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5), randMat); m.position.set(x, y, 1.5); kopfOben.add(m); };
   if (hb > 20) {
     const k = new THREE.Mesh(new THREE.BoxGeometry(RK.b, hb, RK.t), holz); k.position.set(0, RK.unten + hb / 2, -RK.t / 2); k.castShadow = true; kopfOben.add(k);
-    const bild = new THREE.Mesh(new THREE.PlaneGeometry(RK.b - 24, hb - 14), kopfBildMat); bild.position.set(0, RK.unten + hb / 2, 1); kopfOben.add(bild);
+    const bild = new THREE.Mesh(new THREE.PlaneGeometry(RK.b - 24, hb - 14), kopfBildMat); bild.position.set(0, RK.unten + hb / 2, 1); kopfOben.add(bild); bildMesh = bild; bild.add(uhr);
     rand(RK.b, 4, 0, RK.unten); bildZuschnitt();
   }
   rand(RK.b + 4, 5, 0, H); rand(RK.b + 4, 5, 0, 0); rand(5, H, -RK.b / 2, H / 2); rand(5, H, RK.b / 2, H / 2);
@@ -578,8 +640,10 @@ function messeFps(jetzt) {
 // ---------- Schleife ----------
 const basis = { hemi: hemi.intensity, sonne: sonne.intensity, l: akzentL.intensity, r: akzentR.intensity };
 let letzteZeichnung = -1;
+let uhrZuletzt = 0, uhrDt = 0;
 function bild(jetzt) {
   messeFps(jetzt || performance.now());
+  { const j = (jetzt || performance.now()) / 1000; uhrDt = Math.min(0.1, Math.max(0, j - uhrZuletzt)); uhrZuletzt = j; }
   if (Z.gezeichnet !== letzteZeichnung) { letzteZeichnung = Z.gezeichnet; tex.needsUpdate = true; }
   if (window.__dmdStand !== dmdStand) { dmdStand = window.__dmdStand; dmdTex.needsUpdate = true; }
   const gi = Math.max(0.12, Math.min(1.4, Z.grundLicht()));
@@ -593,6 +657,7 @@ function bild(jetzt) {
   { const fl = Math.max(...Z.slings.map(x => x.flash)); schleuderMat.emissiveIntensity = 0.15 + 2.4 * fl; }
   for (const s3 of schleudern3d) if (s3.bogen) s3.bogen(3.5 * Math.max(0, Math.min(1, s3.sl.flash)));   // Gummi schnellt beim Schlag nach außen
   ziele3d();
+  uhrSchritt(uhrDt);
   kanone3d.dreh.rotation.y = -Z.kanone.a;
   kanone3d.lampeMat.emissiveIntensity = Z.kanone.kugel ? 1.6 : 0;
   kanone3d.kernMat.emissiveIntensity = Z.kanone.kugel ? 1.2 + 0.8 * Math.sin(Z.zeit * 9) : 0;
