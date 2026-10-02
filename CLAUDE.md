@@ -360,6 +360,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   bei 932 px Höhe nur seitlicher Zuschnitt (sichtbar ~74 % der Breite), **keine Streckung**; bei 863 px ganzes Bild.
 - Stand 0.76: `kopf.jpg` = ruhigere Nutzer-Fassung (1768×889; Uhr mit römischen Ziffern kurz vor zwölf, friedliche Stadt am Wasser statt
   Explosion, wenige Kristalle statt Felsbrocken, Schrift ~21–81 % der Breite). Zuschnitt unverändert (`KOPF_MIN_BREITE` 0,6, keine Streckung).
+- Stand 0.77 (Nutzer: „ZERO TIME“ nicht doppelt): Punktmatrix vor dem Abschuss zeigt **keinen Namen mehr** – vor Kugel 1 den **Rekord**
+  (`flipper.rekord` in localStorage, gesetzt bei Game over) im Wechsel „REKORD“ / „KUGEL HALTEN“, sonst den Punktestand (bzw. „KUGEL n“).
+  iPhone-Screenshot 0.76 bestätigt: Fix aus 0.72 wirkt (Tisch bis über die Home-Leiste, Bildfläche ≈ 1,47 : 1).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
