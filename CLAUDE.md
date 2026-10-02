@@ -391,6 +391,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (Kante oben y 143, unten 494 → Mitte 886/319, r 175) → Strudel-Scheibe r 174 um 886/319, Rand nur noch 5 % weich. **Augen:** Grundglühen
   0,55, gelegentlich **Aufblitzen** (×1,8–2,6) oder kurzes Abdunkeln; im Multiball 1,4 ± 0,5 schnell pulsierend, beim Jackpot 2,2. Werte > 1
   schalten einen zweiten, 2,2× größeren additiven **Hof** zu.
+- Stand 0.84 (Nutzer: stehender blauer Rest bei 6 → 5 Uhr): Der Strudel lief im Bild über den hellblauen Innenring (r 175–190) und
+  darunter bis an die Ziffern. Jetzt: Scheibe r 191 **inkl. Innenring** (dreht als Lünette mit), und in `kopf.jpg` werden bläuliche/violette
+  Pixel im Ring r 189–220 um 886/319 auf Nachtblau (10/16/40) gezogen (95 %, orange Ziffern bleiben) – in `tools/zeiger_einbau.py`.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

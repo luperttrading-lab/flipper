@@ -467,7 +467,7 @@ const uhrTeil = (datei, seite, z) => {
   new THREE.TextureLoader().load(datei, t => { t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; m.visible = true; });
   return m;
 };
-const strudel = uhrTeil('strudel.png', 2 * 174, 0.1); strudel.position.y = -(319 - UHR.y);   // ganzer Strudel bis an den Innenring (tools/zeiger_einbau.py)
+const strudel = uhrTeil('strudel.png', 2 * 191, 0.1); strudel.position.y = -(319 - UHR.y);   // ganzer Strudel bis an den Innenring (tools/zeiger_einbau.py)
 const zStunde = uhrTeil('zeiger_h.png', 2 * UHR.lh / 0.967, 0.3);     // Spitze bei 0,967 bzw. 0,985 der halben Kante
 const zMinute = uhrTeil('zeiger_m.png', 2 * UHR.lm / 0.985, 0.5);
 uhrTeil('zeiger_n.png', 2 * UHR.rn * 90 / 78.5, 0.7);

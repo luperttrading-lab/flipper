@@ -32,14 +32,24 @@ for name, (cx, cy, hk, aus) in TEILE.items():
     Image.fromarray(rgba, 'RGBA').resize((aus, aus), Image.LANCZOS).save(f'zeiger_{name}.png', optimize=True)
     print(f'zeiger_{name}.png', aus, 'Spitze bei', round((cy - (269 if name == "h" else 16)) / hk, 3) if name != 'n' else '-', 'der halben Kante')
 
-Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB').save('kopf.jpg', quality=86, optimize=True, progressive=True)
+# 0.84: Zwischen Innenring und Ziffern (r 193–216 um 886/319) läuft unten (6 → 5 Uhr) ein Rest des Strudels, der sich nicht mitdreht.
+# Bläuliche Pixel in diesem Ring werden auf das dunkle Nachtblau der Umgebung gezogen; die orangen Ziffern bleiben (nicht bläulich).
+k = np.asarray(Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB')).astype(float)
+yy, xx = np.mgrid[0:k.shape[0], 0:k.shape[1]]
+rr = np.hypot(xx - 886, yy - 319)
+ring = np.clip((rr - 189) / 3, 0, 1) * np.clip((220 - rr) / 3, 0, 1)
+blau = np.clip((k[..., 2] - np.maximum(k[..., 1], k[..., 0] * 0.8) + 10) / 50, 0, 1)   # blau und violett, nicht orange
+w = (ring * blau)[..., None]
+nacht = np.array([10, 16, 40.0])
+k = k * (1 - w * 0.95) + nacht * w * 0.95
+Image.fromarray(k.clip(0, 255).astype(np.uint8)).save('kopf.jpg', quality=86, optimize=True, progressive=True)
 print('kopf.jpg')
 
 # Strudel (0.82): der ganze Strudel innerhalb des blauen Innenrings (Ringlinie bei r ≈ 173–182 um die Uhrmitte 886/316), Scheibe r 168.
 # Das Auge des Strudels sitzt im Bild nicht in der Mitte (885/389). Damit er beim Drehen nicht eiert, wird das Bild verzerrt: für jede
 # Richtung θ wird die Strecke vom Auge bis zum Kreisrand auf die Strecke Mitte → Rand abgebildet. Am Rand stimmt die Scheibe exakt mit dem
 # Bild überein, das Auge liegt danach genau in der Mitte. Rand ab 90 % weich ausgeblendet.
-CX, CY, CR, EX, EY, N = 886, 319, 174, 885, 389, 512   # 0.83: Innenring genauer vermessen (oben 143, unten 494 → Mitte 319, r 175)
+CX, CY, CR, EX, EY, N = 886, 319, 191, 885, 389, 512   # 0.84: inkl. hellblauem Innenring (r 175–190), der dreht als Lünette mit
 quelle = np.asarray(Image.open('bilder/eingang/kopf_ohne_zeiger_v1.png').convert('RGB')).astype(float)
 yy, xx = np.mgrid[0:N, 0:N]
 dx, dy = (xx + 0.5) / N * 2 - 1, (yy + 0.5) / N * 2 - 1
