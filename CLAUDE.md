@@ -420,6 +420,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Bodentextur (alle 2 Bilder) nicht rechtzeitig. Jetzt **Boden in zwei Hälften** (`bodenTeile`, je eigene Canvas/Textur/Fläche W × H/2):
   nach jedem 2D-Zeichnen wird je Bild **nur eine Hälfte** übernommen und hochgeladen (`bodenOffen`) – gleiche Menge, gleichmäßig verteilt.
   Kein sichtbarer Übergang zwischen den Hälften. Achtung: die fps-Anzeige misst nicht, was angezeigt wird – Videos weiter so auswerten.
+- Stand 0.90 (Video 0.89: 85 % neue Bilder ≈ 51 fps effektiv, Abschuss lückenlos; Aussetzer v. a. beim Hochprobieren der Auflösung;
+  Screenshot-Vergleich 1,25× / 2×: Unterschied nur an Drähten/Pfosten zu sehen – Boden ist eigene Textur): **Standard 1,5×**, `STUFEN`
+  = [1,5, 1,25, 1] – 2× wird nicht mehr versucht (Nutzerentscheidung).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

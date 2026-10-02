@@ -13,7 +13,7 @@ const P = (x, y, h = 0) => new THREE.Vector3(x - X0, h, y - Y0);
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 const GERAET_DPR = window.devicePixelRatio || 1;
-const STUFEN = [2, 1.5, 1.25, 1];            // Auflösung; fällt automatisch, wenn die Bildrate einbricht
+const STUFEN = [1.5, 1.25, 1];               // Auflösung (0.90: höchstens 1,5× – 2× sah kaum schärfer aus, ließ aber Bilder ausfallen); fällt bei Einbruch
 let stufe = 0;
 renderer.setPixelRatio(Math.min(STUFEN[0], GERAET_DPR));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
