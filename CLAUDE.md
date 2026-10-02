@@ -348,6 +348,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Home-Bildschirm-App mit `black-translucent` – Seite/`height: 100%` ist um etwa die Statusleiste zu kurz (auch die feste FPS-Anzeige saß zu
   hoch). Jetzt setzt ein kleines Skript im Standalone-Modus (`navigator.standalone`) `html`/`body` auf die **Bildschirmhöhe** (`screen`,
   bei Drehung neu). Simuliert (Fenster 863, Schirm 932): Tisch-Unterkante 921 statt 853. `UNTEN_RAND` 0,01 statt 0,03. Im Safari-Tab unverändert.
+- Stand 0.73: **Hinterglas-Bild `kopf.jpg`** vom Nutzer (Gemini, 1536×1024, 3:2; Stahlplatten-Schädel wie `schaedel.png` mit Zähnen, Uhr kurz vor
+  zwölf, Strudel, Stadt, Schriftzug „ZERO TIME“ im unteren Drittel). Prompt-Hinweise: Schädel als Emblem ohne Kabel/Schläuche/Rumpf – Hals hat
+  noch Panzerplatten, vom Nutzer so gewählt. Zuschnitt jetzt **unten betont** (`offset = (1 − r) · 0,35`), damit der Schriftzug ganz bleibt; bei
+  932 px Höhe passt das Bild fast ganz (Fläche 420 × 286), bei 863 px wird oben ein Teil der Uhr abgeschnitten. In der `sw.js`-Cache-Liste.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

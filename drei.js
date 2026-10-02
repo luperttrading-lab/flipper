@@ -446,7 +446,7 @@ const kopfBildMat = new THREE.MeshBasicMaterial({ map: kopfBildTex, toneMapped: 
 const bildZuschnitt = () => {                 // Bild mittig auf die sichtbare Höhe zuschneiden (Seitenverhältnis bleibt)
   const t = kopfBildMat.map, img = t.image, bb = RK.b - 24, bh = Math.max(1, RK.hb - 14);
   const asp = img && img.width ? img.height / img.width : 0.75, voll = bb * asp;
-  t.repeat.set(1, Math.min(1, bh / voll)); t.offset.set(0, (1 - t.repeat.y) / 2); t.needsUpdate = true;
+  t.repeat.set(1, Math.min(1, bh / voll)); t.offset.set(0, (1 - t.repeat.y) * 0.35); t.needsUpdate = true;   // 0.73: unten weniger abschneiden (Schriftzug im unteren Drittel)
 };
 new THREE.TextureLoader().load('kopf.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; kopfBildMat.map = t; kopfBildMat.needsUpdate = true; bildZuschnitt(); }, undefined, () => {});
 const randMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
