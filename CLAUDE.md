@@ -358,6 +358,8 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   wie 0.73 oben/unten (unten betont). Neues Bild mit anderem Schriftzug-Bereich → Konstante prüfen.
 - Stand 0.75: `kopf.jpg` = Nutzer-Fassung mit **schmalerem Schriftzug** (1770×889, Schrift ~26–74 % der Breite). `KOPF_MIN_BREITE` 0,6 →
   bei 932 px Höhe nur seitlicher Zuschnitt (sichtbar ~74 % der Breite), **keine Streckung**; bei 863 px ganzes Bild.
+- Stand 0.76: `kopf.jpg` = ruhigere Nutzer-Fassung (1768×889; Uhr mit römischen Ziffern kurz vor zwölf, friedliche Stadt am Wasser statt
+  Explosion, wenige Kristalle statt Felsbrocken, Schrift ~21–81 % der Breite). Zuschnitt unverändert (`KOPF_MIN_BREITE` 0,6, keine Streckung).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
