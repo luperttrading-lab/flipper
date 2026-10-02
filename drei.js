@@ -420,7 +420,7 @@ function kugelMesh(i) {
 // Die Bildhöhe `hb` wählt einpassen(): so groß wie möglich, ohne dass der Tisch kleiner wird (Tisch bleibt breitenbegrenzt).
 // Bild: kopf.jpg (falls vorhanden), sonst Platzhalter; es wird mittig auf die verfügbare Höhe zugeschnitten.
 const RK = { b: W + 44, t: 60, neig: 8 * Math.PI / 180, unten: 122, sockel: 40, hb: 0, hbMax: 400 };
-const UNTEN_RAND = 0.03;                      // Abstand Tischunterkante – Bildschirmunterkante (Anteil der halben Höhe)
+const UNTEN_RAND = 0.01;                      // Abstand Tischunterkante – Bildschirmunterkante (Anteil der halben Höhe)
 const TISCH_VERLUST = 1.035;                  // Bildteil darf den Tisch höchstens 3,5 % verkleinern
 const dmdTex = new THREE.CanvasTexture(document.getElementById('dmd'));
 dmdTex.colorSpace = THREE.SRGBColorSpace; dmdTex.anisotropy = 4;

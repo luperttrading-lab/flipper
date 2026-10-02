@@ -344,6 +344,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.71 (Nutzer: unten zu viel Luft, Kopfteil oben geschlossen mit Platz fürs Bild): Einpassung **unten bündig** (`UNTEN_RAND`
   0,03 statt senkrecht mittig), Bildteil darf den Tisch bis **3,5 %** verkleinern (`TISCH_VERLUST`, vorher 2,5 %), `hbMax` 400. Gemessen
   430×932: Tisch-Unterkante 912, Kopfteil reicht bis an den oberen Rand; 393×852 → 834, 375×667 → 652.
+- Stand 0.72 (iPhone-Screenshot 0.71: unten ~100 px leer, obwohl unten bündig eingepasst): Ursache [Wahrscheinlich] iOS-Fehler der
+  Home-Bildschirm-App mit `black-translucent` – Seite/`height: 100%` ist um etwa die Statusleiste zu kurz (auch die feste FPS-Anzeige saß zu
+  hoch). Jetzt setzt ein kleines Skript im Standalone-Modus (`navigator.standalone`) `html`/`body` auf die **Bildschirmhöhe** (`screen`,
+  bei Drehung neu). Simuliert (Fenster 863, Schirm 932): Tisch-Unterkante 921 statt 853. `UNTEN_RAND` 0,01 statt 0,03. Im Safari-Tab unverändert.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
