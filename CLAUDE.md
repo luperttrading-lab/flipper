@@ -352,6 +352,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   zwölf, Strudel, Stadt, Schriftzug „ZERO TIME“ im unteren Drittel). Prompt-Hinweise: Schädel als Emblem ohne Kabel/Schläuche/Rumpf – Hals hat
   noch Panzerplatten, vom Nutzer so gewählt. Zuschnitt jetzt **unten betont** (`offset = (1 − r) · 0,35`), damit der Schriftzug ganz bleibt; bei
   932 px Höhe passt das Bild fast ganz (Fläche 420 × 286), bei 863 px wird oben ein Teil der Uhr abgeschnitten. In der `sw.js`-Cache-Liste.
+- Stand 0.74: `kopf.jpg` ersetzt durch Nutzer-Fassung **1769×889 (≈ 2:1)**, damit bei kurzer Bildfläche (863 px, 1,94 : 1) die volle Höhe
+  sichtbar ist. `bildZuschnitt` jetzt wie „cover“: Bild breiter als Fläche → seitlich mittig abschneiden, aber höchstens auf `KOPF_MIN_BREITE`
+  0,82 (Schriftzug reicht von ~11 % bis ~89 % der Bildbreite), Rest durch leichte senkrechte Streckung (bei 932 px ≈ 10 %); Bild höher →
+  wie 0.73 oben/unten (unten betont). Neues Bild mit anderem Schriftzug-Bereich → Konstante prüfen.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
