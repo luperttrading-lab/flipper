@@ -409,6 +409,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Aussetzer, aber ungleiche Schritte in Folge (3 ↔ 10): die Zeitstempel der Bilder schwanken stärker als die Anzeige. Jetzt **geglättete
   Spielzeit** in `frame()`: gleitender Mittelwert der Bildzeit (`dtGlatt`, Faktor 0,2) plus Ausgleich 0,15 × (Soll − Ist), damit keine Zeit
   verloren geht; Feder rechnet weiter mit Echtzeit. Auflösung senkt jetzt schon **unter 57 fps** (bei 55 blieb sie auf 2×).
+- Stand 0.88 (Video 0.87: bei 1,5× / 57 fps läuft die Kugel fast in jedem Bild gleichmäßig – 6, 6, 7, 8, 7, 8 … Pixel; bei 2× vorher
+  starr 0, 12, 0, 12 = 30 Bilder/s). Nutzer: Rechenlast senken. Gemessen (Chromium, CPU-Anteile je Bild): Physik 0,07 ms, Boden zeichnen
+  0,6 ms, Anzeige 0,3 ms – CPU ist nicht der Engpass, sondern die Grafik (Füllrate/Uploads). Geändert: Bodentextur **ohne Mipmaps**
+  (wurden bei jedem Hochladen alle 2 Bilder neu gerechnet), Anisotropie **4 statt 16**, **Glimm-Punktlicht der Anzeige entfernt** (jede
+  Punktlichtquelle kostet in jedem Bildpunkt), Punktmatrix-Zeichenfläche höchstens **768 px** breit (vorher bis 1560 px, 1,6 MB je Änderung).
+  Optik im Vergleichsbild unverändert.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

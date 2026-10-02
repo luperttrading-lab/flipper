@@ -80,7 +80,10 @@ const kugelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1,
 // ---------- Boden: die 2D-Zeichnung als Textur ----------
 const tex = new THREE.CanvasTexture(Z.cv);
 tex.colorSpace = THREE.SRGBColorSpace;
-tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+// 0.88 Rechenlast: Bodentextur wird alle 2 Bilder neu hochgeladen – Mipmaps dafür jedes Mal neu zu rechnen ist teuer, und 16-fache
+// anisotrope Filterung kostet auf der ganzen Bodenfläche. Jetzt ohne Mipmaps, 4-fach.
+tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
+tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
 const bodenMat = new THREE.MeshStandardMaterial({
   map: tex, roughness: 0.42, metalness: 0.05, envMapIntensity: 0.25,
   emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.5,      // Einsätze leuchten auch ohne Licht
@@ -536,7 +539,7 @@ scene.add(kopf);
   rahmen.position.set(0, my, 0.6); kopf.add(rahmen);
   const schirm = new THREE.Mesh(new THREE.PlaneGeometry(sb, sh), new THREE.MeshBasicMaterial({ map: dmdTex, toneMapped: false }));
   schirm.position.set(0, my, 1); kopf.add(schirm);
-  const glimm = new THREE.PointLight(0xff5a26, 300, 160, 1.8); glimm.position.set(0, my, 30); kopf.add(glimm);
+  // 0.88: Glimmlicht der Anzeige entfernt – jede Punktlichtquelle kostet in jedem beleuchteten Bildpunkt der ganzen Szene
 }
 const kopfOben = new THREE.Group(); kopf.add(kopfOben);
 function setzeKopf(hb) {                      // oberer Teil mit Bild, Höhe hb (0 = nur die Anzeige-Leiste)
