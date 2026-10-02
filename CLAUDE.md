@@ -405,6 +405,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   zeichnet die 2D-Bodentextur neu und lädt sie hoch (Spitze). Jetzt: Bodentextur `BODEN_PX` 1,5 statt 2 (600 × 1140, −44 %), automatische
   Auflösung senkt schon **unter 55 fps** (vorher 40; bei 41–47 fps blieb sie auf 2×), Probe nach oben gilt erst ab 57 fps als gehalten.
   Prüfen: neues Video – Ziel ist Bewegung in jedem Bild (keine 0-Schritte).
+- Stand 0.87 (Video 0.86, 55 fps bei 2×): beim Einrollen Kugelweg je Videobild **0, 12, 0, 3, 10, 3, 9, 12, 0, 3, 13 …** – weniger
+  Aussetzer, aber ungleiche Schritte in Folge (3 ↔ 10): die Zeitstempel der Bilder schwanken stärker als die Anzeige. Jetzt **geglättete
+  Spielzeit** in `frame()`: gleitender Mittelwert der Bildzeit (`dtGlatt`, Faktor 0,2) plus Ausgleich 0,15 × (Soll − Ist), damit keine Zeit
+  verloren geht; Feder rechnet weiter mit Echtzeit. Auflösung senkt jetzt schon **unter 57 fps** (bei 55 blieb sie auf 2×).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

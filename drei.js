@@ -626,7 +626,7 @@ function messeFps(jetzt) {
   if (jetzt - fStart < 1500) return;
   const fps = fZaehler * 1000 / (jetzt - fStart); fZaehler = 0; fStart = jetzt;
   if (!window.__ZT_FEST && jetzt > fWarm) {
-    if (fps < 55) {                                         // 0.86: Ziel sind flüssige 60 fps (Video: 41–47 fps bei 2× ruckelte sichtbar)
+    if (fps < 57) {                                         // 0.86/0.87: Ziel sind flüssige 60 fps (Video 0.86: 55 fps bei 2× ruckelte noch)
       flott = 0;
       if (++langsam >= 2) {                                   // erst nach zwei schlechten Messungen in Folge senken
         langsam = 0;

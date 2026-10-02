@@ -158,7 +158,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.86';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.87';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -2028,9 +2028,16 @@ const dmd = (() => {
 
   // ---------- Loop ----------
   let last = performance.now(), drawAcc = 0, frameNr = 0, gezeichnet = 0;
+  let dtGlatt = 1 / 60, zeitSoll = 0, zeitIst = 0;
   function frame(now) {
-    const echt = Math.min(0.25, (now - last) / 1000), dt = Math.min(0.033, echt);
+    const echt = Math.min(0.25, (now - last) / 1000);
     last = now;
+    // 0.87 (Video 0.86: Kugelweg je Bild 3, 10, 3, 9, 12 … statt gleichmäßig): die Zeitstempel der Bilder schwanken stärker als die
+    // Anzeige selbst. Spielzeit deshalb geglättet: gleitender Mittelwert der Bildzeit, dazu langsamer Ausgleich, damit über längere
+    // Zeit keine Zeit verloren geht oder hinzukommt.
+    const roh = Math.min(0.033, echt);
+    zeitSoll += roh; dtGlatt += (roh - dtGlatt) * 0.2;
+    const dt = Math.max(0, Math.min(0.033, dtGlatt + (zeitSoll - zeitIst) * 0.15)); zeitIst += dt;
     const pause = !document.getElementById('start').hidden;
     const sdt = dt * TEMPO;                     // Spielzeit (Zeitlupe auf echte Tischzeit)
     if (wahl && !pause) { zeit += sdt; if (zeit > wahl.bis) wahlFertig(); }
