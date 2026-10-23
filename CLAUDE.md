@@ -563,6 +563,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Bloom). Vergleichsbild 34°: mit 35 % deutlich satter. **iPhone-Messung aus der Probe:** 1× → 59 fps, 1,25× → 52 fps – nach dem Zusammenfassen
   ist jetzt die **Grafik je Pixel** der Engpass (6 Punktlichter + 2 Schattenleuchten + Blitzer werden in jedem Pixel aller PBR-Materialien
   gerechnet) → nächster Hebel für Schärfe: Grundlicht-Punktlichter reduzieren/einbacken.
+- Stand 1.03 (iPhone-Screenshot: quer 40 fps schon bei 1×; Nutzer: Schärfe „maximal forcieren“). **Gemessen per Abschaltung** (Software-Rendering =
+  Rechenarbeit je Pixel, quer 852×393 @2, 1,5×; `scratchpad/tools/kosten_messen.js` mit vorübergehenden `?dbg=`-Schaltern): jetzt 960 ms/Bild; ohne
+  **MSAA 676 (−30 %)**, ohne Leuchten 854 (−11 %), ohne Grundlicht-Lampen 864 (−10 %; nur 2 davon 900), ohne Bodenspiegel 904 (−6 %), ohne
+  Würfel 941, Schatten/PCF/Klarlack/Blitzer ≈ 0. **Umgesetzt:** Composer-Ziel **ohne MSAA** (`samples: 0`) – Vergleichsausschnitt: 2× ohne MSAA
+  schärfer als 1,5× mit; **Leuchten (Bloom) in Viertelauflösung** (`setSize` halbiert, −5 %). **Stufen** jetzt bis **3×** (volle iPhone-Auflösung):
+  3×/0,5/3 · 2,5×/0,5/2 · 2×/0,5/2 · **2×/0,35/1 (Start)** · 1,75×/0,35/1 · 1,75×/aus/1 · 1,5×/aus/1 · 1,25×/aus/1 · 1×/aus/1; die Probe nach oben
+  (ab 55 fps, ≤ 2,5 fps Verlust) holt heraus, was das Gerät schafft. **Schrift auf den Einsätzen mit Kontur** (`einsatzTexturen`: dunkle Kontur
+  0,2 · Schriftgröße in der Glut-Textur, 0,14 in der Grund-Textur) – beleuchtete Einsätze (MULTIBALL, 500K …) waren vom Leuchten überstrahlt.
+  Offen/nächster Hebel: Grundlicht-Lampen (6 PointLights, −10 %) reduzieren oder einbacken.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

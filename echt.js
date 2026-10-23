@@ -232,8 +232,12 @@ function einsatzTexturen(l) {          // Grund (unbeleuchtet: getönter Kunstst
     if (l.label) {
       const fs = l.form === 'keil' ? 6.4 : l.form === 'kreis' ? Math.min(4.6, l.r * 0.55) : Math.min(6.6, l.h * 0.5);
       g.font = `900 ${fs}px ${SCHRIFT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillStyle = glut ? 'rgba(20,6,0,.9)' : 'rgba(255,245,230,.72)';
-      g.fillText(l.label, mx, my + 0.3, (l.w || (l.r || 20) * 1.8) * 0.92);
+      const breite = (l.w || (l.r || 20) * 1.8) * 0.92;
+      // 1.03: Kontur um die Schrift – leuchtende Einsätze überstrahlten die dünnen dunklen Buchstaben (Leuchten/Bloom), unbeleuchtete waren flau
+      g.lineJoin = 'round'; g.lineWidth = fs * (glut ? 0.2 : 0.14); g.strokeStyle = glut ? 'rgba(20,6,0,.8)' : 'rgba(0,0,0,.5)';
+      g.strokeText(l.label, mx, my + 0.3, breite);
+      g.fillStyle = glut ? 'rgba(20,6,0,.95)' : 'rgba(255,245,230,.8)';
+      g.fillText(l.label, mx, my + 0.3, breite);
     }
     return canvasTex(c);
   };
@@ -705,9 +709,16 @@ function bodenSpiegeln() {
 }
 
 // ---------- Nachbearbeitung: Leuchten ----------
-const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: TYP, samples: Math.min(4, renderer.capabilities.maxSamples || 0) }));
+// 1.03 (Nutzer: Schärfe „maximal forcieren“): gemessen per Abschaltung (Software-Rendering, quer 1,5×) kostete die 4-fach-Kantenglättung (MSAA)
+// ~30 % der Bildzeit, das Leuchten ~11 %, sechs Grundlicht-Lampen ~10 %, Bodenspiegel ~6 %, Schatten ~0. Ohne MSAA bei 2× ist das Bild schärfer als
+// 1,5× mit MSAA (Vergleichsausschnitt) – also keine MSAA mehr, die Rechenzeit geht in die Auflösung. Leuchten in Viertel- statt halber Auflösung.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: TYP, samples: 0 }));
 composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.38, 0.4, hdr ? 1.0 : 0.85));
+{
+  const leuchten = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.38, 0.4, hdr ? 1.0 : 0.85), groesse = leuchten.setSize.bind(leuchten);
+  leuchten.setSize = (w, h) => groesse(Math.round(w / 2), Math.round(h / 2));
+  composer.addPass(leuchten);
+}
 composer.addPass(new OutputPass());
 
 // ---------- Kopfteil: Hinterglas (kopf.jpg) mit Uhr – Strudel dreht, Zeiger auf fünf vor zwölf (im Multiball drehen sie), Augen glimmen –,
@@ -800,10 +811,11 @@ const zusammengefasst = (() => {
 // ======================================================================================================================
 // Kamera: hochkant ganzer Tisch (50°), quer Spielerblick (30°), der der untersten Kugel folgt
 // ======================================================================================================================
-// 0.98: Schärfe zuerst – die Auflösung sinkt erst, nachdem Bodenspiegel und Kugel-Spiegelung schon reduziert sind; Start 1,5×, darf auf 1,75×/2× steigen
-const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 3 }, { dpr: 1.75, spiegel: 0.5, seiten: 2 }, { dpr: 1.5, spiegel: 0.4, seiten: 2 },
-  { dpr: 1.5, spiegel: 0, seiten: 1 }, { dpr: 1.25, spiegel: 0, seiten: 1 }, { dpr: 1, spiegel: 0, seiten: 1 }];
-let stufe = Math.max(0, Math.min(STUFEN.length - 1, (+new URLSearchParams(location.search).get('stufe') || 3) - 1));
+// Schärfe zuerst – die Auflösung sinkt erst, nachdem Bodenspiegel und Kugel-Spiegelung reduziert sind. 1.03: ohne MSAA bis 3× (= volle iPhone-Auflösung),
+// Start 2×; die Probe nach oben (ab 55 fps, siehe messen) holt heraus, was das Gerät bei gleicher Bildrate schafft
+const STUFEN = [{ dpr: 3, spiegel: 0.5, seiten: 3 }, { dpr: 2.5, spiegel: 0.5, seiten: 2 }, { dpr: 2, spiegel: 0.5, seiten: 2 }, { dpr: 2, spiegel: 0.35, seiten: 1 },
+  { dpr: 1.75, spiegel: 0.35, seiten: 1 }, { dpr: 1.75, spiegel: 0, seiten: 1 }, { dpr: 1.5, spiegel: 0, seiten: 1 }, { dpr: 1.25, spiegel: 0, seiten: 1 }, { dpr: 1, spiegel: 0, seiten: 1 }];
+let stufe = Math.max(0, Math.min(STUFEN.length - 1, (+new URLSearchParams(location.search).get('stufe') || 4) - 1));
 // 1.00: Querblick zum Ausprobieren per Link, z. B. ?blick=38 (20–60°, Standard 30°) – der Nutzer will den Winkel bewegt sehen, bevor er wählt
 // 1.02: Standard 34° (Nutzerwahl nach Probe; 34° ist der steilste Winkel, bei dem oben die Bumper noch im Bild bleiben – obere Bildkante y ≈ 110)
 const QUER_BLICK = Math.max(20, Math.min(60, +new URLSearchParams(location.search).get('blick') || 34)) * PI / 180;
