@@ -502,6 +502,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   −47…−60, mit 0,3 −12 / −19 (zu viel) → 0,1. **Fehler behoben:** Kugel in der Abschussrinne war in der Echt-Ansicht unsichtbar (Abfluss-Regel
   `y > 722` galt auch in der Rinne) – jetzt nur bei `x < LANE_X` (`echt.js`, `stueck.js`); `__ZT3D.bildschirm(x, y, h)` und `rampenHoehe` für die
   Bilder. App-Ton weiter Stand 0.91, bis der Nutzer gewählt hat.
+- Stand 0.96 – **Ton nach Nutzerwahl** (toene.html): V („nach Aufnahme“) für Flipper drücken/loslassen, Bumper, Schleuder, Kugel an Führung
+  (`anschlag` 'metall' → `KLICK_V`), Kugel an Gummi ('gummi'/'flipper' → `GUMMI_V`), Ziel, Kugel verloren, Kugel an Kugel, Abschuss, Kanone,
+  Schädel-Loch, Auswurf; **B** für Gasse/Umlauf und Rampe; **Rollgeräusch und Drahtrampe aus** (`sfx.rollen` bleibt leer); Gehäuse-Nachhall an
+  (0,1). In `sfx` (index.html) 1:1 übernommen: Mechanik-Kanal `mech` mit Faltungshall wie toene.html, gemeinsamer Rauschpuffer, `stoss`, `band`,
+  Tabellen (Bänder > 40 dB unter dem lautesten entfallen); Anschläge/Klack nach Wucht `0,35 + 0,9 · st`, Abschuss nach Stärke `0,5 + 0,5 · st`.
+  Multiball-Fanfare, Musik und `sirene` unverändert. Rezepte nur noch an einer Stelle ändern **und** toene.html nachziehen (oder umgekehrt).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
