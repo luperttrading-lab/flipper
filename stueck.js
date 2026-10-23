@@ -607,7 +607,7 @@ const lampen = (() => {
         e.i += (e.ziel - e.i) * (1 - Math.exp(-dt / tau));
         e.mat.emissiveIntensity = 2.6 * e.i;
       }
-      liste.forEach((e, k) => { const c = e.farbe, s = 0.32 * e.i; for (let j = 0; j < 4; j++) farbAttr.setXYZ(k * 4 + j, c.r * s, c.g * s, c.b * s); });
+      liste.forEach((e, k) => { const c = e.farbe, s = 0.22 * e.i; for (let j = 0; j < 4; j++) farbAttr.setXYZ(k * 4 + j, c.r * s, c.g * s, c.b * s); });
       farbAttr.needsUpdate = true;
       if (standups.every(s => s.an) && Math.floor(t) % 6 === 5) standups.forEach(s => { s.an = false; });
     },
@@ -679,8 +679,12 @@ function pfosten(x, y, art) {          // Metallpfosten mit Mutter oben, Gummiri
 }
 
 // ---------- Schleudern: Gummiring um drei Pfosten, darüber der bedruckte Kunststoff mit Glühlampe darunter ----------
-const schleuderTex = schleuderBild ? new THREE.Texture(schleuderBild) : null;
-if (schleuderTex) { schleuderTex.colorSpace = THREE.SRGBColorSpace; schleuderTex.anisotropy = ANISO; schleuderTex.needsUpdate = true; }
+// Über eine Zeichenfläche wie alle anderen Bilder: direkt als <img> hochgeladen blieb der Kunststoff auf dem iPhone leer (blass ohne Druck)
+const schleuderTex = schleuderBild ? (() => {
+  const c = document.createElement('canvas'); c.width = 768; c.height = 1376;
+  c.getContext('2d').drawImage(schleuderBild, 0, 0, 768, 1376);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANISO; return t;
+})() : null;
 const SCHLEUDER_BILD = [[150, 145], [148, 940], [622, 1228]];     // Pfosten/Muttern im Bild ↔ Ecken der linken Schleuder
 const schleudern = slings.map(sl => {
   const g = new THREE.Group(), pk = sl.pts;
@@ -884,13 +888,13 @@ function bodenSpiegeln() {
 // ---------- Nachbearbeitung: Leuchten ----------
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: TYP, samples: Math.min(4, renderer.capabilities.maxSamples || 0) }));
 composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.45, 0.4, hdr ? 1.0 : 0.85));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.38, 0.4, hdr ? 1.0 : 0.85));
 composer.addPass(new OutputPass());
 
 // ---------- Kamera einpassen: quer = Spielerblick 30°, unteres Feld füllt den Schirm ----------
 // Stufen: Auflösung, Bodenspiegel (Anteil der Auflösung, 0 = aus), Würfelseiten der Kugelspiegelung je Bild. Start in Stufe 2.
 const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 6 }, { dpr: 1.5, spiegel: 0.5, seiten: 3 }, { dpr: 1.25, spiegel: 0.35, seiten: 2 }, { dpr: 1, spiegel: 0, seiten: 1 }];
-let stufe = 1;
+let stufe = Math.max(0, Math.min(3, (+new URLSearchParams(location.search).get('stufe') || 2) - 1));   // ?stufe=1…4 zum Vergleichen
 function einpassen() {
   const w = innerWidth, h = innerHeight, quer = w > h;
   renderer.setPixelRatio(Math.min(STUFEN[stufe].dpr, devicePixelRatio || 1)); renderer.setSize(w, h);
