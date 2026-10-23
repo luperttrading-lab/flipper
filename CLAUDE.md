@@ -545,6 +545,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (2) Aufstieg verlangte ≥ 58 fps, das Gerät meldet 57 → nie. Jetzt **Probe ab 55 fps**: eine Stufe höher, gilt, wenn die Bildrate danach
   höchstens 2,5 fps tiefer liegt (zwei Messfenster), sonst zurück + 3 min Sperre. Wo die Auflösung nichts kostet, steigt so die Schärfe ohne
   Bildverlust. Geprüft: Physik mit festem Zufall identisch zu 0.98, Sim 30/30, `?2d`/`?drei` fehlerfrei, Bumper-Leuchten klingt ab.
+- Stand 1.00 (Nutzer: Querwinkel nur bewegt beurteilbar, „erstmal so lassen“): **Querblick per Link ausprobieren** – `?blick=38` (20–60°,
+  Standard bleibt 30°, `QUER_BLICK` in echt.js). Gilt nur im Safari-Tab quer (Home-Bildschirm-App ist hochkant gesperrt). Geprüft: Feld y 368→768
+  bei 30° 300 px hoch, bei 45° 355 px (852×393).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

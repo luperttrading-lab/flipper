@@ -800,6 +800,8 @@ const zusammengefasst = (() => {
 const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 3 }, { dpr: 1.75, spiegel: 0.5, seiten: 2 }, { dpr: 1.5, spiegel: 0.4, seiten: 2 },
   { dpr: 1.5, spiegel: 0, seiten: 1 }, { dpr: 1.25, spiegel: 0, seiten: 1 }, { dpr: 1, spiegel: 0, seiten: 1 }];
 let stufe = Math.max(0, Math.min(STUFEN.length - 1, (+new URLSearchParams(location.search).get('stufe') || 3) - 1));
+// 1.00: Querblick zum Ausprobieren per Link, z. B. ?blick=38 (20–60°, Standard 30°) – der Nutzer will den Winkel bewegt sehen, bevor er wählt
+const QUER_BLICK = Math.max(20, Math.min(60, +new URLSearchParams(location.search).get('blick') || 30)) * PI / 180;
 const kam = { quer: false, dir: new THREE.Vector3(), dist: 900, zielUnten: new THREE.Vector3(), weg: 0, folge: 0 };
 function passe(ecken, neig, unten) {   // Abstand und Ziel so, dass alle Ecken ins Bild passen (unten bündig)
   kam.dir.set(0, Math.sin(neig), Math.cos(neig));
@@ -832,7 +834,7 @@ function einpassen() {
   if (kam.quer) {
     kopfteil.g.scale.setScalar(1);
     // Fenster über das untere Feld (y 368…768); nach oben folgt die Kamera bis an den Bogen (Verschiebung bis 374)
-    const r = passe([P(8, 368, 0), P(392, 368, 0), P(4, 768, 22), P(396, 768, 22), P(4, 768, 0), P(396, 768, 0)], 30 * PI / 180, true);
+    const r = passe([P(8, 368, 0), P(392, 368, 0), P(4, 768, 22), P(396, 768, 22), P(4, 768, 0), P(396, 768, 0)], QUER_BLICK, true);
     kam.dist = r.dist; kam.zielUnten.copy(r.ziel); kam.weg = 374;
   } else {
     const tisch = [P(4, -4, 20), P(396, -4, 20), P(4, 768, 22), P(396, 768, 22), P(4, 768, 0), P(396, 768, 0)];
