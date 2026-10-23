@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>Zero Time – Echt-Stück</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #info {
+    position: fixed; left: calc(env(safe-area-inset-left, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); z-index: 3;
+    font: 600 11px system-ui, sans-serif; color: rgba(220, 230, 255, .6); text-shadow: 0 1px 2px #000; pointer-events: none;
+  }
+  #hinweis { position: fixed; inset: 0; z-index: 4; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; pointer-events: none; }
+  #hinweis span { font: 700 16px system-ui, sans-serif; color: #fff; background: rgba(0, 0, 0, .6); padding: 10px 16px; border-radius: 12px; }
+  @media (orientation: landscape) { #hinweis { display: none; } }
+  #start { position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .45); }
+  #start span { font: 700 18px system-ui, sans-serif; color: #ffb347; padding: 14px 22px; border: 2px solid #ffb347; border-radius: 14px; background: rgba(0, 0, 0, .5); text-align: center; }
+  #start small { display: block; margin-top: 6px; font-weight: 500; font-size: 13px; color: #e8eef5; }
+  #start[hidden] { display: none; }
+</style>
+<div id="start"><span>Antippen – mit Ton<small>Linke/rechte Hälfte = Flipper · ohne Tippen spielt die Demo</small></span></div>
+<div id="hinweis"><span>Handy quer halten</span></div>
+<div id="info"></div>
+<script type="module" src="stueck.js?v=1"></script>

@@ -436,6 +436,23 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Knöpfe oben rechts: **ECHT an/aus** (live umschalten, Taste E) und **BLICK 35°/50°** (Taste B; 35° = Spielerblick, Standard der Probe).
   Haken in drei.js: `echtHaken` (render, jedesBild, groesse, text, neigung), `NEIG` jetzt `let`, `bodenTeile[k].m`. Sandbox: nur
   Software-Rendering (1–4 fps), **Leistung auf dem iPhone ungemessen** – Rückmeldung mit fps-Anzeige abwarten. Sim 30/30 OK.
+- **Echt-Stück** (`stueck.html` + `stueck.js`, eigene Seite, App unverändert; Nutzer zu 0.91: „fast noch wie vorher, viel näher an die
+  echte Live-Simulation“). Erkenntnis: Render-Tricks allein reichen nicht – flach wirkt der **Inhalt** (Grafik-Boden ohne Kunststoffe,
+  Lampen, Metallteile). Das Stück zeigt nur das **untere halbe Feld** (y ≥ 372; darüber Dunkel/Nebel), **quer** im Spielerblick 30°
+  (hoch: 46° + Hinweis „Handy quer halten“; die Home-Bildschirm-App ist hochkant gesperrt → in Safari öffnen). Physik wie index.html
+  (gleiche Wände/Schleudern/Flipper/Effet, 1000 Schritte/s, TEMPO 0,7). Kugel nach oben → 0,45–1,3 s unsichtbar → zurück über eine
+  **Drahtrampe** (Enden der Tunnel-Bezierbahnen ab t 0,78, Höhe R + 46·(1−u)^1,6, kommen aus dem Dunkel in die Rückkehrgassen), durch
+  die Mitte oder einen Umlauf. Demo spielt selbst (nach 12 s ohne Tipp wieder), Abschuss mit Tipp rechts. Optik: Druck-Boden 1600² einmal
+  gezeichnet (Nachtblau→Rot, Leiterbahnen, Strahlenkranz, Uhr mit `strudel.png`, Schriftzug, Einsatz-Fassungen, Abnutzung, Druckkorn),
+  **Klarlack mit Bodenspiegel** (Reflector-Logik, eigene RT, Fresnel × 1,7; Punktlampen-Glanz im Klarlack × 0,12), **Einsätze** als
+  Kunststoff (Grund-/Glut-Textur je Lampe, Glühlampen-Trägheit an 30 ms / aus 80 ms) + Lichtschein (ein Zeichenaufruf), **Schleuder-
+  Kunststoffe** mit `bilder/eingang/schleuder_v1.png` (affin über die 3 Pfosten, rechts gespiegelt) auf 26 hohen Pfosten mit Muttern,
+  Glühlampe darunter; Blechführungen mit Rollkante, Pfosten mit Gummiring, Schürze mit Regelkarten, Seitenwände bedruckt, Kanone (Form
+  aus drei.js), 4 GI-Punktlichter + 2 Schattenlampen + Blitzer. **Wichtig:** bei 30° Blick spiegelt sich jede Lampe, die vor der
+  gespiegelten Blickgeraden hängt, als greller Fleck im Lack → Schattenlampen über dem Spieler (P 170/700/600) bzw. seitlich (560/600/230).
+  Ebenen: 0 normal, 1 Kugelspiegel, 2 nur Hauptbild (Einsätze, Schein, Kontaktschatten). Ton synthetisch (Spulen, Schleuder, Anschlag,
+  Rollen nach Tempo, Drahtrampe hell). Stufen (Auflösung/Bodenspiegel/Würfelseiten): 2×/0,5/6 · **1,5×/0,5/3 (Start)** · 1,25×/0,35/2 ·
+  1×/aus/1; < 52 fps senkt. Dauertest 10 min Spielzeit: 136× oben, 9 Abflüsse, nie außerhalb, nie hängend. iPhone-Leistung ungemessen.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
