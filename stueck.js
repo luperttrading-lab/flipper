@@ -967,7 +967,7 @@ function kugelLage() {                 // 3D-Lage der Kugel (null = nicht sichtb
   const k = kugel;
   if (k.z === 'oben' || k.z === 'aus') return null;
   if (k.z === 'rampe') { const p = rampenPunkt(k.rampe, k.u); return P(p.x, p.y, p.h); }
-  if (k.y > 722) return k.y > 742 ? null : P(k.x, k.y, R - (k.y - 722) * 0.9);   // unter der Schürze in den Abfluss
+  if (k.y > 722 && k.x < LANE_X) return k.y > 742 ? null : P(k.x, k.y, R - (k.y - 722) * 0.9);   // unter der Schürze in den Abfluss (nicht in der Rinne)
   return P(k.x, k.y, R);
 }
 function messen(jetzt) {

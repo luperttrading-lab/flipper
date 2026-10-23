@@ -668,7 +668,7 @@ function kugelLage(b) {               // 3D-Lage der Kugel (null = nicht sichtba
   if (b.rampe) { const t = Math.min(1, b.rampe.t / Z.RAMP_T), i = Z.ramps.indexOf(b.rampe.r), [x, y] = Z.bez(b.rampe.r.pfad, t); return P(x, y, rampenHoehe(i, t) + R); }
   if (b.kanone) return P(b.x, b.y, R + 16);
   if (b.halt > 0) return P(b.x, b.y, R - 7);                     // im Loch (Schädel, Mulde): halb versenkt
-  if (b.y > 722) return b.y > 742 ? null : P(b.x, b.y, R - (b.y - 722) * 0.9);   // unter der Schürze in den Abfluss
+  if (b.y > 722 && b.x < Z.LANE_X) return b.y > 742 ? null : P(b.x, b.y, R - (b.y - 722) * 0.9);   // unter der Schürze in den Abfluss (nicht in der Rinne)
   return P(b.x, b.y, R);
 }
 
@@ -812,7 +812,8 @@ einpassen();
 // ---------- Tipp → Tischkoordinaten (für Abzug, Kanone, Pause) ----------
 const ray = new THREE.Raycaster(), tischEbene = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), treffer = new THREE.Vector3();
 window.__ZT3D = {
-  bildschirm(x, y) { const v = P(x, y).project(camera), r = gl.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; },
+  bildschirm(x, y, h = 0) { const v = P(x, y, h).project(camera), r = gl.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; },
+  rampenHoehe,
   tischPunkt(cx, cy) {
     const r = gl.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), camera);

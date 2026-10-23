@@ -483,6 +483,25 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   tiefe Schläge mit schnellem Abfall, glatter Gehäuse-Nachhall 0,22 s ohne frühe Reflexionen, abschaltbar), „Spielszene“ zum Probehören,
   Auswahl in localStorage und als Text zum Kopieren. Nach der Wahl: Rezepte 1:1 in `sfx` übernehmen. **Merksatz:** keine Teiltöne mit
   Nachklang > ~10 ms über 1 kHz – das klingt sofort nach Glockenspiel.
+- Stand 0.95 (Nutzer: „Bild zu jedem Element, wo der Ton entsteht“ + „Original-Videos anhören und imitieren“): **`toene/<id>.jpg`** (17 Bilder,
+  480 px, oranger Ring an der Stelle, aus der Echt-Ansicht gerendert) in jeder Karte von `toene.html`. **Aufnahmen:** YouTube aus dem Container
+  gesperrt („Sign in to confirm you're not a bot“, nicht umgangen), Freesound 403; ausgewertet über archive.org: Kontaktmikrofon-Aufnahme eines
+  spielenden Automaten (radio aporee 30827_35454, CC BY 3.0), Williams Police Force 1989 (Raummikrofon), Bally Doctor Who 1992, Little Chief 1975.
+  **Ton nur zur Messung, nie ins Repo/die App** (Seite öffentlich). Messung: Anschläge per Spektral-Fluss, je Anschlag 8 Oktavbänder (63…8000 Hz)
+  Spitzenpegel und Abfallzeit auf −20 dB, k-means in 5 Gruppen; Zuordnung Gruppe → Bauteil [Vermutung] (Flipper = Gruppe mit Folgeschlag ~311 ms,
+  Bumper = ~93 ms). Raumaufnahme: Höhen 2–8 kHz als kurzer Rauschklick deutlich (+14…16 dB über Grund, 10–30 ms), Kontaktmikrofon dämpft Höhen →
+  Ziel-Hochtonpegel aus der Raumaufnahme angehoben. Rollen: Bänder 63…4k rel. [−1,5, −2, 0, −11, −16, −24, −32] dB → Tiefpass 220 Hz.
+  **Neue Varianten „V – nach Aufnahme“** (grün umrandet) für 14 Geräusche: `band(spek, gesamt, tauFaktor, ab)` = je Oktavband Rauschen durch
+  **2 Biquad-Bandpässe Q 0,91** (zusammen 4. Ordnung, −3 dB an den Oktavgrenzen), weicher Anstieg `clamp(0,25/f, 0,3…4 ms)` (sonst klickt das
+  63-Hz-Band breitbandig), dann `setTargetAtTime`. Tabellen `FLIPPER_V`, `BUMPER_V`, `SCHLEUDER_V`, `TIEF_V`, `GUMMI_V`, `KLICK_V`, `STAHL_V`
+  sind **geeicht** (`scratchpad/analyse/eichen.py`, nicht im Repo): Synthese in Python nachgebaut, mit derselben Analyse vermessen, Pegel/Zeit je Band
+  nachgeregelt. Restabweichung Flipper/Bumper/Schleuder/Klick ≤ ~2 dB / ~30 %; Tief und Gummi höher (Übersprechen der Filterflanken: z. B. Gummi
+  500 Hz −2,6 statt −8 dB). Achtung: gemessene Zeit = −20 dB, Zeitkonstante = Zeit/2,3 (anfangs verwechselt). Tabellen danach so verschoben, dass
+  gesamt = 1 ≈ −20 dB RMS (30-ms-Fenster) = alter Flipperschlag; Lautstärken je Geräusch offline gemessen (`OfflineAudioContext`) und an A angeglichen.
+  **Gehäuse-Nachhall 0,1 statt 0,3:** Aufnahme klingt bei +40/80 ms mit −17…−24 / −25…−39 dB nach (Höhenbänder), Synthese ohne Hall −28…−39 /
+  −47…−60, mit 0,3 −12 / −19 (zu viel) → 0,1. **Fehler behoben:** Kugel in der Abschussrinne war in der Echt-Ansicht unsichtbar (Abfluss-Regel
+  `y > 722` galt auch in der Rinne) – jetzt nur bei `x < LANE_X` (`echt.js`, `stueck.js`); `__ZT3D.bildschirm(x, y, h)` und `rampenHoehe` für die
+  Bilder. App-Ton weiter Stand 0.91, bis der Nutzer gewählt hat.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

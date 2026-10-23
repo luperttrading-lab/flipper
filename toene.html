@@ -16,6 +16,8 @@
   .gross { background: #8a1e2b; border-color: #c43a4a; }
   .karte { background: var(--karte); border: 1px solid var(--rand); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
   .karte h2 { font-size: 16px; margin: 0 0 2px; }
+  .karte img { display: block; width: 100%; height: auto; border-radius: 10px; margin: 2px 0 8px; background: #000; }
+  .varianten button.v { border-color: #3d7a5a; }
   .karte .wozu { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
   .varianten button { text-align: left; font-weight: 500; font-size: 14px; }
@@ -31,6 +33,9 @@
 <h1>Zero Time – Töne zur Auswahl</h1>
 <p>Tippe eine Variante an: Sie spielt und ist gewählt. <b>A ist jeweils der alte Ton</b> (bis 0.91, so wie jetzt in der App). „Aus“ heißt: kein Geräusch.
 Mit „Spielszene“ hörst du deine Auswahl im Zusammenhang. Unten die Auswahl kopieren und mir schicken.</p>
+<p><b>V – nach Aufnahme</b> (grün umrandet): nachgebaut aus echten Aufnahmen, gemessen in acht Frequenzbändern mit ihren Abklingzeiten –
+eine Kontaktmikrofon-Aufnahme eines spielenden Automaten (radio aporee, „Trini playing Pinball“) und ein Spielvideo von Williams Police Force (1989).
+Die Nachbauten sind darauf geeicht, dass dieselbe Messung dieselben Werte liefert. Welche gemessene Schlag-Gruppe zu welchem Bauteil gehört, ist geschätzt (die Aufnahme ist nicht beschriftet). Gehäuse-Nachhall an = Nachklang wie in der Aufnahme. Das Bild zeigt, wo das Geräusch am Tisch entsteht.</p>
 <div class="leiste">
   <button class="gross" id="szene" type="button">▶ Spielszene</button>
   <button id="alle-a" type="button">Alles auf A</button>
@@ -67,7 +72,7 @@ function starte() {
   const ir = ac.createBuffer(2, Math.floor(sr * 0.22), sr);
   for (let k = 0; k < 2; k++) { const d = ir.getChannelData(k); let y = 0; for (let i = 0; i < d.length; i++) { y += ((Math.random() * 2 - 1) - y) * 0.25; d[i] = y * Math.exp(-i / sr / 0.045); } }
   const conv = ac.createConvolver(); conv.buffer = ir;
-  mech = ac.createGain(); hallG = ac.createGain(); hallG.gain.value = hall ? 0.3 : 0;
+  mech = ac.createGain(); hallG = ac.createGain(); hallG.gain.value = hall ? 0.1 : 0;   // 0,1: Nachklang bei +40/80 ms wie in der Aufnahme (−20 / −30 dB)
   mech.connect(master); mech.connect(conv); conv.connect(hallG).connect(master);
   // Rollgeräusch: Rauschen mit unregelmäßiger Körnung; Drahtrampe: Rauschen mit Stößen an den Bügeln (breit gefiltert, ohne Tonhöhe)
   rollPuffer = ac.createBuffer(1, sr * 3, sr);
@@ -113,6 +118,28 @@ function dauer(puffer, sek, spitze, f, typ, profil) {   // Dauergeräusch mit La
   s.connect(fl).connect(g).connect(mech); s.start(t); s.stop(t + sek + 0.05);
 }
 const rollProfil = [[0.15, 1], [0.6, 0.8], [1, 0]];
+// „Nach Aufnahme“: Oktavbänder Rauschen (je 2 Bandpässe = 4. Ordnung), weicher Anstieg (tiefe Bänder ohne Klick), dann exponentielles Abklingen.
+// Werte [Mitte Hz, Pegel dB, Zeitkonstante ms] sind GEEICHT: die Synthese wurde mit derselben Analyse vermessen wie die Aufnahmen und so lange
+// nachgeregelt, bis Bandpegel und Abklingzeit (−20 dB) passen (tools: scratchpad eichen.py, Ergebnis in CLAUDE.md 0.95).
+function band(spek, gesamt = 1, tauFaktor = 1, ab = 0) {
+  const t = ac.currentTime + ab;
+  for (const [f, db, ms] of spek) {
+    if (db < -65) continue;
+    const s = ac.createBufferSource(), f1 = ac.createBiquadFilter(), f2 = ac.createBiquadFilter(), g = ac.createGain();
+    const att = Math.min(0.004, Math.max(0.0003, 0.25 / f)), tau = ms / 1000 * tauFaktor;
+    s.buffer = rausch; f1.type = f2.type = 'bandpass'; f1.frequency.value = f2.frequency.value = f; f1.Q.value = f2.Q.value = 0.91;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gesamt * Math.pow(10, db / 20), t + att); g.gain.setTargetAtTime(0, t + att, tau);
+    s.connect(f1).connect(f2).connect(g).connect(mech); s.start(t, Math.random() * 1.5, att + tau * 8 + 0.03);
+  }
+}
+// Pegel so verschoben, dass jede Tabelle mit gesamt = 1 etwa −20 dB RMS (30-ms-Fenster) ergibt = alter Flipperschlag; gesamt regelt die Lautstärke.
+const FLIPPER_V = [[63, 23.8, 3.97], [127, 16.2, 23.76], [252, 13.5, 19.19], [500, -18.2, 54], [1000, -2.3, 15.54], [2000, 6.4, 0.3], [4000, -7.1, 7.86], [8000, -17.5, 10.42]];
+const BUMPER_V = [[63, 10.2, 80], [127, 14.8, 80], [252, 1.3, 34.68], [500, 8.6, 12.76], [1000, -15.1, 44.64], [2000, 2, 1.51], [4000, -6.2, 8.9], [8000, -15, 10.13]];
+const SCHLEUDER_V = [[63, 29.1, 3.97], [127, 10, 80], [252, 10.7, 18.45], [500, -21.2, 80], [1000, -7.5, 20.28], [2000, 1.9, 0.84], [4000, -7.7, 8.24], [8000, -16.9, 11.47]];
+const TIEF_V = [[63, 32.1, 3.97], [127, 9.3, 2.68], [252, 4.3, 1.07], [500, -13.4, 4.81], [1000, -15.3, 23.86], [2000, -12.4, 2.52], [4000, -19.4, 8.21], [8000, -27.2, 9.67]];
+const GUMMI_V = [[63, 14.6, 3.97], [127, 13.1, 12.6], [252, 13.6, 30.03], [500, -22.6, 27.22], [1000, -53.8, 15.18], [2000, -54.1, 0.3], [4000, -53.4, 0.3]];
+const KLICK_V = [[252, 6.9, 6.53], [500, 11.4, 3.77], [1000, 9.4, 2.44], [2000, 10.6, 2.4], [4000, 8.8, 3.57], [8000, -2.3, 4.89]];
+const STAHL_V = [[1000, 9.2, 2.89], [2000, 10.8, 1.23], [4000, 11.9, 2.16], [8000, 3.5, 2.76]];
 
 // ---------- Geräusche und Varianten ----------
 const G = [
@@ -121,35 +148,42 @@ const G = [
     B: ['B – dumpf', 'Spulenschlag, weich', () => { stoss(0.9, 0.01, 'lowpass', 1600); schlag(0.8, 90, 45, 0.04); }],
     C: ['C – hart', 'trockenes Klacken', () => { stoss(0.8, 0.003, 'bandpass', 3200, 1); stoss(0.6, 0.018, 'lowpass', 900); schlag(0.6, 130, 55, 0.022); }],
     D: ['D – schwer', 'tief, viel Wucht', () => { schlag(1, 70, 38, 0.06); stoss(0.7, 0.022, 'lowpass', 1100); stoss(0.4, 0.004, 'bandpass', 2400); }],
+    V: ['V – nach Aufnahme', 'gemessener Flipperschlag', () => band(FLIPPER_V, 1)],
   } },
   { id: 'flipperLos', name: 'Flipper loslassen', wozu: 'Wenn der Flipper zurückfällt.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – leises Klacken', '', () => { stoss(0.35, 0.003, 'bandpass', 2200); schlag(0.25, 100, 50, 0.015); }],
     C: ['C – dumpf', '', () => { stoss(0.4, 0.012, 'lowpass', 700); }],
+    V: ['V – nach Aufnahme', 'derselbe Schlag, leiser, kürzer', () => band(FLIPPER_V, 0.35, 0.7)],
   } },
   { id: 'bumper', name: 'Pop-Bumper', wozu: 'Die drei Pilze oben – oft mehrmals schnell hintereinander.', v: {
     A: ['A – alt', 'Knall + Ton', () => { const v = 1; rauschen(0.035, 0.7, 5000 * v, 1800 * v, 0.9); ton('sine', 170 * v, 70, 0.07, 0.5); ton('square', 95 * v, 60, 0.04, 0.12); }],
     B: ['B – Knall', 'scharf und tief', () => { stoss(0.9, 0.004, 'highpass', 2500); schlag(1, 120, 40, 0.045); stoss(0.5, 0.025, 'lowpass', 900); }],
     C: ['C – Pock', 'kürzer, mittig', () => { stoss(1, 0.01, 'bandpass', 1600, 1.5); schlag(0.7, 150, 60, 0.03); }],
+    V: ['V – nach Aufnahme', 'gemessene Schlag-Serie', () => band(BUMPER_V, 1.25)],
   } },
   { id: 'schleuder', name: 'Schleuder', wozu: 'Die Dreiecke über den Flippern.', v: {
     A: ['A – alt', 'helles Zischen + Ton', () => { rauschen(0.04, 0.45, 3500, 1500, 3); ton('square', 220, 110, 0.05, 0.18); }],
     B: ['B – Gummi-Schnalzen', 'Spule + Gummi', () => { schlag(1, 110, 40, 0.045); stoss(0.8, 0.014, 'bandpass', 1100, 1.2); stoss(0.4, 0.003, 'highpass', 3000); }],
     C: ['C – dumpf', 'weicher Schlag', () => { stoss(1, 0.02, 'lowpass', 2000); schlag(0.8, 80, 40, 0.05); }],
+    V: ['V – nach Aufnahme', 'gemessener tiefer Schlag', () => band(SCHLEUDER_V, 1.25)],
   } },
   { id: 'wand', name: 'Kugel an Führung', wozu: 'Anschlag an Blechen und Pfosten (leise, je nach Wucht).', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – leiser Tick', '', () => { stoss(0.3, 0.0025, 'highpass', 3500); }],
     C: ['C – kurzer Klack', '', () => { stoss(0.35, 0.005, 'bandpass', 2600, 1.5); stoss(0.15, 0.01, 'lowpass', 600); }],
+    V: ['V – nach Aufnahme', 'kurzer Klick, ohne Klingen', () => band(KLICK_V, 0.16)],
   } },
   { id: 'gummi', name: 'Kugel an Gummi', wozu: 'Schleuderseiten, Flippergummi.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – weicher Puff', '', () => { stoss(0.45, 0.012, 'lowpass', 500); }],
+    V: ['V – nach Aufnahme', 'dumpfer Gummi-Anschlag', () => band(GUMMI_V, 0.22)],
   } },
   { id: 'ziel', name: 'Ziel getroffen', wozu: 'Stehziele, Rundziele, Wahl-Menü.', v: {
     A: ['A – alt', 'Doppel-Piep', () => { ton('square', 1046, 1046, 0.05, 0.12); ton('square', 1318, 1318, 0.06, 0.1, 0.05); }],
     B: ['B – nur Mechanik', 'Schalter klickt', () => { stoss(0.5, 0.006, 'bandpass', 1500, 2); stoss(0.3, 0.002, 'highpass', 4000); }],
     C: ['C – Mechanik + Ton', 'Klick + weicher Ton', () => { stoss(0.5, 0.006, 'bandpass', 1500, 2); ton('sine', 1200, 1500, 0.08, 0.08); }],
+    V: ['V – nach Aufnahme', 'Gummi-Anschlag + Klick', () => { band(GUMMI_V, 0.2, 0.7); band(KLICK_V, 0.2); }],
   } },
   { id: 'gasse', name: 'Gasse / Umlauf', wozu: 'Obere Gassen, Umläufe.', v: {
     A: ['A – alt', 'Aufwärts-Ton', () => { ton('triangle', 600, 1200, 0.12, 0.18); }],
@@ -163,6 +197,7 @@ const G = [
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – leise', 'tiefes Rumpeln', () => dauer(rollPuffer, 2, 0.5, 280, 'lowpass', rollProfil)],
     C: ['C – deutlich', 'mehr Körnung', () => dauer(rollPuffer, 2, 0.8, 600, 'lowpass', rollProfil)],
+    V: ['V – nach Aufnahme', 'gemessenes Rollen (60–250 Hz)', () => dauer(rollPuffer, 2, 0.75, 220, 'lowpass', rollProfil)],
   } },
   { id: 'draht', name: 'Drahtrampe', wozu: 'Kugel fährt auf der Drahtrampe (Probe: 1,5 s).', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
@@ -172,26 +207,32 @@ const G = [
   { id: 'abfluss', name: 'Kugel verloren', wozu: 'Kugel läuft in den Abfluss.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – Plumps', 'fällt ins Gehäuse', () => { schlag(0.8, 80, 40, 0.06); stoss(0.5, 0.08, 'lowpass', 400, 0.8, 0.03); schlag(0.6, 110, 60, 0.04, 0.45); }],
+    V: ['V – nach Aufnahme', 'Plumps + Aufprall im Gehäuse', () => { band(TIEF_V, 1); band(GUMMI_V, 0.4, 1.5, 0.4); }],
   } },
   { id: 'klack', name: 'Kugel an Kugel', wozu: 'Nur im Multiball.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – heller Klick', '', () => { stoss(0.5, 0.0025, 'highpass', 4000); }],
+    V: ['V – nach Aufnahme', 'Stahl an Stahl, kurz', () => band(STAHL_V, 0.22)],
   } },
   { id: 'abschuss', name: 'Abschuss', wozu: 'Feder loslassen.', v: {
     A: ['A – alt', 'Zischen nach oben', () => { const st = 0.8; rauschen(0.35, 0.25 + 0.35 * st, 400, 3000 + 3000 * st, 0.8); ton('sine', 180, 420 + 400 * st, 0.3, 0.3); }],
     B: ['B – Kolben', 'mechanisch', () => { schlag(0.9, 140, 50, 0.03); stoss(0.6, 0.004, 'bandpass', 2500); stoss(0.5, 0.06, 'lowpass', 600); }],
+    V: ['V – nach Aufnahme', 'Kolben, tiefer Schlag', () => { band(TIEF_V, 0.9); band(KLICK_V, 0.3); }],
   } },
   { id: 'kanone', name: 'Kanone', wozu: 'Kanonenschuss, Kickback.', v: {
     A: ['A – alt', 'Knall mit Nachhall', () => { rauschen(0.25, 0.7, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.6); }],
     B: ['B – schwerer', 'alt + Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.5); schlag(1, 70, 30, 0.08); stoss(0.6, 0.03, 'lowpass', 900); }],
+    V: ['V – nach Aufnahme', 'alt + gemessener Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.4); band(TIEF_V, 0.8, 1.6); }],
   } },
   { id: 'loch', name: 'Schädel-Loch', wozu: 'Kugel fällt in den Schädel.', v: {
     A: ['A – alt', 'tiefes Brummen', () => { ton('sawtooth', 110, 55, 0.6, 0.25); ton('sine', 220, 110, 0.4, 0.2); }],
     B: ['B – Plumps + Brummen', '', () => { schlag(0.8, 95, 48, 0.06); stoss(0.4, 0.02, 'lowpass', 600); ton('sawtooth', 110, 55, 0.6, 0.15); }],
+    V: ['V – nach Aufnahme', 'Kugel fällt ins Loch', () => { band(GUMMI_V, 0.5); band(TIEF_V, 0.8, 1, 0.05); ton('sawtooth', 110, 55, 0.6, 0.12); }],
   } },
   { id: 'auswurf', name: 'Auswurf', wozu: 'Schädel/Mulde wirft die Kugel aus.', v: {
     A: ['A – alt', 'dumpfer Stoß', () => { rauschen(0.08, 0.5, 800, 300, 1.5); ton('sine', 90, 50, 0.12, 0.4); }],
     B: ['B – Spule', 'mechanisch', () => { schlag(1, 110, 38, 0.05); stoss(0.6, 0.012, 'bandpass', 1200, 1.2); }],
+    V: ['V – nach Aufnahme', 'Auswerfer, gemessen', () => band(TIEF_V, 0.7, 1.3)],
   } },
 ];
 
@@ -201,10 +242,10 @@ const spiel = (id, k) => { starte(); const g = G.find(x => x.id === id); try { g
 for (const g of G) {
   if (!wahl[g.id] || !g.v[wahl[g.id]]) wahl[g.id] = 'A';
   const karte = document.createElement('section'); karte.className = 'karte';
-  karte.innerHTML = `<h2>${g.name}</h2><div class="wozu">${g.wozu}</div><div class="varianten"></div>`;
+  karte.innerHTML = `<h2>${g.name}</h2><div class="wozu">${g.wozu}</div><img src="toene/${g.id}.jpg" alt="${g.name}: Stelle am Tisch" loading="lazy" width="480" height="298"><div class="varianten"></div>`;
   const box = karte.querySelector('.varianten');
   for (const k of Object.keys(g.v)) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = g.id; b.dataset.k = k;
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = g.id; b.dataset.k = k; if (k === 'V') b.classList.add('v');
     b.innerHTML = `<b>${g.v[k][0]}</b>${g.v[k][1] || '&nbsp;'}`;
     b.addEventListener('click', () => { wahl[g.id] = k; zeige(); setTimeout(() => spiel(g.id, k), 30); });
     box.appendChild(b);
@@ -219,7 +260,7 @@ function zeige() {
 zeige();
 document.getElementById('alle-a').addEventListener('click', () => { for (const g of G) wahl[g.id] = 'A'; zeige(); });
 const hallBox = document.getElementById('hall'); hallBox.checked = hall;
-hallBox.addEventListener('change', () => { hall = hallBox.checked; if (hallG) hallG.gain.value = hall ? 0.3 : 0; try { localStorage.setItem('toene.hall', hall ? 'an' : 'aus'); } catch (_) {} });
+hallBox.addEventListener('change', () => { hall = hallBox.checked; if (hallG) hallG.gain.value = hall ? 0.1 : 0; try { localStorage.setItem('toene.hall', hall ? 'an' : 'aus'); } catch (_) {} });
 document.getElementById('kopie').addEventListener('click', async () => {
   const t = document.getElementById('auswahl').textContent + (hall ? ' · Nachhall an' : ' · Nachhall aus');
   try { await navigator.clipboard.writeText(t); document.getElementById('kopie').textContent = 'Kopiert'; } catch (_) { document.getElementById('kopie').textContent = 'Bitte abschreiben'; }
