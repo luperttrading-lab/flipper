@@ -52,7 +52,7 @@
   body.drei #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
   body.drei #stage { padding-top: calc(env(safe-area-inset-top, 0px) + 4px); }
   body.drei #dmd { width: min(100%, 520px); }        /* größere Zeichenfläche = schärfere Anzeige im Kopfteil */
-  /* 0.92 Echt-Ansicht (?echt, echt.js): hochkant ist die Punktmatrix ein Bildschirm im Kopfteil (wie drei.js); quer schwebt sie klein links oben */
+  /* Echt-Ansicht (echt.js, Standard seit 0.93): hochkant ist die Punktmatrix ein Bildschirm im Kopfteil (wie drei.js); quer schwebt sie klein links oben */
   body.echt #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
   body.echt #dmd { width: min(100%, 520px); }
   body.echt #stage { padding: calc(env(safe-area-inset-top, 0px) + 4px) 0 0; }
@@ -168,7 +168,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.92';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.93';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -2181,12 +2181,13 @@ const dmd = (() => {
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; }, get multiball() { return multiball; },
       get uhr() { return { geholt: fluchtGeholt, hurryBis, paybackBis, jpShow, attract: gameOver || (!gestartet && loaded) }; },
       lamps, feder, FZ, TIPP_T, abschussBereit, LANE_X, SHOOT_X, SHOOT_Y, get gameOver() { return gameOver; } };
-    // 0.92: „?echt“ lädt die Echt-Ansicht (Stil des Echt-Stücks: fester Druck-Boden, Einsätze als Kunststoff, Spiegelungen) statt drei.js
-    const ECHT = /[?&]echt\b/.test(location.search);
+    // 0.93: Echt-Ansicht ist Standard (echt.js: fester Druck-Boden, Einsätze als Kunststoff, Spiegelungen); die bisherige 3D-Ansicht mit „?drei“
+    const ECHT = !/[?&]drei\b/.test(location.search);
     document.body.classList.add(ECHT ? 'echt' : 'drei');
     const s = document.createElement('script'); s.type = 'module'; s.src = (ECHT ? 'echt.js' : 'drei.js') + '?v=' + APP_VERSION;
     // Lädt die 3D-Ansicht nicht (Modul fehlt, WebGL-Fehler), auf die flache Ansicht ausweichen statt schwarzem Bild
-    const flach = () => { if (!window.__ZT3D) location.replace(location.pathname + '?2d'); };
+    // Lädt die Ansicht nicht (Modul fehlt, WebGL-Fehler): Echt → bisherige 3D-Ansicht → flach, statt schwarzem Bild
+    const flach = () => { if (!window.__ZT3D) location.replace(location.pathname + (ECHT ? '?drei' : '?2d')); };
     s.onerror = flach; setTimeout(flach, 15000);
     document.body.appendChild(s);
   }

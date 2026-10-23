@@ -472,6 +472,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Biegemoden 1 : 2,76 : 5,40 : 8,93, Holz 180 Hz), je 3 Fassungen, Tonhöhe ±4 %. Neu: `flipperAus`, `anschlag(st, art)` (Wand/Pfosten Metall,
   Schleuderseiten Gummi, Flipper), `klack` (Kugel an Kugel), `abfluss`, **Rollgeräusch** nach schnellster Kugel + **Drahtrampe** (`sfx.rollen` je
   Bild); Ziele/Gassen/Rampe = Schalter + weicher Ton statt Rechteck-Piepsen. Sim 30/30, 3 min ohne Fehler. iPhone-Leistung der Echt-Ansicht ungemessen.
+- Stand 0.93 (Nutzer): **Echt-Ansicht ist Standard** in der App (`echt.js`). Bisherige 3D-Ansicht mit **`?drei`**, flach mit `?2d`; `?echt` geht
+  weiter. Lädt die Echt-Ansicht nicht (Modul fehlt, kein `__ZT3D` nach 15 s), weicht die Seite auf `?drei` aus, die 3D-Ansicht auf `?2d`.
+  `sw.js` speichert für offline zusätzlich `bilder/eingang/schleuder_v1.png`, `lib/three.module.min.js` und `lib/jsm/…`. Die Home-Bildschirm-App
+  bleibt hochkant gesperrt (`manifest.webmanifest`); quer mit folgender Kamera nur im Safari-Tab.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

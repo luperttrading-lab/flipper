@@ -1,4 +1,4 @@
-// Zero Time – Echt-Ansicht (0.92, mit „?echt“): das ganze Spiel im Stil des Echt-Stücks (stueck.html).
+// Zero Time – Echt-Ansicht (seit 0.93 Standard; bisherige 3D-Ansicht mit „?drei“, flach mit „?2d“): das ganze Spiel im Stil des Echt-Stücks.
 // Physik und Regeln bleiben in index.html (Daten in window.__ZT); hier wird nur gezeichnet – ohne die 2D-Zeichnung als Bodentextur:
 // Der Boden ist ein fester Druck (einmal gezeichnet), die Einsätze sind Kunststoff mit Glühlampe darunter und folgen `lamps[].i`.
 // Hochkant: ganzer Tisch, Blick 50°, Punktmatrix oben. Quer: Spielerblick 30°, Kamera folgt der untersten Kugel, Punktmatrix schwebt oben.
