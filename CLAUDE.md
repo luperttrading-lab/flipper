@@ -557,6 +557,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Metall die helle Deckenleuchte der PMREM-Umgebung, der Bloom macht daraus einen Schleier (Test: ohne Umgebung oder ohne Bloom kein Schleier).
   In der Probe `scene.environmentIntensity = 0.35` und die Raumleuchte hinter den Spieler (P 170/1060/760). Für die normale Querkamera („Feld zu
   hell“) ist das der wahrscheinliche Hebel – noch nicht geändert (Nutzer wollte erst den Winkel klären).
+- Stand 1.02 (Nutzer nach iPhone-Test der Probe: Spielerauge „man sieht so viel zu wenig“ → **34°**): **Querblick-Standard 34°** (`QUER_BLICK`,
+  `?blick=` bleibt zum Probieren); Spielerauge-Code wieder entfernt. **Probe `?glanz=35`** (0–100 %, Standard 100 = unverändert):
+  `scene.environmentIntensity` – dämpft die Spiegelung der hellen Umgebungs-Deckenleuchte in Lack/Metall (Ursache des milchigen Schleiers mit
+  Bloom). Vergleichsbild 34°: mit 35 % deutlich satter. **iPhone-Messung aus der Probe:** 1× → 59 fps, 1,25× → 52 fps – nach dem Zusammenfassen
+  ist jetzt die **Grafik je Pixel** der Engpass (6 Punktlichter + 2 Schattenleuchten + Blitzer werden in jedem Pixel aller PBR-Materialien
+  gerechnet) → nächster Hebel für Schärfe: Grundlicht-Punktlichter reduzieren/einbacken.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
