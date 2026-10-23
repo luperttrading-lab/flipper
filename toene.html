@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>Zero Time – Töne zur Auswahl</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1420">
+<style>
+  :root { color-scheme: dark; --bg: #0b1420; --karte: #13233a; --rand: #24395a; --ink: #e8eef5; --muted: #8aa0b8; --wahl: #ffb347; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, -apple-system, sans-serif; }
+  body { padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(env(safe-area-inset-bottom, 0px) + 150px); max-width: 720px; margin: 0 auto; box-sizing: border-box; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .leiste { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 16px; }
+  button { font: 600 15px system-ui, sans-serif; color: var(--ink); background: #1b3050; border: 2px solid var(--rand); border-radius: 12px; padding: 10px 12px; touch-action: manipulation; }
+  button:active { transform: scale(.97); }
+  .gross { background: #8a1e2b; border-color: #c43a4a; }
+  .karte { background: var(--karte); border: 1px solid var(--rand); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+  .karte h2 { font-size: 16px; margin: 0 0 2px; }
+  .karte .wozu { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .varianten button { text-align: left; font-weight: 500; font-size: 14px; }
+  .varianten button b { display: block; font-size: 15px; }
+  .varianten button.gewaehlt { border-color: var(--wahl); background: #3a2a10; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(8, 14, 24, .96); border-top: 1px solid var(--rand);
+    padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  footer .innen { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  #auswahl { flex: 1; font-size: 12px; color: var(--muted); max-height: 64px; overflow: auto; }
+  label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+</style>
+
+<h1>Zero Time – Töne zur Auswahl</h1>
+<p>Tippe eine Variante an: Sie spielt und ist gewählt. <b>A ist jeweils der alte Ton</b> (bis 0.91, so wie jetzt in der App). „Aus“ heißt: kein Geräusch.
+Mit „Spielszene“ hörst du deine Auswahl im Zusammenhang. Unten die Auswahl kopieren und mir schicken.</p>
+<div class="leiste">
+  <button class="gross" id="szene" type="button">▶ Spielszene</button>
+  <button id="alle-a" type="button">Alles auf A</button>
+  <label><input type="checkbox" id="hall" checked> Gehäuse-Nachhall (nur neue Varianten)</label>
+</div>
+<main id="liste"></main>
+<footer><div class="innen"><div id="auswahl"></div><button id="kopie" type="button">Kopieren</button></div></footer>
+
+<script>
+// Klangbaukasten für die Auswahl. A = Rezepte aus index.html bis 0.91; B–D neu: nur kurze Schläge und Rauschstöße ohne gestimmtes
+// Nachklingen (0.92 hatte Stahl-Teiltöne um 2 kHz mit 70 ms Nachklang – das klang wie ein Xylophon).
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac = null, master = null, mech = null, hallG = null, rausch = null, rollPuffer = null, drahtPuffer = null;
+let wahl = {}, hall = true;
+try { wahl = JSON.parse(localStorage.getItem('toene.wahl') || '{}'); hall = localStorage.getItem('toene.hall') !== 'aus'; } catch (_) {}
+
+// iOS: Ton erst nach Berührung; stilles HTML-Audio stellt auf „Medien“, damit es auch bei Stummschalter spielt (wie in der App)
+function stilleWav() {
+  const rate = 8000, n = rate / 2, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+  let bin = ''; for (const x of b) bin += String.fromCharCode(x); return 'data:audio/wav;base64,' + btoa(bin);
+}
+const medien = new Audio(stilleWav()); medien.loop = true; medien.setAttribute('playsinline', '');
+function starte() {
+  try { const p = medien.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+  if (ac) { if (ac.state !== 'running') ac.resume(); return; }
+  ac = new AC();
+  master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+  const sr = ac.sampleRate, n = sr * 2;
+  rausch = ac.createBuffer(1, n, sr); { const d = rausch.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+  // Gehäuse: kurzer, glatter Nachhall (abklingendes Rauschen, gefiltert, keine frühen Reflexionen → kein Klingen)
+  const ir = ac.createBuffer(2, Math.floor(sr * 0.22), sr);
+  for (let k = 0; k < 2; k++) { const d = ir.getChannelData(k); let y = 0; for (let i = 0; i < d.length; i++) { y += ((Math.random() * 2 - 1) - y) * 0.25; d[i] = y * Math.exp(-i / sr / 0.045); } }
+  const conv = ac.createConvolver(); conv.buffer = ir;
+  mech = ac.createGain(); hallG = ac.createGain(); hallG.gain.value = hall ? 0.3 : 0;
+  mech.connect(master); mech.connect(conv); conv.connect(hallG).connect(master);
+  // Rollgeräusch: Rauschen mit unregelmäßiger Körnung; Drahtrampe: Rauschen mit Stößen an den Bügeln (breit gefiltert, ohne Tonhöhe)
+  rollPuffer = ac.createBuffer(1, sr * 3, sr);
+  { const d = rollPuffer.getChannelData(0); let a = 0, l = 0; for (let i = 0; i < d.length; i++) { if (i % 80 === 0) a = 0.3 + Math.random(); l += (a - l) * 0.003; d[i] = (Math.random() * 2 - 1) * l; } }
+  drahtPuffer = ac.createBuffer(1, sr * 2, sr);
+  { const d = drahtPuffer.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.3; let i = 0;
+    while (i < d.length) { for (let j = 0; j < 200 && i + j < d.length; j++) d[i + j] += (Math.random() * 2 - 1) * Math.exp(-j / 40) * 1.8; i += Math.floor(sr * (0.022 + Math.random() * 0.03)); } }
+}
+['pointerup', 'touchend', 'click'].forEach(ev => window.addEventListener(ev, starte, { capture: true, passive: true }));
+
+// ---------- Bausteine ----------
+// alt (index.html bis 0.91)
+function ton(typ, f0, f1, dauer, laut, start = 0) {
+  const t = ac.currentTime + start, o = ac.createOscillator(), g = ac.createGain();
+  o.type = typ; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dauer);
+  g.gain.setValueAtTime(laut, t); g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dauer + 0.02);
+}
+function rauschen(dauer, laut, f0, f1, q = 1) {
+  const t = ac.currentTime, s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = rausch; bp.type = 'bandpass'; bp.Q.value = q; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dauer);
+  g.gain.setValueAtTime(laut, t); g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
+  s.connect(bp).connect(g).connect(master); s.start(t, Math.random(), dauer + 0.02);
+}
+// neu: Rauschstoß (gefiltert, klingt mit Zeitkonstante tau ab) und Schlag (tiefer Ton, der schnell fällt und verklingt)
+function stoss(v, tau, typ, f, q = 0.8, ab = 0) {
+  const t = ac.currentTime + ab, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = rausch; fl.type = typ; fl.frequency.value = f; fl.Q.value = q;
+  g.gain.setValueAtTime(v, t); g.gain.setTargetAtTime(0, t + 0.0005, tau);
+  s.connect(fl).connect(g).connect(mech); s.start(t, Math.random() * 1.5, tau * 8 + 0.03);
+}
+function schlag(v, f0, f1, tau, ab = 0) {
+  const t = ac.currentTime + ab, o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + tau * 2.5);
+  g.gain.setValueAtTime(v, t); g.gain.setTargetAtTime(0, t + 0.0005, tau);
+  o.connect(g).connect(mech); o.start(t); o.stop(t + tau * 8 + 0.03);
+}
+function dauer(puffer, sek, spitze, f, typ, profil) {   // Dauergeräusch mit Lautstärkeverlauf (Rollen, Draht)
+  const t = ac.currentTime, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = puffer; s.loop = true; fl.type = typ; fl.frequency.value = f; fl.Q.value = 0.7;
+  g.gain.setValueAtTime(0, t);
+  profil.forEach(([u, a]) => g.gain.linearRampToValueAtTime(spitze * a, t + u * sek));
+  s.connect(fl).connect(g).connect(mech); s.start(t); s.stop(t + sek + 0.05);
+}
+const rollProfil = [[0.15, 1], [0.6, 0.8], [1, 0]];
+
+// ---------- Geräusche und Varianten ----------
+const G = [
+  { id: 'flipperAn', name: 'Flipper drücken', wozu: 'Bei jedem Flipperschlag – das häufigste Geräusch.', v: {
+    A: ['A – alt', 'Klacken + tiefer Ton', () => { rauschen(0.05, 0.5, 2500, 800, 2); ton('sine', 140, 60, 0.08, 0.6); }],
+    B: ['B – dumpf', 'Spulenschlag, weich', () => { stoss(0.9, 0.01, 'lowpass', 1600); schlag(0.8, 90, 45, 0.04); }],
+    C: ['C – hart', 'trockenes Klacken', () => { stoss(0.8, 0.003, 'bandpass', 3200, 1); stoss(0.6, 0.018, 'lowpass', 900); schlag(0.6, 130, 55, 0.022); }],
+    D: ['D – schwer', 'tief, viel Wucht', () => { schlag(1, 70, 38, 0.06); stoss(0.7, 0.022, 'lowpass', 1100); stoss(0.4, 0.004, 'bandpass', 2400); }],
+  } },
+  { id: 'flipperLos', name: 'Flipper loslassen', wozu: 'Wenn der Flipper zurückfällt.', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – leises Klacken', '', () => { stoss(0.35, 0.003, 'bandpass', 2200); schlag(0.25, 100, 50, 0.015); }],
+    C: ['C – dumpf', '', () => { stoss(0.4, 0.012, 'lowpass', 700); }],
+  } },
+  { id: 'bumper', name: 'Pop-Bumper', wozu: 'Die drei Pilze oben – oft mehrmals schnell hintereinander.', v: {
+    A: ['A – alt', 'Knall + Ton', () => { const v = 1; rauschen(0.035, 0.7, 5000 * v, 1800 * v, 0.9); ton('sine', 170 * v, 70, 0.07, 0.5); ton('square', 95 * v, 60, 0.04, 0.12); }],
+    B: ['B – Knall', 'scharf und tief', () => { stoss(0.9, 0.004, 'highpass', 2500); schlag(1, 120, 40, 0.045); stoss(0.5, 0.025, 'lowpass', 900); }],
+    C: ['C – Pock', 'kürzer, mittig', () => { stoss(1, 0.01, 'bandpass', 1600, 1.5); schlag(0.7, 150, 60, 0.03); }],
+  } },
+  { id: 'schleuder', name: 'Schleuder', wozu: 'Die Dreiecke über den Flippern.', v: {
+    A: ['A – alt', 'helles Zischen + Ton', () => { rauschen(0.04, 0.45, 3500, 1500, 3); ton('square', 220, 110, 0.05, 0.18); }],
+    B: ['B – Gummi-Schnalzen', 'Spule + Gummi', () => { schlag(1, 110, 40, 0.045); stoss(0.8, 0.014, 'bandpass', 1100, 1.2); stoss(0.4, 0.003, 'highpass', 3000); }],
+    C: ['C – dumpf', 'weicher Schlag', () => { stoss(1, 0.02, 'lowpass', 2000); schlag(0.8, 80, 40, 0.05); }],
+  } },
+  { id: 'wand', name: 'Kugel an Führung', wozu: 'Anschlag an Blechen und Pfosten (leise, je nach Wucht).', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – leiser Tick', '', () => { stoss(0.3, 0.0025, 'highpass', 3500); }],
+    C: ['C – kurzer Klack', '', () => { stoss(0.35, 0.005, 'bandpass', 2600, 1.5); stoss(0.15, 0.01, 'lowpass', 600); }],
+  } },
+  { id: 'gummi', name: 'Kugel an Gummi', wozu: 'Schleuderseiten, Flippergummi.', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – weicher Puff', '', () => { stoss(0.45, 0.012, 'lowpass', 500); }],
+  } },
+  { id: 'ziel', name: 'Ziel getroffen', wozu: 'Stehziele, Rundziele, Wahl-Menü.', v: {
+    A: ['A – alt', 'Doppel-Piep', () => { ton('square', 1046, 1046, 0.05, 0.12); ton('square', 1318, 1318, 0.06, 0.1, 0.05); }],
+    B: ['B – nur Mechanik', 'Schalter klickt', () => { stoss(0.5, 0.006, 'bandpass', 1500, 2); stoss(0.3, 0.002, 'highpass', 4000); }],
+    C: ['C – Mechanik + Ton', 'Klick + weicher Ton', () => { stoss(0.5, 0.006, 'bandpass', 1500, 2); ton('sine', 1200, 1500, 0.08, 0.08); }],
+  } },
+  { id: 'gasse', name: 'Gasse / Umlauf', wozu: 'Obere Gassen, Umläufe.', v: {
+    A: ['A – alt', 'Aufwärts-Ton', () => { ton('triangle', 600, 1200, 0.12, 0.18); }],
+    B: ['B – weicher', 'leiser, runder', () => { stoss(0.3, 0.003, 'highpass', 3500); ton('sine', 700, 1100, 0.14, 0.1); }],
+  } },
+  { id: 'rampe', name: 'Rampe geschafft', wozu: 'Kugel kommt über die Rampe.', v: {
+    A: ['A – alt', 'Alarm-Tonfolge', () => { [392, 523, 659, 784].forEach((f, i) => ton('sawtooth', f, f, 0.09, 0.13, i * 0.08)); }],
+    B: ['B – weicher', 'gleiche Folge, runder', () => { [392, 523, 659, 784].forEach((f, i) => ton('triangle', f, f, 0.12, 0.13, i * 0.08)); }],
+  } },
+  { id: 'rollen', name: 'Rollgeräusch', wozu: 'Läuft, solange die Kugel rollt (Probe: 2 s an- und abschwellend).', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – leise', 'tiefes Rumpeln', () => dauer(rollPuffer, 2, 0.5, 280, 'lowpass', rollProfil)],
+    C: ['C – deutlich', 'mehr Körnung', () => dauer(rollPuffer, 2, 0.8, 600, 'lowpass', rollProfil)],
+  } },
+  { id: 'draht', name: 'Drahtrampe', wozu: 'Kugel fährt auf der Drahtrampe (Probe: 1,5 s).', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – leise', 'feines Rasseln', () => dauer(drahtPuffer, 1.5, 0.25, 2500, 'highpass', rollProfil)],
+    C: ['C – deutlich', 'kräftiges Rasseln', () => dauer(drahtPuffer, 1.5, 0.45, 1500, 'bandpass', rollProfil)],
+  } },
+  { id: 'abfluss', name: 'Kugel verloren', wozu: 'Kugel läuft in den Abfluss.', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – Plumps', 'fällt ins Gehäuse', () => { schlag(0.8, 80, 40, 0.06); stoss(0.5, 0.08, 'lowpass', 400, 0.8, 0.03); schlag(0.6, 110, 60, 0.04, 0.45); }],
+  } },
+  { id: 'klack', name: 'Kugel an Kugel', wozu: 'Nur im Multiball.', v: {
+    A: ['A – aus', 'wie bisher still', () => {}],
+    B: ['B – heller Klick', '', () => { stoss(0.5, 0.0025, 'highpass', 4000); }],
+  } },
+  { id: 'abschuss', name: 'Abschuss', wozu: 'Feder loslassen.', v: {
+    A: ['A – alt', 'Zischen nach oben', () => { const st = 0.8; rauschen(0.35, 0.25 + 0.35 * st, 400, 3000 + 3000 * st, 0.8); ton('sine', 180, 420 + 400 * st, 0.3, 0.3); }],
+    B: ['B – Kolben', 'mechanisch', () => { schlag(0.9, 140, 50, 0.03); stoss(0.6, 0.004, 'bandpass', 2500); stoss(0.5, 0.06, 'lowpass', 600); }],
+  } },
+  { id: 'kanone', name: 'Kanone', wozu: 'Kanonenschuss, Kickback.', v: {
+    A: ['A – alt', 'Knall mit Nachhall', () => { rauschen(0.25, 0.7, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.6); }],
+    B: ['B – schwerer', 'alt + Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.5); schlag(1, 70, 30, 0.08); stoss(0.6, 0.03, 'lowpass', 900); }],
+  } },
+  { id: 'loch', name: 'Schädel-Loch', wozu: 'Kugel fällt in den Schädel.', v: {
+    A: ['A – alt', 'tiefes Brummen', () => { ton('sawtooth', 110, 55, 0.6, 0.25); ton('sine', 220, 110, 0.4, 0.2); }],
+    B: ['B – Plumps + Brummen', '', () => { schlag(0.8, 95, 48, 0.06); stoss(0.4, 0.02, 'lowpass', 600); ton('sawtooth', 110, 55, 0.6, 0.15); }],
+  } },
+  { id: 'auswurf', name: 'Auswurf', wozu: 'Schädel/Mulde wirft die Kugel aus.', v: {
+    A: ['A – alt', 'dumpfer Stoß', () => { rauschen(0.08, 0.5, 800, 300, 1.5); ton('sine', 90, 50, 0.12, 0.4); }],
+    B: ['B – Spule', 'mechanisch', () => { schlag(1, 110, 38, 0.05); stoss(0.6, 0.012, 'bandpass', 1200, 1.2); }],
+  } },
+];
+
+// ---------- Oberfläche ----------
+const liste = document.getElementById('liste');
+const spiel = (id, k) => { starte(); const g = G.find(x => x.id === id); try { g.v[k][2](); } catch (e) { console.warn(e); } };
+for (const g of G) {
+  if (!wahl[g.id] || !g.v[wahl[g.id]]) wahl[g.id] = 'A';
+  const karte = document.createElement('section'); karte.className = 'karte';
+  karte.innerHTML = `<h2>${g.name}</h2><div class="wozu">${g.wozu}</div><div class="varianten"></div>`;
+  const box = karte.querySelector('.varianten');
+  for (const k of Object.keys(g.v)) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = g.id; b.dataset.k = k;
+    b.innerHTML = `<b>${g.v[k][0]}</b>${g.v[k][1] || '&nbsp;'}`;
+    b.addEventListener('click', () => { wahl[g.id] = k; zeige(); setTimeout(() => spiel(g.id, k), 30); });
+    box.appendChild(b);
+  }
+  liste.appendChild(karte);
+}
+function zeige() {
+  for (const b of document.querySelectorAll('.varianten button')) b.classList.toggle('gewaehlt', wahl[b.dataset.id] === b.dataset.k);
+  document.getElementById('auswahl').textContent = 'Auswahl: ' + G.map(g => `${g.name} ${wahl[g.id]}`).join(' · ');
+  try { localStorage.setItem('toene.wahl', JSON.stringify(wahl)); } catch (_) {}
+}
+zeige();
+document.getElementById('alle-a').addEventListener('click', () => { for (const g of G) wahl[g.id] = 'A'; zeige(); });
+const hallBox = document.getElementById('hall'); hallBox.checked = hall;
+hallBox.addEventListener('change', () => { hall = hallBox.checked; if (hallG) hallG.gain.value = hall ? 0.3 : 0; try { localStorage.setItem('toene.hall', hall ? 'an' : 'aus'); } catch (_) {} });
+document.getElementById('kopie').addEventListener('click', async () => {
+  const t = document.getElementById('auswahl').textContent + (hall ? ' · Nachhall an' : ' · Nachhall aus');
+  try { await navigator.clipboard.writeText(t); document.getElementById('kopie').textContent = 'Kopiert'; } catch (_) { document.getElementById('kopie').textContent = 'Bitte abschreiben'; }
+  setTimeout(() => { document.getElementById('kopie').textContent = 'Kopieren'; }, 1500);
+});
+// Spielszene: kurzer Ablauf mit der gewählten Auswahl
+document.getElementById('szene').addEventListener('click', () => {
+  starte();
+  const s = (ms, id) => setTimeout(() => spiel(id, wahl[id]), ms);
+  s(0, 'abschuss'); s(150, 'draht'); s(1500, 'gasse'); s(1700, 'bumper'); s(1850, 'bumper'); s(2050, 'bumper'); s(2250, 'wand');
+  s(2400, 'rollen'); s(2900, 'wand'); s(3300, 'schleuder'); s(3550, 'gummi'); s(3800, 'flipperAn'); s(4050, 'flipperLos'); s(4300, 'ziel');
+  s(4600, 'rollen'); s(4800, 'flipperAn'); s(5000, 'wand'); s(5100, 'flipperLos'); s(5500, 'rampe'); s(6200, 'loch'); s(7000, 'auswurf');
+  s(7600, 'rollen'); s(8300, 'klack'); s(8800, 'abfluss');
+});
+</script>

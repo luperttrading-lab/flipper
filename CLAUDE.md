@@ -476,6 +476,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   weiter. Lädt die Echt-Ansicht nicht (Modul fehlt, kein `__ZT3D` nach 15 s), weicht die Seite auf `?drei` aus, die 3D-Ansicht auf `?2d`.
   `sw.js` speichert für offline zusätzlich `bilder/eingang/schleuder_v1.png`, `lib/three.module.min.js` und `lib/jsm/…`. Die Home-Bildschirm-App
   bleibt hochkant gesperrt (`manifest.webmanifest`); quer mit folgender Kamera nur im Safari-Tab.
+- Stand 0.94 (Nutzer: Ton aus 0.92 „wie ein Xylophon, viel schlechter als vorher“): **Ursache** – die Stahl-Proben (gestimmte Biegemoden um
+  2 kHz, 70 ms Nachklang) bei jedem Wandanschlag und im Flipper/Bumper. **App-Ton zurück auf den Stand 0.91** (alte Rezepte); die neuen Aufrufe
+  `flipperAus`, `anschlag`, `klack`, `abfluss`, `rollen` bleiben in der Physik, sind aber still, bis der Nutzer gewählt hat. **`toene.html`**:
+  Auswahlseite, je Geräusch A = alter Ton (bzw. „aus“) und B–D neue Varianten **ohne gestimmtes Nachklingen** (Rauschstöße mit Zeitkonstante,
+  tiefe Schläge mit schnellem Abfall, glatter Gehäuse-Nachhall 0,22 s ohne frühe Reflexionen, abschaltbar), „Spielszene“ zum Probehören,
+  Auswahl in localStorage und als Text zum Kopieren. Nach der Wahl: Rezepte 1:1 in `sfx` übernehmen. **Merksatz:** keine Teiltöne mit
+  Nachklang > ~10 ms über 1 kHz – das klingt sofort nach Glockenspiel.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
