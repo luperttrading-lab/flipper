@@ -521,6 +521,20 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `body.echt-quer.kraft-an`): Balken mit den Zonen `FZ` (rot/grün/gelb/weiß), Füllstand und Text (ZU SCHWACH / GASSEN / GASSE ODER BOGEN / VOLLE
   KRAFT), `kraftAnzeige(pause)` je Bild, schreibt nur bei Änderung. Geprüft: Physik mit festem Zufallsstartwert Bild für Bild identisch zu 0.96
   (`scratchpad/tools/physik_gleich.js`); Gassen-Test wackelt wie bekannt.
+- Stand 0.98 (iPhone-Screenshots 0.97: hochkant und quer **Stufe 4/4 = 1×** bei nur 52–56 fps → Schrift unscharf; Nutzer: schärfer, ohne
+  Bildrate zu senken). **Gemessen** (Zeichenaufrufe per WebGL-Zähler, `scratchpad/tools/zeichenaufrufe.js`/`aufrufe_teile.js`): je Bild ~850 (Stufe 4)
+  bzw. ~1240 (Stufe 2) – Hauptbild 367, **zwei Schattenbilder je 203**, Kugel-Spiegelung 130 je Würfelseite. Auf dem iPhone ist das der Engpass
+  (CPU/Treiber je Aufruf), nicht die Auflösung. **Feste Teile zusammengefasst** (`zusammengefasst` nach dem Kopfteil): alle Meshes mit Material aus
+  `M` oder `material.userData.fest` (Schiene, Seitenwand), ohne `userData.beweglich` an sich oder einem Elternteil, werden je (Material, Ebenen,
+  Schatten) zu einem Mesh verschmolzen (`verschmelze`: position/normal/uv, Weltmatrix eingerechnet). 214 → 19 Meshes; Zeichenaufrufe Stufe 4
+  851 → **333**, Stufe 2 1238 → **493** (Hauptbild 172, Schatten je 51, Würfelseite 91). Bild pixelgleich (Vergleich eingefroren per Pause; einzige
+  Abweichung der drehende Strudel). **Beweglich markiert:** Flipper-Gruppen, Bumper-Rock, Schleuder-Gummi der Schlagseite, Klappziel, Kanonen-`dreh`,
+  Bodenuhr-Zeiger, Kopfteil (skaliert bei `einpassen`). **Neue Teile, die sich bewegen, mit `userData.beweglich = true` anlegen, sonst frieren sie ein!**
+  **Stufen** jetzt Schärfe zuerst: 2×/0,5/3 · 1,75×/0,5/2 · **1,5×/0,4/2 (Start)** · 1,5×/aus/1 · 1,25×/aus/1 · 1×/aus/1 (Auflösung/Bodenspiegel/
+  Würfelseiten), Anzeige „fps · Stufe n/6 · dpr“. Sperre nach dem Absteigen nur noch **auf Zeit** (45 s; 3 min, wenn eine Probe nach oben in < 12 s
+  scheitert) – vorher für immer, ein einzelner Ruckler hielt die App bis zum Neustart auf 1×. Aufstieg bei ≥ 58 fps in 4 Messfenstern (6 s).
+  **Quer-Blick** (Nutzerfrage, noch nicht geändert): Spielerblick **30°** über der Tischfläche (hochkant 50°); Physik/Tipps rechnen per Raycast,
+  ein anderer Winkel braucht nur die Zahl in `passe(…, 30 * PI / 180)` + Prüfung der Lampen-Spiegelungen im Lack.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

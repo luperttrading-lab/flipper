@@ -335,6 +335,7 @@ const einsaetze = (() => {
 {
   const wandMat = new THREE.MeshStandardMaterial({ map: baueSeitenwand(), roughness: 0.5 });
   const schieneMat = new THREE.MeshStandardMaterial({ color: 0xc9d1da, metalness: 1, roughness: 0.22 });
+  wandMat.userData.fest = schieneMat.userData.fest = true;
   for (const [x0, x1, innen] of [[-10, 12, 12], [392, 414, 392]]) {
     const box = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 46, H + 30), M.holz); box.position.copy(P((x0 + x1) / 2, H / 2 - 5, 23)); box.receiveShadow = true; scene.add(ebene(box, 0, 1));
     const innenseite = new THREE.Mesh(new THREE.PlaneGeometry(H + 30, 46), wandMat);
@@ -411,7 +412,7 @@ const schleudern = Z.slings.map(sl => {
     const a = pk[i], b = pk[(i + 1) % 3], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
     let nx = -dy / l, ny = dx / l; if ((cx - a[0]) * nx + (cy - a[1]) * ny > 0) { nx = -nx; ny = -ny; }
     const A = [a[0] + nx * RP, a[1] + ny * RP], B = [b[0] + nx * RP, b[1] + ny * RP];
-    const teile = (i === 2 ? [0, 1] : [0]).map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(RG, RG, 1, 12), M.gummiW); m.castShadow = true; g.add(m); return m; });
+    const teile = (i === 2 ? [0, 1] : [0]).map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(RG, RG, 1, 12), M.gummiW); m.castShadow = true; m.userData.beweglich = i === 2; g.add(m); return m; });
     const lege = d => {
       const Mi = [(A[0] + B[0]) / 2 + nx * d, (A[1] + B[1]) / 2 + ny * d];
       (teile.length === 2 ? [[A, Mi], [Mi, B]] : [[A, B]]).forEach(([u, v], k) => {
@@ -452,7 +453,7 @@ function flipperGeo(r0, r1, hoehe, bt, bs, segs) {
   g.rotateX(-PI / 2); g.translate(0, bt, 0); return g;
 }
 const flipper3d = Z.flippers.map(f => {
-  const g = new THREE.Group();
+  const g = new THREE.Group(); g.userData.beweglich = true;
   const gummi = new THREE.Mesh(flipperGeo(8.4, 4.9, 10.6, 1.2, 0.6, 3), M.gummiR); gummi.position.y = 0.6;
   const koerper = new THREE.Mesh(flipperGeo(4.6, 1.5, 6.6, 3.6, 2.2, 6), M.weiss); koerper.position.y = 0.8;
   const achse = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 3, 16), M.chrom); achse.position.y = 15.6;
@@ -464,7 +465,7 @@ const flipper3d = Z.flippers.map(f => {
 const bumper3d = Z.bumpers.map(b => {
   const g = new THREE.Group(); g.position.copy(P(b.x, b.y));
   const sockel = new THREE.Mesh(new THREE.CylinderGeometry(b.r + 3, b.r + 4, 4, 32), M.schwarz); sockel.position.y = 2;
-  const rock = new THREE.Mesh(new THREE.CylinderGeometry(b.r + 2, b.r + 2.5, 3, 32, 1, true), M.chrom); rock.position.y = 6;
+  const rock = new THREE.Mesh(new THREE.CylinderGeometry(b.r + 2, b.r + 2.5, 3, 32, 1, true), M.chrom); rock.position.y = 6; rock.userData.beweglich = true;
   const kappeMat = new THREE.MeshPhysicalMaterial({ color: 0xc81a28, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08, emissive: 0xff2030, emissiveIntensity: 0.3, transparent: true, opacity: 0.93 });
   kappeMat.onBeforeCompile = lackGedaempft;
   const kappe = new THREE.Mesh(new THREE.CylinderGeometry(b.r * 0.92, b.r + 0.6, 13, 32), kappeMat); kappe.position.y = 14;
@@ -537,7 +538,7 @@ const ziele = (() => {
     teil(new THREE.CylinderGeometry(6, 6, 2.6, 24), mat, r.x + 3, r.y, 9, 0, PI / 2);
     return { r, mat };
   });
-  const sd = Z.sdrop, klapp = new THREE.Group();
+  const sd = Z.sdrop, klapp = new THREE.Group(); klapp.userData.beweglich = true;
   const platte = new THREE.Mesh(new THREE.BoxGeometry(sd.x1 - sd.x0 - 4, 14, 3), M.chrom); platte.position.y = 7; platte.castShadow = true;
   const lampeMat = new THREE.MeshStandardMaterial({ color: 0x5a1a20, emissive: 0x2fe07a, emissiveIntensity: 0 });
   const lampe = new THREE.Mesh(new THREE.BoxGeometry(16, 4, 1), lampeMat); lampe.position.set(0, 8, 1.8);
@@ -562,7 +563,7 @@ const kanone3d = (() => {
   const teller = new THREE.Mesh(new THREE.CylinderGeometry(21, 23, 4, 40), dunkel); teller.position.y = 2;
   const ring = new THREE.Mesh(new THREE.TorusGeometry(19, 1.5, 10, 48), blauGlut); ring.rotation.x = PI / 2; ring.position.y = 4.4;
   const kranz = new THREE.Mesh(new THREE.CylinderGeometry(15, 17, 4, 32), M.chrom); kranz.position.y = 6.5;
-  const dreh = new THREE.Group(); dreh.position.y = 8.5;
+  const dreh = new THREE.Group(); dreh.position.y = 8.5; dreh.userData.beweglich = true;
   const prof = new THREE.Shape();
   prof.moveTo(-15, 0); prof.lineTo(-15, 9); prof.lineTo(-8, 15); prof.lineTo(6, 15.5); prof.lineTo(15, 11); prof.lineTo(15, 4); prof.lineTo(11, 0); prof.closePath();
   const gehGeo = new THREE.ExtrudeGeometry(prof, { depth: 20, bevelEnabled: true, bevelThickness: 1.4, bevelSize: 1.4, bevelSegments: 2 }); gehGeo.translate(0, 0, -10);
@@ -600,7 +601,7 @@ const abzug3d = (() => {
   });
   const zeigerMat = new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff9a2e, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.4 });
   const zeiger = new THREE.Mesh(new THREE.BoxGeometry(22, 1.2, 2.6), zeigerMat); zeiger.geometry.translate(11, 0, 0);
-  const zeigerG = new THREE.Group(); zeigerG.position.copy(P(188, 500, 0.9)); zeigerG.add(zeiger); scene.add(zeigerG);
+  const zeigerG = new THREE.Group(); zeigerG.userData.beweglich = true; zeigerG.position.copy(P(188, 500, 0.9)); zeigerG.add(zeiger); scene.add(zeigerG);
   const nabe = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 2, 16), M.chrom); nabe.position.copy(P(188, 500, 1.2)); scene.add(nabe);
   return () => {
     const zt = Z.zeit, puls = 0.55 + 0.45 * Math.sin(zt * 6), f = Z.feder, bereit = Z.abschussBereit();
@@ -708,7 +709,7 @@ composer.addPass(new OutputPass());
 // ---------- Kopfteil: Hinterglas (kopf.jpg) mit Uhr – Strudel dreht, Zeiger auf fünf vor zwölf (im Multiball drehen sie), Augen glimmen –,
 // darunter die Punktmatrix als Bildschirm. Steht hinter dem Tisch; hochkant sichtbar, quer nur oben im Bild ----------
 const kopfteil = (() => {
-  const g = new THREE.Group(), B = W + 24, IW = B - 14, IH = IW * 890 / 1768, DW = B - 24, DH = DW / 4, HT = 12 + DH + 10 + IH + 10;
+  const g = new THREE.Group(); g.userData.beweglich = true; const B = W + 24, IW = B - 14, IH = IW * 890 / 1768, DW = B - 24, DH = DW / 4, HT = 12 + DH + 10 + IH + 10;
   const kasten = new THREE.Mesh(new THREE.BoxGeometry(B + 10, HT, 46), M.holz); kasten.position.set(0, HT / 2, -23); g.add(kasten);
   const rahmenMat = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, metalness: 1, roughness: 0.25 });
   const leiste = (w, h, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 3), rahmenMat); m.position.set(x, y, 1); g.add(m); };
@@ -749,11 +750,56 @@ const kopfteil = (() => {
   };
 })();
 
+// ---------- 0.98: feste Teile zusammenfassen – gleiches (unveränderliches) Material, gleiche Ebenen und Schatten-Einstellung → ein Zeichenaufruf ----------
+// Gemessen 0.97 (Stufe 4): ~850 Zeichenaufrufe je Bild – Hauptbild 367, zwei Schattenbilder je 203, Kugel-Spiegelung 130. Auf dem iPhone ist das der
+// Engpass, nicht die Auflösung (1× lief nur mit 52–56 fps). Bewegliche Teile (userData.beweglich, auch an Eltern) und Materialien, die sich ändern, bleiben einzeln.
+function verschmelze(geos) {
+  const namen = ['position', 'normal', 'uv'], breite = { position: 3, normal: 3, uv: 2 };
+  let nv = 0, ni = 0; for (const g of geos) { nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+  const arr = Object.fromEntries(namen.map(n => [n, new Float32Array(nv * breite[n])])), idx = new (nv > 65535 ? Uint32Array : Uint16Array)(ni);
+  let ov = 0, oi = 0;
+  for (const g of geos) {
+    const c = g.attributes.position.count;
+    for (const n of namen) {
+      const a = g.attributes[n]; if (!a) continue;
+      for (let i = 0; i < c; i++) { const o = (ov + i) * breite[n]; arr[n][o] = a.getX(i); arr[n][o + 1] = a.getY(i); if (breite[n] === 3) arr[n][o + 2] = a.getZ(i); }
+    }
+    if (g.index) for (let i = 0; i < g.index.count; i++) idx[oi++] = g.index.getX(i) + ov; else for (let i = 0; i < c; i++) idx[oi++] = ov + i;
+    ov += c;
+  }
+  const out = new THREE.BufferGeometry();
+  for (const n of namen) out.setAttribute(n, new THREE.BufferAttribute(arr[n], breite[n]));
+  out.setIndex(new THREE.BufferAttribute(idx, 1)); out.computeBoundingSphere(); return out;
+}
+const zusammengefasst = (() => {
+  scene.updateMatrixWorld(true);
+  const festMat = new Set(Object.values(M)), gruppen = new Map();
+  scene.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || !o.visible || Array.isArray(o.material) || !(festMat.has(o.material) || o.material.userData.fest)) return;
+    for (let p = o; p; p = p.parent) if (p.userData.beweglich) return;
+    if (o.matrixWorld.determinant() <= 0 || !o.geometry.attributes.normal) return;
+    const k = [o.material.uuid, o.layers.mask, o.castShadow, o.receiveShadow].join('|');
+    if (!gruppen.has(k)) gruppen.set(k, []); gruppen.get(k).push(o);
+  });
+  let vorher = 0, nachher = 0;
+  for (const liste of gruppen.values()) {
+    vorher += liste.length; nachher++;
+    if (liste.length < 2) continue;
+    const m = new THREE.Mesh(verschmelze(liste.map(o => o.geometry.clone().applyMatrix4(o.matrixWorld))), liste[0].material);
+    m.layers.mask = liste[0].layers.mask; m.castShadow = liste[0].castShadow; m.receiveShadow = liste[0].receiveShadow; m.matrixAutoUpdate = false;
+    for (const o of liste) o.removeFromParent();
+    scene.add(m);
+  }
+  return { vorher, nachher };
+})();
+
 // ======================================================================================================================
 // Kamera: hochkant ganzer Tisch (50°), quer Spielerblick (30°), der der untersten Kugel folgt
 // ======================================================================================================================
-const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 6 }, { dpr: 1.5, spiegel: 0.5, seiten: 3 }, { dpr: 1.25, spiegel: 0.35, seiten: 2 }, { dpr: 1, spiegel: 0, seiten: 1 }];
-let stufe = Math.max(0, Math.min(3, (+new URLSearchParams(location.search).get('stufe') || 2) - 1));
+// 0.98: Schärfe zuerst – die Auflösung sinkt erst, nachdem Bodenspiegel und Kugel-Spiegelung schon reduziert sind; Start 1,5×, darf auf 1,75×/2× steigen
+const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 3 }, { dpr: 1.75, spiegel: 0.5, seiten: 2 }, { dpr: 1.5, spiegel: 0.4, seiten: 2 },
+  { dpr: 1.5, spiegel: 0, seiten: 1 }, { dpr: 1.25, spiegel: 0, seiten: 1 }, { dpr: 1, spiegel: 0, seiten: 1 }];
+let stufe = Math.max(0, Math.min(STUFEN.length - 1, (+new URLSearchParams(location.search).get('stufe') || 3) - 1));
 const kam = { quer: false, dir: new THREE.Vector3(), dist: 900, zielUnten: new THREE.Vector3(), weg: 0, folge: 0 };
 function passe(ecken, neig, unten) {   // Abstand und Ziel so, dass alle Ecken ins Bild passen (unten bündig)
   kam.dir.set(0, Math.sin(neig), Math.cos(neig));
@@ -829,17 +875,19 @@ const fpsAnz = document.createElement('div');
 Object.assign(fpsAnz.style, { position: 'fixed', left: 'calc(env(safe-area-inset-left, 0px) + 6px)', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)', zIndex: 5,
   font: '600 11px system-ui, sans-serif', color: 'rgba(200,220,255,.6)', pointerEvents: 'none', textShadow: '0 1px 2px #000' });
 document.body.appendChild(fpsAnz);
-let letzt = performance.now(), bilder = 0, mStart = performance.now(), langsam = 0, flott = 0, warm = performance.now() + 5000, flaeche = 0, nr = 0;
-const gesperrt = new Set(), weg = new THREE.Vector3();
+let letzt = performance.now(), bilder = 0, mStart = performance.now(), langsam = 0, flott = 0, warm = performance.now() + 5000, flaeche = 0, nr = 0, hochAm = 0;
+// 0.98: Sperren nur auf Zeit (vorher für immer – ein einzelner Ruckler hielt die App bis zum Neustart auf der schlechtesten Stufe, iPhone-Screenshot 0.97)
+const gesperrt = new Map(), weg = new THREE.Vector3();
 function messen(jetzt) {
   bilder++;
   if (jetzt - mStart < 1500) return;
   const fps = bilder * 1000 / (jetzt - mStart); bilder = 0; mStart = jetzt;
   if (jetzt > warm && !window.__ZT_FEST) {
-    if (fps < 52) { flott = 0; if (++langsam >= 2 && stufe < STUFEN.length - 1) { langsam = 0; gesperrt.add(stufe); stufe++; einpassen(); warm = jetzt + 3000; } }
-    else { langsam = 0; if (fps >= 58 && ++flott >= 4 && stufe > 0 && !gesperrt.has(stufe - 1)) { flott = 0; stufe--; einpassen(); warm = jetzt + 3000; } }
+    if (fps < 52) { flott = 0; if (++langsam >= 2 && stufe < STUFEN.length - 1) {
+      langsam = 0; gesperrt.set(stufe, jetzt + (jetzt - hochAm < 12000 ? 180000 : 45000)); stufe++; einpassen(); warm = jetzt + 3000; } }   // Probe gescheitert → 3 min, sonst 45 s
+    else { langsam = 0; if (fps >= 58 && ++flott >= 4 && stufe > 0 && !((gesperrt.get(stufe - 1) || 0) > jetzt)) { flott = 0; stufe--; hochAm = jetzt; einpassen(); warm = jetzt + 3000; } }
   }
-  fpsAnz.textContent = `${Math.round(fps)} fps · Stufe ${stufe + 1}/4`;
+  fpsAnz.textContent = `${Math.round(fps)} fps · Stufe ${stufe + 1}/${STUFEN.length} · ${STUFEN[stufe].dpr}×`;
 }
 
 function bild(jetzt) {
