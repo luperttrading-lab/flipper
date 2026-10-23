@@ -62,6 +62,20 @@
     body.echt #kopf { position: fixed; z-index: 4; left: calc(env(safe-area-inset-left, 0px) + 6px); right: auto; top: calc(env(safe-area-inset-top, 0px) + 6px); padding: 0; opacity: 1; pointer-events: auto; }
     body.echt #dmd { width: min(24vw, 210px); opacity: .92; }
   }
+  /* 0.97 Querformat: die wartende Kugel liegt unten rechts in der Ecke halb hinter der Vorderkante, der Kraftbalken in der Rinne ist
+     schräg und kaum zu sehen → Kraftanzeige am rechten Rand (über dem Daumen) und großes Tippfeld unten rechts (Hinweis-Rahmen) */
+  #kraft, #kraft-feld { display: none; position: fixed; z-index: 5; pointer-events: none; }
+  body.echt-quer.kraft-an #kraft, body.echt-quer.kraft-an #kraft-feld { display: block; }
+  #kraft { right: calc(env(safe-area-inset-right, 0px) + 12px); top: 8vh; width: 74px; height: 50vh; font: 800 13px/1.15 system-ui, sans-serif; text-align: right; }
+  #kraft-text { position: absolute; right: 0; top: -2px; width: 120px; letter-spacing: .04em; text-shadow: 0 1px 3px #000; }
+  #kraft-balken { position: absolute; right: 0; top: 34px; bottom: 0; width: 22px; border-radius: 6px; overflow: hidden; border: 2px solid rgba(255,255,255,.55);
+    background: linear-gradient(to top, rgba(255,70,54,.28) 0 15%, rgba(70,255,130,.3) 15% 45%, rgba(255,220,60,.3) 45% 60%, rgba(235,240,255,.22) 60% 100%); }
+  #kraft-fuell { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
+  #kraft-balken i { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,.85); }
+  #kraft-feld { right: calc(env(safe-area-inset-right, 0px) + 6px); bottom: 6px; width: 26vw; height: 38vh; border: 2px dashed rgba(255,179,71,.6); border-radius: 18px;
+    font: 700 13px system-ui, sans-serif; color: rgba(255,200,130,.9); display: none; align-items: flex-end; justify-content: center; padding-bottom: 8px; box-sizing: border-box; }
+  body.echt-quer.kraft-an.kraft-warten #kraft-feld { display: flex; }
+  body.echt-quer.kraft-an:not(.kraft-warten) #kraft-feld { display: none; }
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
@@ -150,6 +164,8 @@
 <header id="kopf">
   <canvas id="dmd" aria-label="Punktestand"></canvas>
 </header>
+<div id="kraft" aria-hidden="true"><div id="kraft-text">HALTEN</div><div id="kraft-balken"><div id="kraft-fuell"></div><i style="bottom:15%"></i><i style="bottom:45%"></i><i style="bottom:60%"></i></div></div>
+<div id="kraft-feld" aria-hidden="true">hier halten = Abschuss</div>
 <div class="start splash" id="start">
   <div class="splash-bild">
     <button class="splash-ver" id="ver-splash" type="button" aria-label="Auf Update prüfen"></button>
@@ -168,7 +184,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.96';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.97';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -327,7 +343,11 @@ const sfx = (() => {
   const GUMMI_V = leise([[63, 14.6, 3.97], [127, 13.1, 12.6], [252, 13.6, 30.03], [500, -22.6, 27.22], [1000, -53.8, 15.18], [2000, -54.1, 0.3], [4000, -53.4, 0.3]]);
   const KLICK_V = leise([[252, 6.9, 6.53], [500, 11.4, 3.77], [1000, 9.4, 2.44], [2000, 10.6, 2.4], [4000, 8.8, 3.57], [8000, -2.3, 4.89]]);
   const STAHL_V = leise([[1000, 9.2, 2.89], [2000, 10.8, 1.23], [4000, 11.9, 2.16], [8000, 3.5, 2.76]]);
-  const wucht = st => 0.35 + 0.9 * st;            // Anschläge: leise bis kräftig nach Aufprall (st 0…1)
+  // 0.97 (Nutzer: Klicken an Führungen zu laut und zu hell): dunkler Klick – Höhen ab 2 kHz um 8/13/16 dB gesenkt, Mitte bleibt
+  const KLICK_D = leise([[252, 8.9, 6.53], [500, 12.4, 3.77], [1000, 7.4, 2.44], [2000, 2.6, 2.4], [4000, -4.2, 3.57], [8000, -18.3, 4.89]]);
+  // Anschläge: gemessen ~78 Blech-/Pfosten-Anschläge je Minute (Bumper ~8) – mittlere ~9 dB(A), harte ~6 dB(A) leiser als in 0.96
+  const wucht = st => 0.35 + 0.9 * st;
+  const wuchtBlech = st => 0.15 + 0.85 * Math.pow(st, 1.2), wuchtGummi = st => 0.15 + 0.85 * Math.pow(st, 1.3);
 
   const api = {
     // 0.96: Auswahl des Nutzers (toene.html): V = nach Aufnahme, Gasse/Rampe = B, Rollen/Drahtrampe = aus
@@ -335,8 +355,9 @@ const sfx = (() => {
     flipperAus() { spiele(() => band(FLIPPER_V, 0.35, 0.7)); },                 // V – derselbe Schlag, leiser, kürzer
     // Abschuss: Kolben, tiefer Schlag (V), schwacher Schuss leiser
     schuss(staerke) { spiele(() => { const k = 0.5 + 0.5 * staerke; band(TIEF_V, 0.9 * k); band(KLICK_V, 0.3 * k); }); },
-    ziel() { spiele(() => { band(GUMMI_V, 0.2, 0.7); band(KLICK_V, 0.2); }); },  // V – Gummi-Anschlag + Klick
-    gasse() { spiele(() => { stoss(0.3, 0.003, 'highpass', 3500); ton('sine', 700, 1100, 0.14, 0.1); }); },   // B – weicher
+    ziel() { spiele(() => { band(GUMMI_V, 0.2, 0.7); band(KLICK_D, 0.3); }); },  // V – Gummi-Anschlag + Klick (0.97: dunkler Klick)
+    // B – weicher; 0.97 (Nutzer: „Klingelton zu hell, dunkler und leiser“): Ton 520→780 statt 700→1100 Hz, ~9 dB(A) leiser, Klick mittig statt 3,5 kHz
+    gasse() { spiele(() => { stoss(0.18, 0.004, 'bandpass', 1400, 1); ton('sine', 520, 780, 0.14, 0.06); }); },
     schleuder() { spiele(() => band(SCHLEUDER_V, 1.25)); },                    // V – gemessener tiefer Schlag
     rampe() { spiele(() => {                                                   // B – Tonfolge, runder
       [392, 523, 659, 784].forEach((f, i) => ton('triangle', f, f, 0.12, 0.13, i * 0.08));
@@ -347,7 +368,7 @@ const sfx = (() => {
       rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.4); band(TIEF_V, 0.8, 1.6);
     }); },
     // Anschläge (V): Bleche/Pfosten = kurzer Klick ohne Klingen, Schleuderseiten/Flipper = dumpfer Gummi
-    anschlag(st, art) { spiele(() => { if (art === 'metall') band(KLICK_V, 0.16 * wucht(st)); else band(GUMMI_V, 0.22 * wucht(st)); }); },
+    anschlag(st, art) { spiele(() => { if (art === 'metall') band(KLICK_D, 0.22 * wuchtBlech(st)); else band(GUMMI_V, 0.22 * wuchtGummi(st)); }); },
     klack(st) { spiele(() => band(STAHL_V, 0.22 * wucht(st))); },             // V – Stahl an Stahl
     abfluss() { spiele(() => { band(TIEF_V, 1); band(GUMMI_V, 0.4, 1.5, 0.4); }); },   // V – Plumps + Aufprall im Gehäuse
     rollen() {},                                                               // Rollgeräusch und Drahtrampe: vom Nutzer „aus“ gewählt
@@ -2033,7 +2054,24 @@ const dmd = (() => {
     const p = tischPunkt(cx, cy), nah = (x, y, r) => Math.hypot(p.x - x, p.y - y) < r;
     if (wahl) return nah(SHOOT_X, SHOOT_Y, 30);
     if (kanone.kugel && nah(kanone.x, kanone.y, 40)) return true;
-    return abschussBereit() && nah(SHOOT_X, SHOOT_Y, 26);
+    // 0.97: quer zusätzlich das ganze Feld unten rechts (26 % der Breite, untere 62 % der Höhe) – die Kugel ist dort kaum zu sehen
+    const quer = document.body && document.body.classList.contains('echt-quer');
+    return abschussBereit() && (nah(SHOOT_X, SHOOT_Y, 26) || (quer && cx > window.innerWidth * 0.74 && cy > window.innerHeight * 0.38));
+  }
+  // 0.97: Kraftanzeige am Rand (nur quer, per CSS); zeigt Zone und Füllstand, solange eine Kugel wartet
+  const kraftEl = { fuell: document.getElementById('kraft-fuell'), text: document.getElementById('kraft-text') };
+  let kraftAlt = '';
+  function kraftAnzeige(pause) {
+    const b = document.body; if (!b || !b.classList) return;
+    const an = abschussBereit() && !gameOver && !pause && !wahl, gespannt = feder.an && feder.t >= TIPP_T, c = feder.an ? feder.c : 0, z = federZone(c);
+    const stand = an ? (gespannt ? z + ':' + Math.round(c * 100) : 'w') : '';
+    if (stand === kraftAlt) return; kraftAlt = stand;
+    b.classList.toggle('kraft-an', an); b.classList.toggle('kraft-warten', an && !feder.an);
+    if (!an) return;
+    const farbe = ['#ff4636', '#46ff82', '#ffdc3c', '#ebf0ff'][z];
+    kraftEl.fuell.style.height = (c * 100).toFixed(1) + '%'; kraftEl.fuell.style.background = farbe;
+    kraftEl.text.textContent = gespannt ? ['ZU SCHWACH', 'GASSEN', 'GASSE ODER BOGEN', 'VOLLE KRAFT'][z] : feder.an ? '…' : 'KUGEL HALTEN';
+    kraftEl.text.style.color = gespannt ? farbe : '#ffc882';
   }
 
   // Tastatur (Desktop): ← / → oder Z / M für die Flipper, Leertaste = Abzug
@@ -2072,6 +2110,7 @@ const dmd = (() => {
       else { feder.t += echt; feder.c = Math.min(1, feder.t / FEDER_T); }
     }
     sfx.musik(multiball && !pause && !gameOver);
+    kraftAnzeige(pause);
     // 0.92: Rollgeräusch nach der schnellsten Kugel auf dem Feld, Drahtrampe; Flipper klacken auch beim Loslassen
     { let v = 0, draht = false;
       if (!pause) for (const b of balls) { if (b.rampe) draht = true; else if (!b.ruht && !b.kanone && !(b.halt > 0) && !b.weg) v = Math.max(v, Math.hypot(b.vx, b.vy)); }

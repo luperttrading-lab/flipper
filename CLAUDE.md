@@ -508,6 +508,19 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (0,1). In `sfx` (index.html) 1:1 übernommen: Mechanik-Kanal `mech` mit Faltungshall wie toene.html, gemeinsamer Rauschpuffer, `stoss`, `band`,
   Tabellen (Bänder > 40 dB unter dem lautesten entfallen); Anschläge/Klack nach Wucht `0,35 + 0,9 · st`, Abschuss nach Stärke `0,5 + 0,5 · st`.
   Multiball-Fanfare, Musik und `sirene` unverändert. Rezepte nur noch an einer Stelle ändern **und** toene.html nachziehen (oder umgekehrt).
+- Stand 0.97 (Nutzer: Klicken an Führungen zu laut, „Klingelton zu hell, dunkler und leiser“; quer schwer abzuschießen, Ladestand kaum zu
+  sehen; Bumper-Ton und -Leuchten gut). **Gemessen** (Autoplay, `scratchpad/tools/toene_zaehlen.js`): je Echtminute ~78 Blech-/Pfosten-
+  Anschläge, 37 Kugel-an-Flipper, 15 Ziele, 9 Schleudern, 8 Bumper → das Klicken ist ein Dauerknistern. Lautheit wie über den Handylautsprecher
+  (Hochpass 300 Hz + A-Bewertung, `scratchpad/analyse/laut_a.py`), relativ zum Bumper: Blech-Anschlag Median −15,6 → **−24,5 dB(A)**, harte (90 %)
+  −10,4 → −16 dB(A); neuer **dunkler Klick `KLICK_D`** (Höhen ab 2 kHz −8/−13/−16 dB) für Blech-Anschläge und Ziele; Wucht `wuchtBlech =
+  0,15 + 0,85 · st^1,2` (Faktor 0,22), Gummi/Flipper `wuchtGummi = 0,15 + 0,85 · st^1,3`. Ziel −8,5 → −10,5 dB(A). **Gassen-Ton** (Annahme:
+  das ist der „Klingelton“ – beim Nutzer nachgefragt) 520→780 statt 700→1100 Hz, −7,6 → −14,7 dB(A). Wichtig: unbewerteter RMS-Abgleich (0.95)
+  überschätzt tiefe Töne – Handylautsprecher geben unter ~300 Hz kaum etwas wieder, Klicks bei 1–4 kHz kommen voll durch.
+  **Querformat-Abschuss:** Tippfeld zusätzlich das ganze Feld unten rechts (`cx > 0,74 · Breite`, `cy > 0,38 · Höhe`, nur wenn eine Kugel
+  wartet) mit gestricheltem Hinweis-Rahmen „hier halten = Abschuss“; **Kraftanzeige am rechten Rand** (`#kraft`, HTML über der Szene, nur
+  `body.echt-quer.kraft-an`): Balken mit den Zonen `FZ` (rot/grün/gelb/weiß), Füllstand und Text (ZU SCHWACH / GASSEN / GASSE ODER BOGEN / VOLLE
+  KRAFT), `kraftAnzeige(pause)` je Bild, schreibt nur bei Änderung. Geprüft: Physik mit festem Zufallsstartwert Bild für Bild identisch zu 0.96
+  (`scratchpad/tools/physik_gleich.js`); Gassen-Test wackelt wie bekannt.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
