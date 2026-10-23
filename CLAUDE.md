@@ -535,6 +535,16 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   scheitert) – vorher für immer, ein einzelner Ruckler hielt die App bis zum Neustart auf 1×. Aufstieg bei ≥ 58 fps in 4 Messfenstern (6 s).
   **Quer-Blick** (Nutzerfrage, noch nicht geändert): Spielerblick **30°** über der Tischfläche (hochkant 50°); Physik/Tipps rechnen per Raycast,
   ein anderer Winkel braucht nur die Zahl in `passe(…, 30 * PI / 180)` + Prüfung der Lampen-Spiegelungen im Lack.
+- Stand 0.99 (Nutzer zum Querformat-Screenshot 0.98: Rahmen „hier halten = Abschuss“ „sieht nicht professionell aus“ – anders hinweisen oder
+  gar nicht): **Rahmen und Text weg**, stattdessen ein **weich pulsierender warmer Lichtschein** (`#kraft-feld`, radialer Verlauf 120 px, 1,5 s)
+  genau auf der wartenden Kugel (Bildschirmlage per `__ZT3D.bildschirm(SHOOT_X, SHOOT_Y, R)`, nur bei Änderung gesetzt); die Kraftanzeige am
+  Rand ist beim Warten halb durchsichtig und **ohne Text** (Zonenname erst beim Spannen). Das große Tippfeld unten rechts bleibt.
+  **Screenshot zeigte wieder Stufe 6/6 = 1× bei 57 fps** → zwei Ursachen behoben: (1) index.html zeichnete in der Echt-Ansicht weiter jedes
+  2. Bild den kompletten 2D-Tisch (`draw()`), den niemand sieht – jetzt `ECHT_ANSICHT` → kein `draw()`; das Abklingen der Lichteffekte
+  (`s.flash`, `d.blitz`, `b.flash`, `r.flash`, `blitz`) stand in `draw()` und läuft jetzt in `abklingen(dt)` je Bild für alle Ansichten.
+  (2) Aufstieg verlangte ≥ 58 fps, das Gerät meldet 57 → nie. Jetzt **Probe ab 55 fps**: eine Stufe höher, gilt, wenn die Bildrate danach
+  höchstens 2,5 fps tiefer liegt (zwei Messfenster), sonst zurück + 3 min Sperre. Wo die Auflösung nichts kostet, steigt so die Schärfe ohne
+  Bildverlust. Geprüft: Physik mit festem Zufall identisch zu 0.98, Sim 30/30, `?2d`/`?drei` fehlerfrei, Bumper-Leuchten klingt ab.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

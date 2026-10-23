@@ -875,7 +875,7 @@ const fpsAnz = document.createElement('div');
 Object.assign(fpsAnz.style, { position: 'fixed', left: 'calc(env(safe-area-inset-left, 0px) + 6px)', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)', zIndex: 5,
   font: '600 11px system-ui, sans-serif', color: 'rgba(200,220,255,.6)', pointerEvents: 'none', textShadow: '0 1px 2px #000' });
 document.body.appendChild(fpsAnz);
-let letzt = performance.now(), bilder = 0, mStart = performance.now(), langsam = 0, flott = 0, warm = performance.now() + 5000, flaeche = 0, nr = 0, hochAm = 0;
+let letzt = performance.now(), bilder = 0, mStart = performance.now(), langsam = 0, flott = 0, warm = performance.now() + 5000, flaeche = 0, nr = 0, probe = null;
 // 0.98: Sperren nur auf Zeit (vorher für immer – ein einzelner Ruckler hielt die App bis zum Neustart auf der schlechtesten Stufe, iPhone-Screenshot 0.97)
 const gesperrt = new Map(), weg = new THREE.Vector3();
 function messen(jetzt) {
@@ -883,9 +883,13 @@ function messen(jetzt) {
   if (jetzt - mStart < 1500) return;
   const fps = bilder * 1000 / (jetzt - mStart); bilder = 0; mStart = jetzt;
   if (jetzt > warm && !window.__ZT_FEST) {
-    if (fps < 52) { flott = 0; if (++langsam >= 2 && stufe < STUFEN.length - 1) {
-      langsam = 0; gesperrt.set(stufe, jetzt + (jetzt - hochAm < 12000 ? 180000 : 45000)); stufe++; einpassen(); warm = jetzt + 3000; } }   // Probe gescheitert → 3 min, sonst 45 s
-    else { langsam = 0; if (fps >= 58 && ++flott >= 4 && stufe > 0 && !((gesperrt.get(stufe - 1) || 0) > jetzt)) { flott = 0; stufe--; hochAm = jetzt; einpassen(); warm = jetzt + 3000; } }
+    // 0.99 (iPhone 0.98: 57 fps auf 1× – Aufstieg verlangte 58 und kam nie): Probe nach oben schon ab 55 fps; sie gilt, wenn die Bildrate danach
+    // höchstens 2,5 fps niedriger ist (wo die Auflösung nichts kostet, steigt die Schärfe ohne Bildverlust), sonst zurück und 3 min Sperre
+    if (probe) {
+      if (fps < Math.max(52, probe.vorher - 2.5)) { gesperrt.set(stufe, jetzt + 180000); stufe++; probe = null; langsam = flott = 0; einpassen(); warm = jetzt + 3000; }
+      else if (++probe.gut >= 2) probe = null;
+    } else if (fps < 52) { flott = 0; if (++langsam >= 2 && stufe < STUFEN.length - 1) { langsam = 0; gesperrt.set(stufe, jetzt + 45000); stufe++; einpassen(); warm = jetzt + 3000; } }
+    else { langsam = 0; if (fps >= 55 && ++flott >= 4 && stufe > 0 && !((gesperrt.get(stufe - 1) || 0) > jetzt)) { flott = 0; probe = { vorher: fps, gut: 0 }; stufe--; einpassen(); warm = jetzt + 3000; } }
   }
   fpsAnz.textContent = `${Math.round(fps)} fps · Stufe ${stufe + 1}/${STUFEN.length} · ${STUFEN[stufe].dpr}×`;
 }

@@ -72,10 +72,13 @@
     background: linear-gradient(to top, rgba(255,70,54,.28) 0 15%, rgba(70,255,130,.3) 15% 45%, rgba(255,220,60,.3) 45% 60%, rgba(235,240,255,.22) 60% 100%); }
   #kraft-fuell { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
   #kraft-balken i { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,.85); }
-  #kraft-feld { right: calc(env(safe-area-inset-right, 0px) + 6px); bottom: 6px; width: 26vw; height: 38vh; border: 2px dashed rgba(255,179,71,.6); border-radius: 18px;
-    font: 700 13px system-ui, sans-serif; color: rgba(255,200,130,.9); display: none; align-items: flex-end; justify-content: center; padding-bottom: 8px; box-sizing: border-box; }
-  body.echt-quer.kraft-an.kraft-warten #kraft-feld { display: flex; }
+  /* 0.99 (Nutzer: Rahmen mit Text „sieht nicht professionell aus“): statt dessen ein weich pulsierender Lichtschein auf der wartenden Kugel */
+  #kraft-feld { width: 120px; height: 120px; margin: -60px 0 0 -60px; left: 0; top: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,190,110,.75) 0, rgba(255,150,70,.32) 28%, rgba(255,120,50,.1) 48%, transparent 68%);
+    animation: kraftPuls 1.5s ease-in-out infinite; }
+  @keyframes kraftPuls { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
   body.echt-quer.kraft-an:not(.kraft-warten) #kraft-feld { display: none; }
+  body.echt-quer.kraft-warten #kraft { opacity: .55; }
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
@@ -165,7 +168,7 @@
   <canvas id="dmd" aria-label="Punktestand"></canvas>
 </header>
 <div id="kraft" aria-hidden="true"><div id="kraft-text">HALTEN</div><div id="kraft-balken"><div id="kraft-fuell"></div><i style="bottom:15%"></i><i style="bottom:45%"></i><i style="bottom:60%"></i></div></div>
-<div id="kraft-feld" aria-hidden="true">hier halten = Abschuss</div>
+<div id="kraft-feld" aria-hidden="true"></div>
 <div class="start splash" id="start">
   <div class="splash-bild">
     <button class="splash-ver" id="ver-splash" type="button" aria-label="Auf Update prüfen"></button>
@@ -184,7 +187,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.98';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.99';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -516,6 +519,8 @@ const dmd = (() => {
     && !/[?&]2d\b/.test(location.search || '') && (() => {
       try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (_) { return false; }
     })();
+  // 0.99: Echt-Ansicht (echt.js, Standard) braucht die 2D-Zeichnung nicht – sie hat einen eigenen festen Druck-Boden
+  const ECHT_ANSICHT = DREI && !/[?&]drei\b/.test(location.search || '');
   const R = 9;                  // Kugelradius
   const G = 1150;               // Schwerkraft (px/s²), entspricht Tischneigung
   const STEPS = 12;             // Physik-Substeps pro Frame
@@ -1677,6 +1682,14 @@ const dmd = (() => {
     }
   }
 
+  // 0.99: Abklingen der Lichteffekte stand in draw() – jetzt je Bild für sich, damit die Echt-Ansicht draw() ganz weglassen kann
+  function abklingen(dt) {
+    for (const s of slings) s.flash = Math.max(0, s.flash - dt * 8);
+    for (const d of drops) d.blitz = Math.max(0, d.blitz - dt * 6);
+    for (const b of bumpers) b.flash = Math.max(0, b.flash - dt * 7);
+    for (const r of ramps) r.flash = Math.max(0, r.flash - dt * 2.5);
+    blitz = Math.max(0, blitz - dt * 3);
+  }
   function draw(dt) {
     ctx.drawImage(grund, 0, 0, W, H);
 
@@ -1689,7 +1702,6 @@ const dmd = (() => {
 
     // Schleudern: rote Kunststoffkappe, leuchtet beim Schlag
     for (const s of slings) {
-      s.flash = Math.max(0, s.flash - dt * 8);
       if (DREI) continue;                                    // 3D: Schleuder ist ein Körper in drei.js (Aufblitzen über s.flash)
       const drei = () => { ctx.beginPath(); ctx.moveTo(...s.pts[0]); ctx.lineTo(...s.pts[1]); ctx.lineTo(...s.pts[2]); ctx.closePath(); };
       if (schleuderBildOk()) {
@@ -1720,7 +1732,6 @@ const dmd = (() => {
     // Rote Stehziele: runde Scheibe mit Niete auf schwarzer Halterung; getroffen = hell leuchtend
     if (!DREI) { ctx.fillStyle = '#15171c'; ctx.fillRect(drops[0].x - 12, drops[0].y + 2, drops[2].x - drops[0].x + 24, 5); }  // Halterung
     for (const d of drops) {
-      d.blitz = Math.max(0, d.blitz - dt * 6);
       if (DREI) continue;                                    // 3D: Stehziele, Klappziel und Mulden-Ring sind Körper in drei.js
       const hell = d.an ? 1 : d.blitz;
       const dg = ctx.createRadialGradient(d.x - 3, d.y - 4, 1, d.x, d.y, 10);
@@ -1751,7 +1762,6 @@ const dmd = (() => {
 
     // Pop-Bumper: Metallring, rote leuchtende Kappe
     for (const b of bumpers) {
-      b.flash = Math.max(0, b.flash - dt * 7);
       const f = b.flash, r = b.r;
       if (DREI) continue;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(b.x + 3, b.y + 4, r + 3, 0, 2 * PI); ctx.fill();   // Schatten
@@ -1831,7 +1841,6 @@ const dmd = (() => {
     const rampenBild = !DREI && rampenEbene();
     if (rampenBild) ctx.drawImage(rampenBild, 0, 0, W, H);
     for (const r of ramps) {
-      r.flash = Math.max(0, r.flash - dt * 2.5);
       if (DREI) continue;
       if (rampenBild) {
         ctx.beginPath(); ctx.moveTo(...r.pfad[0]); ctx.bezierCurveTo(...r.pfad[1], ...r.pfad[2], ...r.pfad[3]);
@@ -1877,7 +1886,6 @@ const dmd = (() => {
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,240,220,${(gi - 1) * 0.35})`;
       ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over';
     }
-    blitz = Math.max(0, blitz - dt * 3);
 
     if (gameOver) {
       ctx.fillStyle = 'rgba(8,10,16,.55)'; ctx.fillRect(0, 0, W, H);
@@ -2059,18 +2067,22 @@ const dmd = (() => {
     return abschussBereit() && (nah(SHOOT_X, SHOOT_Y, 26) || (quer && cx > window.innerWidth * 0.74 && cy > window.innerHeight * 0.38));
   }
   // 0.97: Kraftanzeige am Rand (nur quer, per CSS); zeigt Zone und Füllstand, solange eine Kugel wartet
-  const kraftEl = { fuell: document.getElementById('kraft-fuell'), text: document.getElementById('kraft-text') };
-  let kraftAlt = '';
+  const kraftEl = { fuell: document.getElementById('kraft-fuell'), text: document.getElementById('kraft-text'), glut: document.getElementById('kraft-feld') };
+  let kraftAlt = '', glutAlt = '';
   function kraftAnzeige(pause) {
     const b = document.body; if (!b || !b.classList) return;
     const an = abschussBereit() && !gameOver && !pause && !wahl, gespannt = feder.an && feder.t >= TIPP_T, c = feder.an ? feder.c : 0, z = federZone(c);
+    if (an && !feder.an && window.__ZT3D && b.classList.contains('echt-quer')) {      // Lichtschein folgt der Kugel auf dem Schirm
+      const q = window.__ZT3D.bildschirm(SHOOT_X, SHOOT_Y, R), pos = Math.round(q.x) + ',' + Math.round(q.y);
+      if (pos !== glutAlt) { glutAlt = pos; kraftEl.glut.style.left = Math.round(q.x) + 'px'; kraftEl.glut.style.top = Math.round(q.y) + 'px'; }
+    }
     const stand = an ? (gespannt ? z + ':' + Math.round(c * 100) : 'w') : '';
     if (stand === kraftAlt) return; kraftAlt = stand;
     b.classList.toggle('kraft-an', an); b.classList.toggle('kraft-warten', an && !feder.an);
     if (!an) return;
     const farbe = ['#ff4636', '#46ff82', '#ffdc3c', '#ebf0ff'][z];
     kraftEl.fuell.style.height = (c * 100).toFixed(1) + '%'; kraftEl.fuell.style.background = farbe;
-    kraftEl.text.textContent = gespannt ? ['ZU SCHWACH', 'GASSEN', 'GASSE ODER BOGEN', 'VOLLE KRAFT'][z] : feder.an ? '…' : 'KUGEL HALTEN';
+    kraftEl.text.textContent = gespannt ? ['ZU SCHWACH', 'GASSEN', 'GASSE ODER BOGEN', 'VOLLE KRAFT'][z] : '';
     kraftEl.text.style.color = gespannt ? farbe : '#ffc882';
   }
 
@@ -2117,7 +2129,9 @@ const dmd = (() => {
       sfx.rollen(v, draht); }
     flippers.forEach((f, i) => { if (flipAlt[i] && !f.on) sfx.flipperAus(); flipAlt[i] = f.on; });
     lampenZustand(dt);
-    if (DREI) { drawAcc += dt; if ((++frameNr & 1) === 0) { draw(drawAcc); drawAcc = 0; gezeichnet++; } }
+    abklingen(dt);
+    if (ECHT_ANSICHT) { /* echt.js zeichnet alles selbst */ }
+    else if (DREI) { drawAcc += dt; if ((++frameNr & 1) === 0) { draw(drawAcc); drawAcc = 0; gezeichnet++; } }
     else draw(dt);
     anzeige();
     requestAnimationFrame(frame);
