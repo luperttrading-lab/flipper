@@ -453,6 +453,25 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Ebenen: 0 normal, 1 Kugelspiegel, 2 nur Hauptbild (Einsätze, Schein, Kontaktschatten). Ton synthetisch (Spulen, Schleuder, Anschlag,
   Rollen nach Tempo, Drahtrampe hell). Stufen (Auflösung/Bodenspiegel/Würfelseiten): 2×/0,5/6 · **1,5×/0,5/3 (Start)** · 1,25×/0,35/2 ·
   1×/aus/1; < 52 fps senkt. Dauertest 10 min Spielzeit: 136× oben, 9 Abflüsse, nie außerhalb, nie hängend. iPhone-Leistung ungemessen.
+  iPhone-Screenshot: **57 fps auf Stufe 1 (2×)**. Schleuder-Kunststoff war auf dem iPhone leer (blass) → Bilder für Texturen immer über eine
+  Zeichenfläche (`bildTex`), nie das `<img>` direkt (Strudel per Canvas ging, Schleuder als `<img>` nicht). `?stufe=1…4` zum Vergleichen.
+- Stand 0.92 (Nutzer: Echt-Stück „sehr gut“, alte `?echt`-Probe „schlechter als vorher“; „den Rest bauen, Töne echter“):
+  **`?echt` = neue Echt-Ansicht für das ganze Spiel** (`echt.js`, ersetzt die alte Probe; `drei.js` wieder wie 0.90). index.html lädt mit
+  `?echt` `echt.js` statt `drei.js` (Klasse `echt` statt `drei`); Physik/Regeln/Anzeige unverändert, `__ZT` liefert zusätzlich `lamps`, `feder`,
+  `FZ`, `TIPP_T`, `abschussBereit`, `LANE_X`, `SHOOT_X/Y`, `gameOver`. Darstellung im Stil des Echt-Stücks: Druck-Boden für den **ganzen Tisch**
+  (1600×3040, einmal; Bumper-Strahlenkränze, Bogenband, Schädel-Gasse, Löcher, Zielmarke, Beschriftungen, Fassungen aller `lamps`),
+  **Einsätze aus `lamps`** (Form/Farbe/Beschriftung, Helligkeit = `l.i` × 2,6, Lichtschein), Klarlack-Bodenspiegel, Live-Kugelspiegel (vorderste
+  Kugel), Drahtrampen über die ganze Bahn (Höhe wie drei.js, 4 Drähte, Bügel, Stützen), Bumper (Sockel, Rock federt beim Treffer, Kappe mit
+  Lampe), Schädel aufrecht + Augen, Ziele/Klappziel/Mulde wie drei.js, Kanone mit **Ziellinie** (Leuchtstrich) und **Feuer-Ring**, **Abzug**:
+  Ring um die wartende Kugel + **Kraftbalken** in der Rinne (Zonen `FZ`), Uhrzeiger am Boden nach `fluchtGeholt`, Grundlicht folgt
+  `grundLicht()` (Jackpot-Flackern), Game over abgedunkelt. **Hochkant:** ganzer Tisch 50° + **Kopfteil** (kopf.jpg, Strudel dreht, Zeiger 11:55 –
+  im Multiball drehend –, Augen glimmen; darunter Punktmatrix als Bildschirm; so groß, dass der Tisch ≤ 3,5 % kleiner wird). **Quer:** Spielerblick
+  30°, Kamera **folgt der untersten Kugel** (bis 374 nach oben, weich), Punktmatrix klein links oben (CSS `min-aspect-ratio: 23/20`).
+  Tipp → Tisch per Raycast (`__ZT3D`), geprüft exakt. **Ton neu (alle Ansichten):** zwei Busse – Mechanik mit Gehäuse-Nachhall (Faltung,
+  0,35 s), Lautsprecher bandbegrenzt mit Raumhall; mechanische Proben einmal berechnet (Spule = fallender Ton, Anker = Rauschstoß, Stahl =
+  Biegemoden 1 : 2,76 : 5,40 : 8,93, Holz 180 Hz), je 3 Fassungen, Tonhöhe ±4 %. Neu: `flipperAus`, `anschlag(st, art)` (Wand/Pfosten Metall,
+  Schleuderseiten Gummi, Flipper), `klack` (Kugel an Kugel), `abfluss`, **Rollgeräusch** nach schnellster Kugel + **Drahtrampe** (`sfx.rollen` je
+  Bild); Ziele/Gassen/Rampe = Schalter + weicher Ton statt Rechteck-Piepsen. Sim 30/30, 3 min ohne Fehler. iPhone-Leistung der Echt-Ansicht ungemessen.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

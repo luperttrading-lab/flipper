@@ -52,6 +52,16 @@
   body.drei #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
   body.drei #stage { padding-top: calc(env(safe-area-inset-top, 0px) + 4px); }
   body.drei #dmd { width: min(100%, 520px); }        /* größere Zeichenfläche = schärfere Anzeige im Kopfteil */
+  /* 0.92 Echt-Ansicht (?echt, echt.js): hochkant ist die Punktmatrix ein Bildschirm im Kopfteil (wie drei.js); quer schwebt sie klein links oben */
+  body.echt #kopf { position: absolute; left: 0; right: 0; top: 0; opacity: 0; pointer-events: none; }
+  body.echt #dmd { width: min(100%, 520px); }
+  body.echt #stage { padding: calc(env(safe-area-inset-top, 0px) + 4px) 0 0; }
+  @media (min-aspect-ratio: 23/20) {
+    body.echt { padding-inline: 0; }
+    body.echt #stage { padding: 0; }
+    body.echt #kopf { position: fixed; z-index: 4; left: calc(env(safe-area-inset-left, 0px) + 6px); right: auto; top: calc(env(safe-area-inset-top, 0px) + 6px); padding: 0; opacity: 1; pointer-events: auto; }
+    body.echt #dmd { width: min(24vw, 210px); opacity: .92; }
+  }
   #stage { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: flex-end; perspective: 1300px; }
   #c {
     touch-action: none; display: block; border-radius: 10px;
@@ -158,7 +168,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '0.91';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '0.92';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -175,6 +185,7 @@ const sfx = (() => {
     if (!AC) return;
     try { if (ac) ac.close(); } catch (_) {}
     ac = new AC(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+    try { klangAufbau(); } catch (_) { proben = null; }
   }
   function unlock() {
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
@@ -256,96 +267,190 @@ const sfx = (() => {
     if (p && p.then) p.then(() => { if (ac.state === 'running') fn(); }).catch(() => {});
   }
 
-  function ton(typ, f0, f1, dauer, laut, start = 0) {
+  // ---------- 0.92: Klang wie ein echter Automat ----------
+  // Zwei Wege: „Mechanik“ (Spulen, Kugel, Gummi, Metall) klingt im Holzgehäuse (kurzer Nachhall), „Lautsprecher“ (elektronische
+  // Spieltöne, Musik) bandbegrenzt mit Raumhall. Mechanische Geräusche werden einmal je Tonkanal als kurze Proben berechnet
+  // (Spulenschlag = fallender tiefer Ton, Mechanik = gefiltertes Rauschen, Stahl = gedämpfte unharmonische Teiltöne nach den
+  // Biegemoden eines Stabes 1 : 2,76 : 5,40 : 8,93, Holz = Resonanz um 180 Hz) und mit leicht wechselnder Tonhöhe abgespielt.
+  let mech = null, laut = null, proben = null, rollG = null, rollQ = null, drahtG = null;
+  function filtere(d, typ, f, q, sr) {             // Biquad nach R. Bristow-Johnson, direkt auf dem Puffer
+    const w = 2 * Math.PI * f / sr, cs = Math.cos(w), al = Math.sin(w) / (2 * q);
+    let b0, b1, b2, a0 = 1 + al, a1 = -2 * cs, a2 = 1 - al;
+    if (typ === 'tp') { b0 = (1 - cs) / 2; b1 = 1 - cs; b2 = b0; }
+    else if (typ === 'hp') { b0 = (1 + cs) / 2; b1 = -(1 + cs); b2 = b0; }
+    else { b0 = al; b1 = 0; b2 = -al; }             // Bandpass
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < d.length; i++) {
+      const x = d[i], y = (b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = x; y2 = y1; y1 = y; d[i] = y;
+    }
+    return d;
+  }
+  function probe(dauer, teile) {                  // teile: Liste von Bausteinen, aufsummiert und auf 0,9 normiert
+    const sr = ac.sampleRate, n = Math.ceil(sr * dauer), buf = ac.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    for (const t of teile) {
+      const s = new Float32Array(n);
+      if (t.sinus) {                               // fallender Ton: f0 → f1, Abklingzeit tau
+        let ph = 0;
+        for (let i = 0; i < n; i++) { const z = i / sr, f = t.f1 + (t.sinus - t.f1) * Math.exp(-z / (t.fall || 0.02)); ph += 2 * Math.PI * f / sr; s[i] = Math.sin(ph) * Math.exp(-z / t.tau) * Math.min(1, z / 0.0008); }
+      } else if (t.moden) {                        // gedämpfte Teiltöne (Metall)
+        for (const [f, a, tau] of t.moden) { const p0 = Math.random() * 6.28; for (let i = 0; i < n; i++) { const z = i / sr; s[i] += a * Math.sin(p0 + 2 * Math.PI * f * z) * Math.exp(-z / tau); } }
+      } else {                                     // Rauschstoß, gefiltert
+        for (let i = 0; i < n; i++) s[i] = (Math.random() * 2 - 1) * Math.exp(-i / sr / t.tau);
+        if (t.bp) filtere(s, 'bp', t.bp, t.q || 1, sr);
+        if (t.tp) filtere(s, 'tp', t.tp, 0.7, sr);
+        if (t.hp) filtere(s, 'hp', t.hp, 0.7, sr);
+        if (t.koerper) filtere(s, 'bp', t.koerper, 6, sr);
+      }
+      const v = t.v || 1, ab = Math.floor((t.ab || 0) * sr);
+      for (let i = 0; i + ab < n; i++) d[i + ab] += s[i] * v;
+    }
+    let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(d[i]));
+    if (m > 0) for (let i = 0; i < n; i++) d[i] *= 0.9 / m;
+    return buf;
+  }
+  function hall(dauer, tau, tp, frueh) {           // künstliche Raumantwort: abklingendes Rauschen + frühe Reflexionen
+    const sr = ac.sampleRate, n = Math.ceil(sr * dauer), buf = ac.createBuffer(2, n, sr);
+    for (let k = 0; k < 2; k++) {
+      const d = buf.getChannelData(k);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / sr / tau);
+      filtere(d, 'tp', tp, 0.7, sr);
+      for (const [ms, a] of frueh) { const i = Math.floor(ms / 1000 * sr * (1 + k * 0.07)); if (i < n) d[i] += a; }
+    }
+    return buf;
+  }
+  function schleife(dauer, bau) {                  // Endlos-Geräusch (Rollen, Draht)
+    const sr = ac.sampleRate, n = Math.ceil(sr * dauer), buf = ac.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    bau(d, sr, n);
+    let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(d[i]));
+    for (let i = 0; i < n; i++) d[i] *= 0.8 / (m || 1);
+    const f = Math.floor(sr * 0.02);              // Naht weich überblenden
+    for (let i = 0; i < f; i++) { const a = i / f; d[i] = d[i] * a + d[n - f + i] * (1 - a); }
+    return buf;
+  }
+  function klangAufbau() {
+    // Busse: Mechanik trocken + Gehäuse-Nachhall; Lautsprecher bandbegrenzt + Raum
+    mech = ac.createGain(); mech.gain.value = 1;
+    const kasten = ac.createConvolver(); kasten.buffer = hall(0.35, 0.05, 2600, [[2.5, 0.5], [6, 0.35], [11, 0.25]]);
+    const kNass = ac.createGain(); kNass.gain.value = 0.32;
+    mech.connect(master); mech.connect(kasten); kasten.connect(kNass).connect(master);
+    laut = ac.createGain(); laut.gain.value = 1;
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+    const tp = ac.createBiquadFilter(); tp.type = 'lowpass'; tp.frequency.value = 6500;
+    const raum = ac.createConvolver(); raum.buffer = hall(1.1, 0.22, 4000, [[13, 0.3], [27, 0.2]]);
+    const rNass = ac.createGain(); rNass.gain.value = 0.22;
+    laut.connect(hp).connect(tp); tp.connect(master); tp.connect(raum); raum.connect(rNass).connect(master);
+    // Proben (je Geräusch drei Fassungen für natürliche Abwechslung)
+    const drei = f => [0, 1, 2].map(f);
+    const stahl = f0 => ({ moden: [[f0, 1, 0.07], [f0 * 2.76, 0.6, 0.04], [f0 * 5.4, 0.35, 0.025], [f0 * 8.93, 0.18, 0.015]] });
+    proben = {
+      flipperAn: drei(() => probe(0.22, [
+        { sinus: 170, f1: 52, fall: 0.025, tau: 0.04, v: 1 },                      // Spule zieht an
+        { tau: 0.004, bp: 2300, q: 0.9, v: 0.7 }, { tau: 0.003, bp: 5200, q: 1.2, v: 0.25 },   // Anker schlägt
+        { ...stahl(1180 + Math.random() * 120), v: 0.12 },                        // Anschlag klingt nach
+        { tau: 0.05, koerper: 175, v: 0.9 },                                       // Holzgehäuse
+      ])),
+      flipperAus: drei(() => probe(0.12, [{ sinus: 115, f1: 55, fall: 0.02, tau: 0.022, v: 0.6 }, { tau: 0.003, bp: 3000, q: 1, v: 0.5 }, { tau: 0.03, koerper: 190, v: 0.4 }])),
+      schleuder: drei(() => probe(0.25, [
+        { sinus: 150, f1: 42, fall: 0.03, tau: 0.05, v: 1 }, { tau: 0.016, bp: 950, q: 1.4, v: 0.8 },   // Spule + Gummi schnalzt
+        { tau: 0.003, bp: 3600, q: 1, v: 0.5 }, { tau: 0.06, koerper: 200, v: 0.8 },
+      ])),
+      bumper: drei(k => probe(0.25, [
+        { tau: 0.0025, hp: 3500, v: 0.9 }, { sinus: 130 + 12 * k, f1: 40, fall: 0.03, tau: 0.05, v: 1 },   // scharfer Knall + Spule
+        { ...stahl(2050 + 160 * k), v: 0.22 }, { tau: 0.06, koerper: 185, v: 0.7 },
+      ])),
+      metall: drei(() => probe(0.18, [{ tau: 0.0015, hp: 4000, v: 0.4 }, { ...stahl(1900 + Math.random() * 700), v: 1 }])),
+      gummi: drei(() => probe(0.08, [{ tau: 0.01, tp: 650, v: 1 }, { sinus: 280, f1: 120, fall: 0.015, tau: 0.022, v: 0.6 }])),
+      ziel: drei(() => probe(0.08, [{ tau: 0.008, bp: 1650, q: 2, v: 0.9 }, { sinus: 720, f1: 480, fall: 0.012, tau: 0.016, v: 0.4 }, { tau: 0.002, bp: 4200, q: 1, v: 0.4 }])),
+      flipperTreffer: drei(() => probe(0.1, [{ sinus: 190, f1: 75, fall: 0.02, tau: 0.03, v: 1 }, { tau: 0.012, tp: 900, v: 0.6 }, { tau: 0.04, koerper: 170, v: 0.5 }])),
+      klack: drei(() => probe(0.05, [{ moden: [[3200, 1, 0.009], [5900, 0.5, 0.006]] }, { tau: 0.0015, hp: 5000, v: 0.4 }])),
+      loch: drei(() => probe(0.35, [{ sinus: 95, f1: 48, fall: 0.04, tau: 0.07, v: 1 }, { ...stahl(1250), v: 0.25 }, { tau: 0.02, bp: 600, q: 1, v: 0.5, ab: 0.05 }, { tau: 0.08, koerper: 160, v: 0.6 }])),
+      auswurf: drei(() => probe(0.25, [{ sinus: 120, f1: 38, fall: 0.03, tau: 0.055, v: 1 }, { tau: 0.012, bp: 1200, q: 1.2, v: 0.6 }, { ...stahl(1500), v: 0.15 }, { tau: 0.06, koerper: 180, v: 0.7 }])),
+      kanone: drei(() => probe(0.6, [{ sinus: 85, f1: 28, fall: 0.06, tau: 0.16, v: 1 }, { tau: 0.05, tp: 1400, v: 0.9 }, { ...stahl(900), v: 0.3 }, { tau: 0.12, koerper: 140, v: 0.7 }])),
+      kolben: drei(() => probe(0.4, [{ sinus: 230, f1: 210, fall: 0.2, tau: 0.12, v: 0.35 }, { sinus: 140, f1: 45, fall: 0.03, tau: 0.04, v: 0.9 }, { tau: 0.003, bp: 2800, q: 1, v: 0.6 }, { tau: 0.05, koerper: 190, v: 0.6 }])),
+      abfluss: drei(() => probe(0.7, [{ sinus: 85, f1: 45, fall: 0.03, tau: 0.06, v: 0.8 }, { tau: 0.18, tp: 320, v: 0.5, ab: 0.04 }, { sinus: 110, f1: 60, fall: 0.02, tau: 0.04, v: 0.7, ab: 0.45 }, { ...stahl(1100), v: 0.15, ab: 0.45 }])),
+      schalter: drei(() => probe(0.04, [{ tau: 0.0015, bp: 4500, q: 1.5, v: 1 }, { tau: 0.004, bp: 1800, q: 2, v: 0.5 }])),
+    };
+    // Rollen: tiefes Rumpeln mit unregelmäßiger Körnung (Unebenheiten im Lack), Drahtrampe: helles Rasseln mit Stößen an den Bügeln
+    const rollPuffer = schleife(3, (d, sr, n) => {
+      let a = 0, l = 0;
+      for (let i = 0; i < n; i++) { if (i % 90 === 0) a = 0.4 + Math.random() * 0.9; l += (a - l) * 0.004; d[i] = (Math.random() * 2 - 1) * l; }
+      const tief = Float32Array.from(d); filtere(tief, 'tp', 160, 0.8, sr);
+      filtere(d, 'bp', 520, 0.6, sr);
+      for (let i = 0; i < n; i++) d[i] = d[i] * 0.6 + tief[i] * 1.6;
+    });
+    const drahtPuffer = schleife(2, (d, sr, n) => {
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.25;
+      let i = 0; while (i < n) { const l = Math.floor(sr * (0.025 + Math.random() * 0.03)); for (let j = 0; j < 160 && i + j < n; j++) d[i + j] += (Math.random() * 2 - 1) * Math.exp(-j / 30) * 2.2; i += l; }
+      const a = Float32Array.from(d), b = Float32Array.from(d);
+      filtere(d, 'bp', 2400, 6, sr); filtere(a, 'bp', 3700, 7, sr); filtere(b, 'bp', 5200, 8, sr);
+      for (let k = 0; k < n; k++) d[k] = d[k] + a[k] * 0.7 + b[k] * 0.45;
+    });
+    const quelle = (buf, ziel) => { const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; const g = ac.createGain(); g.gain.value = 0; s.connect(g).connect(ziel); s.start(); return { s, g }; };
+    const r = quelle(rollPuffer, mech), dr = quelle(drahtPuffer, mech);
+    rollG = r.g; rollQ = r.s; drahtG = dr.g;
+  }
+  function spielProbe(name, v = 1, rate = 1, bus = mech) {
+    if (!proben || !proben[name]) return;
+    const liste = proben[name], s = ac.createBufferSource(), g = ac.createGain();
+    s.buffer = liste[Math.floor(Math.random() * liste.length)];
+    s.playbackRate.value = rate * (0.96 + Math.random() * 0.08);
+    g.gain.value = v; s.connect(g).connect(bus); s.start();
+  }
+
+  // Elektronischer Spielton über den Lautsprecher (weich, mit Hüllkurve statt hartem Piepsen)
+  function ton(typ, f0, f1, dauer, lautst, start = 0, bus = laut) {
     const t = ac.currentTime + start;
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = typ;
     o.frequency.setValueAtTime(f0, t);
     o.frequency.exponentialRampToValueAtTime(f1, t + dauer);
-    g.gain.setValueAtTime(laut, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(lautst, t + 0.006);
     g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
-    o.connect(g).connect(master);
+    o.connect(g).connect(bus || master);
     o.start(t); o.stop(t + dauer + 0.02);
   }
-  function rauschen(dauer, laut, filterF0, filterF1, q = 1) {
-    const t = ac.currentTime, n = Math.floor(ac.sampleRate * dauer);
-    const buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
-    src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = q;
-    bp.frequency.setValueAtTime(filterF0, t);
-    bp.frequency.exponentialRampToValueAtTime(filterF1, t + dauer);
-    g.gain.setValueAtTime(laut, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
-    src.connect(bp).connect(g).connect(master);
-    src.start(t);
-  }
-
-  // Drei Bumper = C-Dur-Dreiklang, jeder mit eigener Klangfarbe
-  const BUMPER = [
-    { typ: 'square',   f: 523.25 },   // C5
-    { typ: 'triangle', f: 659.25 },   // E5
-    { typ: 'sawtooth', f: 783.99 },   // G5
-  ];
 
   const api = {
-    // Flipper: kurzes mechanisches Klacken, tief und trocken
-    flipper() { spiele(() => {
-      rauschen(0.05, 0.5, 2500, 800, 2);
-      ton('sine', 140, 60, 0.08, 0.6);
-    }); },
-    // Abschuss: aufsteigendes Zischen, lauter und höher je stärker gespannt
-    schuss(staerke) { spiele(() => {
-      rauschen(0.35, 0.25 + 0.35 * staerke, 400, 3000 + 3000 * staerke, 0.8);
-      ton('sine', 180, 420 + 400 * staerke, 0.3, 0.3);
-    }); },
-    // Klappziel/Stehziel: heller, kurzer Doppel-Pieps
-    ziel() { spiele(() => {
-      ton('square', 1046, 1046, 0.05, 0.12);
-      ton('square', 1318, 1318, 0.06, 0.1, 0.05);
-    }); },
-    // Obere Gasse / Umlauf: kurzes Aufwärts-Glissando
-    gasse() { spiele(() => { ton('triangle', 600, 1200, 0.12, 0.18); }); },
-    // Schleuder: trockener, harter Schlag
-    schleuder() { spiele(() => {
-      rauschen(0.04, 0.45, 3500, 1500, 3);
-      ton('square', 220, 110, 0.05, 0.18);
-    }); },
-    // Rampe: aufsteigende Tonfolge wie ein Alarm
-    rampe() { spiele(() => {
-      [392, 523, 659, 784].forEach((f, i) => ton('sawtooth', f, f, 0.09, 0.13, i * 0.08));
-    }); },
-    // Schädel-Loch: tiefes Brummen
-    loch() { spiele(() => {
-      ton('sawtooth', 110, 55, 0.6, 0.25);
-      ton('sine', 220, 110, 0.4, 0.2);
-    }); },
-    // Auswurf aus dem Loch: dumpfer Stoß
-    auswurf() { spiele(() => {
-      rauschen(0.08, 0.5, 800, 300, 1.5);
-      ton('sine', 90, 50, 0.12, 0.4);
-    }); },
-    // Kanone: tiefer Knall mit Nachhall
-    kanone() { spiele(() => {
-      rauschen(0.25, 0.7, 1200, 120, 0.7);
-      ton('sine', 120, 35, 0.35, 0.6);
-    }); },
-    // Multiball/Jackpot: kurze Fanfare
+    // Flipper: Spule zieht an, Anker schlägt, Holzgehäuse klingt mit
+    flipper() { spiele(() => spielProbe('flipperAn', 0.85)); },
+    flipperAus() { spiele(() => spielProbe('flipperAus', 0.5)); },
+    // Abschuss: Kolben schnellt vor (Feder schwingt kurz nach), lauter je stärker gespannt
+    schuss(staerke) { spiele(() => spielProbe('kolben', 0.45 + 0.45 * staerke, 0.9 + 0.2 * staerke)); },
+    // Ziel getroffen: Schalter klickt, dazu ein kurzer weicher Ton aus dem Lautsprecher
+    ziel() { spiele(() => { spielProbe('ziel', 0.7); ton('sine', 1180, 1560, 0.09, 0.07); ton('triangle', 590, 780, 0.09, 0.04); }); },
+    // Obere Gasse / Umlauf: Rollschalter + aufsteigender Ton
+    gasse() { spiele(() => { spielProbe('schalter', 0.6); ton('triangle', 520, 1040, 0.16, 0.09); ton('sine', 1040, 2080, 0.12, 0.03, 0.04); }); },
+    schleuder() { spiele(() => spielProbe('schleuder', 0.95)); },
+    // Rampe geschafft: Rampenschalter + aufsteigende Tonfolge (weicher als vorher)
+    rampe() { spiele(() => { spielProbe('schalter', 0.6); [392, 523, 659, 784].forEach((f, i) => { ton('triangle', f, f, 0.12, 0.08, i * 0.075); ton('sine', f * 2, f * 2, 0.08, 0.025, i * 0.075); }); }); },
+    // Schädel-Loch: Kugel fällt hinein, tiefes elektronisches Grollen
+    loch() { spiele(() => { spielProbe('loch', 0.9); ton('sawtooth', 110, 55, 0.6, 0.08); ton('sine', 220, 110, 0.4, 0.08); }); },
+    auswurf() { spiele(() => spielProbe('auswurf', 0.9)); },
+    // Kanone: Spule, Rohr klingt, dazu Knall aus dem Lautsprecher
+    kanone() { spiele(() => { spielProbe('kanone', 1); ton('sine', 120, 35, 0.35, 0.25); }); },
     multiball() { spiele(() => {
-      [523, 659, 784, 1046].forEach((f, i) => ton('square', f, f, 0.14, 0.12, i * 0.1));
-      ton('sawtooth', 1046, 1046, 0.4, 0.1, 0.4);
+      [523, 659, 784, 1046].forEach((f, i) => { ton('square', f, f, 0.14, 0.06, i * 0.1); ton('triangle', f, f, 0.16, 0.08, i * 0.1); });
+      ton('sawtooth', 1046, 1046, 0.4, 0.05, 0.4);
     }); },
-    // Pop-Bumper: kurzer mechanischer Schlag (Spule), wie am echten Automaten – kein Musikton
-    bumper(i) { spiele(() => {
-      const v = [1, 1.12, 0.9][i % 3];
-      rauschen(0.035, 0.7, 5000 * v, 1800 * v, 0.9);
-      ton('sine', 170 * v, 70, 0.07, 0.5);
-      ton('square', 95 * v, 60, 0.04, 0.12);
-    }); },
-    // 0.65: statt der Sirene (Nutzer: „nervig“) eine kurze, leise Fanfare – vier aufsteigende Töne, 0,5 s
+    // Pop-Bumper: scharfer Knall, Spule, Blechrock klingt
+    bumper(i) { spiele(() => spielProbe('bumper', 0.95, [1, 1.06, 0.94][i % 3])); },
+    // 0.65: statt der Sirene eine kurze, leise Fanfare – vier aufsteigende Töne, 0,5 s
     sirene() { spiele(() => {
       [440, 554, 659, 880].forEach((f, k) => { ton('triangle', f, f * 1.01, 0.22, 0.06, k * 0.09); ton('sine', f * 2, f * 2, 0.12, 0.015, k * 0.09); });
     }); },
+    // 0.92: Kugel trifft etwas – Stärke 0…1 nach Aufprallgeschwindigkeit; Stahlführung klingt, Gummi dumpf, Flipper tiefer
+    anschlag(st, art) { spiele(() => spielProbe(art === 'gummi' ? 'gummi' : art === 'flipper' ? 'flipperTreffer' : 'metall', 0.12 + 0.6 * st, art === 'metall' ? 0.9 + 0.25 * st : 1)); },
+    klack(st) { spiele(() => spielProbe('klack', 0.15 + 0.5 * st)); },
+    abfluss() { spiele(() => spielProbe('abfluss', 0.8)); },
+    // Rollgeräusch je Bild: v = schnellste Kugel auf dem Feld (Einheiten/s), draht = eine Kugel fährt auf einer Rampe
+    rollen(v, draht) {
+      if (!an || !ac || !rollG || ac.state !== 'running') return;
+      const t = ac.currentTime, z = Math.min(1, v / 1300);
+      rollG.gain.setTargetAtTime(0.55 * Math.pow(z, 1.3), t, 0.04);
+      rollQ.playbackRate.setTargetAtTime(0.7 + 0.6 * z, t, 0.05);
+      drahtG.gain.setTargetAtTime(draht ? 0.32 : 0, t, 0.05);
+    },
     // Multiball-Musik: eigene Bass-Schleife (a-Moll, 132 BPM), Bass + Kick + Snare, alles tief
     musik(ein) {
       if (!ein || !an) { if (musikTimer) { clearInterval(musikTimer); musikTimer = null; } return; }
@@ -362,19 +467,19 @@ const sfx = (() => {
           o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
           lp.type = 'lowpass'; lp.frequency.setValueAtTime(700, t); lp.frequency.exponentialRampToValueAtTime(180, t + achtel);
           g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + achtel * 0.95);
-          o.connect(lp).connect(g).connect(master); o.start(t); o.stop(t + achtel);
+          o.connect(lp).connect(g).connect(laut || master); o.start(t); o.stop(t + achtel);
           if (k % 2 === 0) {                                          // Kick auf jede Viertel
             const kk = ac.createOscillator(), kg = ac.createGain();
             kk.frequency.setValueAtTime(120, t); kk.frequency.exponentialRampToValueAtTime(40, t + 0.12);
             kg.gain.setValueAtTime(0.35, t); kg.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-            kk.connect(kg).connect(master); kk.start(t); kk.stop(t + 0.15);
+            kk.connect(kg).connect(laut || master); kk.start(t); kk.stop(t + 0.15);
           }
           if (k === 2 || k === 6) {                                   // Snare auf 2 und 4 (Rauschen)
             const n = Math.floor(ac.sampleRate * 0.12), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
             for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
             const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), sg = ac.createGain();
             src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8; sg.gain.value = 0.12;
-            src.connect(bp).connect(sg).connect(master); src.start(t);
+            src.connect(bp).connect(sg).connect(laut || master); src.start(t);
           }
           naechste += achtel; schritt++;
         }
@@ -678,6 +783,10 @@ const dmd = (() => {
   const fmt = n => n.toLocaleString('de-DE');
 
   // ---------- Kollision ----------
+  // 0.92: Anschlag-Ton nach Aufprallgeschwindigkeit (unter 120 still – Rollen an der Führung klingt über das Rollgeräusch)
+  function anschlagTon(c, art) {
+    if (c && -c.vn > 120 && frei('anschlag', 0.025)) sfx.anschlag(Math.min(1, (-c.vn - 100) / 1100), art);
+  }
   // 0.85 (Nutzer: Kugel rollt nicht, macht Mikrosprünge): Rückprall hängt von der Aufprallgeschwindigkeit ab – unter 40 kein
   // Rückprall (Kugel rollt an der Führung entlang), voll erst ab 300. Gemessen: Abpraller 90 %-Wert hob die Kugel ~3 Einheiten an.
   const WEICH_AB = 40, WEICH_VOLL = 300;
@@ -725,6 +834,7 @@ const dmd = (() => {
       a.x -= nx * ueber; a.y -= ny * ueber; b.x += nx * ueber; b.y += ny * ueber;
       const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
       if (vn < 0) {
+        if (vn < -120 && frei('klack', 0.04)) sfx.klack(Math.min(1, -vn / 1200));
         const j2 = -(1 + 0.9) * vn / 2;
         a.vx -= j2 * nx; a.vy -= j2 * ny; b.vx += j2 * nx; b.vy += j2 * ny;
       }
@@ -937,7 +1047,7 @@ const dmd = (() => {
     stossKugeln();
 
     const weg = balls.filter(b => b.weg);
-    if (weg.length) { balls = balls.filter(b => !b.weg); for (let i = 0; i < weg.length; i++) kugelWeg(); }
+    if (weg.length) { balls = balls.filter(b => !b.weg); for (let i = 0; i < weg.length; i++) { sfx.abfluss(); kugelWeg(); } }
     loaded = balls.some(b => b.ruht);
     ball = balls[0] || null;
   }
@@ -994,10 +1104,10 @@ const dmd = (() => {
           ball.vx += c.nx * 420; ball.vy += c.ny * 420;
           w.kick.flash = 1;
           punkte(1000, 500); sfx.schleuder();
-        }
+        } else if (c) anschlagTon(c, w.schleuder ? 'gummi' : 'metall');
       }
     }
-    for (const p of posts) collideCircle(p.x, p.y, p.r, REST_WALL);
+    for (const p of posts) anschlagTon(collideCircle(p.x, p.y, p.r, REST_WALL), 'metall');
 
     for (const [bi, b] of bumpers.entries()) {
       const c = collideCircle(b.x, b.y, b.r, 1);
@@ -1036,6 +1146,7 @@ const dmd = (() => {
       const t = tip(f);
       const svx = (t.x - f.prev.x) / dt, svy = (t.y - f.prev.y) / dt;
       const c = collideSeg(f.px, f.py, t.x, t.y, R + 7, REST_FLIP, svx, svy);
+      anschlagTon(c, 'flipper');
       // 0.67: Trefferstelle lenkt stärker (Nutzer: rechter Flipper schoss aus der ersten Hälfte immer Richtung Rampe; die Ziele ganz
       // links/rechts waren direkt nicht erreichbar). Nur beim Hochschlagen: Abflugrichtung um EFFET · (u − 0,5) drehen,
       // u = Lage auf dem Flipper (0 Drehpunkt … 1 Spitze); Spitze → stärker zur Gegenseite, Ansatz → steiler / eigene Seite
@@ -2029,6 +2140,7 @@ const dmd = (() => {
 
   // ---------- Loop ----------
   let last = performance.now(), drawAcc = 0, frameNr = 0, gezeichnet = 0;
+  const flipAlt = [false, false];
   let dtGlatt = 1 / 60, zeitSoll = 0, zeitIst = 0;
   function frame(now) {
     const echt = Math.min(0.25, (now - last) / 1000);
@@ -2049,6 +2161,11 @@ const dmd = (() => {
       else { feder.t += echt; feder.c = Math.min(1, feder.t / FEDER_T); }
     }
     sfx.musik(multiball && !pause && !gameOver);
+    // 0.92: Rollgeräusch nach der schnellsten Kugel auf dem Feld, Drahtrampe; Flipper klacken auch beim Loslassen
+    { let v = 0, draht = false;
+      if (!pause) for (const b of balls) { if (b.rampe) draht = true; else if (!b.ruht && !b.kanone && !(b.halt > 0) && !b.weg) v = Math.max(v, Math.hypot(b.vx, b.vy)); }
+      sfx.rollen(v, draht); }
+    flippers.forEach((f, i) => { if (flipAlt[i] && !f.on) sfx.flipperAus(); flipAlt[i] = f.on; });
     lampenZustand(dt);
     if (DREI) { drawAcc += dt; if ((++frameNr & 1) === 0) { draw(drawAcc); drawAcc = 0; gezeichnet++; } }
     else draw(dt);
@@ -2062,9 +2179,12 @@ const dmd = (() => {
     window.__ZT = { W, H, R, cv, walls, posts, bumpers, ramps, flippers, slings, tip, FL, bez, RAMP_T, kanone, drops, standups,
       get balls() { return balls; }, schleuderBildOk, grundLicht, SKULL, haelt, K_LAUF, rund, sdrop, MULDE, get gunLit() { return gunLit; },
       get zeit() { return zeit; }, get gezeichnet() { return gezeichnet; }, get multiball() { return multiball; },
-      get uhr() { return { geholt: fluchtGeholt, hurryBis, paybackBis, jpShow, attract: gameOver || (!gestartet && loaded) }; } };
-    document.body.classList.add('drei');
-    const s = document.createElement('script'); s.type = 'module'; s.src = 'drei.js?v=' + APP_VERSION;
+      get uhr() { return { geholt: fluchtGeholt, hurryBis, paybackBis, jpShow, attract: gameOver || (!gestartet && loaded) }; },
+      lamps, feder, FZ, TIPP_T, abschussBereit, LANE_X, SHOOT_X, SHOOT_Y, get gameOver() { return gameOver; } };
+    // 0.92: „?echt“ lädt die Echt-Ansicht (Stil des Echt-Stücks: fester Druck-Boden, Einsätze als Kunststoff, Spiegelungen) statt drei.js
+    const ECHT = /[?&]echt\b/.test(location.search);
+    document.body.classList.add(ECHT ? 'echt' : 'drei');
+    const s = document.createElement('script'); s.type = 'module'; s.src = (ECHT ? 'echt.js' : 'drei.js') + '?v=' + APP_VERSION;
     // Lädt die 3D-Ansicht nicht (Modul fehlt, WebGL-Fehler), auf die flache Ansicht ausweichen statt schwarzem Bild
     const flach = () => { if (!window.__ZT3D) location.replace(location.pathname + '?2d'); };
     s.onerror = flach; setTimeout(flach, 15000);
