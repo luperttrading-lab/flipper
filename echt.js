@@ -638,8 +638,11 @@ const schattenLicht = (pos, ziel, st) => {
   s.shadow.camera.near = 80; s.shadow.camera.far = 2000; licht(s, st); scene.add(s.target); return s;
 };
 // Raumleuchte über dem Spieler, zweite seitlich: ihre Spiegelbilder im Lack liegen außerhalb des Bildes (Echt-Stück)
-schattenLicht(P(170, 820, 700), P(200, 400), 1.0);
+const raumLicht = schattenLicht(P(170, 820, 700), P(200, 400), 1.0);
 schattenLicht(P(600, 420, 260), P(170, 400), 0.6);
+// Probe Spielerauge: Blick von oben – Lack und Metall spiegeln die Deckenleuchte der Umgebung, das Leuchten (Bloom) macht daraus einen Schleier
+// (Test: ohne Umgebung bzw. ohne Bloom kein Schleier) → Umgebung gedämpft; die Raumleuchte steht hinter dem Spieler (Spiegelbild außerhalb)
+if (new URLSearchParams(location.search).get('blick') === 'auge') { raumLicht.position.copy(P(170, 1060, 760)); scene.environmentIntensity = 0.35; }
 const blitzer = new THREE.PointLight(0xffd0b0, 0, 420, 1.5); scene.add(ebene(blitzer, 0, 1, 2));
 
 // ---------- Kugeln: Live-Spiegelung (Würfelkamera an der vordersten Kugel), Kontaktschatten, Bewegungsunschärfe ----------
@@ -802,7 +805,11 @@ const STUFEN = [{ dpr: 2, spiegel: 0.5, seiten: 3 }, { dpr: 1.75, spiegel: 0.5, 
 let stufe = Math.max(0, Math.min(STUFEN.length - 1, (+new URLSearchParams(location.search).get('stufe') || 3) - 1));
 // 1.00: Querblick zum Ausprobieren per Link, z. B. ?blick=38 (20–60°, Standard 30°) – der Nutzer will den Winkel bewegt sehen, bevor er wählt
 const QUER_BLICK = Math.max(20, Math.min(60, +new URLSearchParams(location.search).get('blick') || 30)) * PI / 180;
-const kam = { quer: false, dir: new THREE.Vector3(), dist: 900, zielUnten: new THREE.Vector3(), weg: 0, folge: 0 };
+// 1.01 Probe „Spielerauge“ (?blick=auge, nur quer): Kamera steht fest dort, wo die Augen eines stehenden Spielers wären (165 cm Augenhöhe,
+// 25 cm hinter der Vorderkante, Feld 107 cm bei 6,5° → im Feld-Maß 16 cm vor der Unterkante und 81 cm über der Fläche, 7,1 Einheiten/cm);
+// nur der BLICK folgt der Kugel. Flipper erscheinen dadurch steil (~70°), das obere Feld flach (~35°) wie am echten Automaten.
+const AUGE = new URLSearchParams(location.search).get('blick') === 'auge', AUGE_POS = P(200, 873, 577), AUGE_FOV_H = 46;
+const kam = { quer: false, dir: new THREE.Vector3(), dist: 900, zielUnten: new THREE.Vector3(), weg: 0, folge: 0, blickY: 650 };
 function passe(ecken, neig, unten) {   // Abstand und Ziel so, dass alle Ecken ins Bild passen (unten bündig)
   kam.dir.set(0, Math.sin(neig), Math.cos(neig));
   const ziel = P(200, unten ? 600 : 380);
@@ -831,6 +838,8 @@ function einpassen() {
   camera.aspect = w / h;
   kam.quer = w > h * 1.15;
   document.body.classList.toggle('echt-quer', kam.quer);
+  camera.fov = kam.quer && AUGE ? 2 * Math.atan(Math.tan(AUGE_FOV_H / 2 * PI / 180) / camera.aspect) * 180 / PI : 36;
+  camera.updateProjectionMatrix();
   if (kam.quer) {
     kopfteil.g.scale.setScalar(1);
     // Fenster über das untere Feld (y 368…768); nach oben folgt die Kamera bis an den Bogen (Verschiebung bis 374)
@@ -851,6 +860,7 @@ function einpassen() {
   kamSetzen();
 }
 function kamSetzen() {
+  if (kam.quer && AUGE) { camera.position.copy(AUGE_POS); camera.lookAt(P(200, kam.blickY, 0)); camera.updateMatrixWorld(); return; }
   const ziel = kam.zielUnten.clone(); ziel.z -= kam.folge;
   camera.position.copy(ziel).addScaledVector(kam.dir, kam.dist); camera.lookAt(ziel); camera.updateMatrixWorld();
 }
@@ -948,6 +958,7 @@ function bild(jetzt) {
     const by = fokus ? (fokus.rampe ? Z.bez(fokus.rampe.r.pfad, Math.min(1, fokus.rampe.t / Z.RAMP_T))[1] : fokus.y) : 700;
     const soll = Math.max(0, Math.min(kam.weg, 560 - by));
     kam.folge += (soll - kam.folge) * Math.min(1, dt * 2.6);
+    kam.blickY += (Math.max(280, Math.min(650, by + 80)) - kam.blickY) * Math.min(1, dt * 2.6);   // Spielerauge: Blick etwas unterhalb der Kugel
   } else kam.folge = 0;
   kamSetzen();
   if (probe) {

@@ -548,6 +548,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 1.00 (Nutzer: Querwinkel nur bewegt beurteilbar, „erstmal so lassen“): **Querblick per Link ausprobieren** – `?blick=38` (20–60°,
   Standard bleibt 30°, `QUER_BLICK` in echt.js). Gilt nur im Safari-Tab quer (Home-Bildschirm-App ist hochkant gesperrt). Geprüft: Feld y 368→768
   bei 30° 300 px hoch, bei 45° 355 px (852×393).
+- Stand 1.01 (Nutzer: 34° „gar nicht schlecht“, Spielerauge als Probe; „wenn nur der halbe Bildschirm genutzt wird, kann ich auch hochkant
+  spielen“): **Probe `?blick=auge`** (nur quer): Kamera fest an der Augenposition eines stehenden Spielers (165 cm Augenhöhe, 25 cm hinter der
+  Vorderkante, Feld 107 cm / 6,5° → im Feld-Maß 16 cm vor der Unterkante, 81 cm über der Fläche, 7,1 Einheiten/cm → `AUGE_POS` P(200, 873, 577)),
+  waagrechtes Sichtfeld 46°, **nur der Blick folgt der Kugel** (`kam.blickY` = Kugel-y + 80, 280…650, weich) → Bildschirmbreite voll genutzt,
+  Flipper steil (~70°), oberes Feld flach. Nachgerechnet, echter Spieler: Flipper ~72°, Mitte ~50°, oben ~35°; unsere Querkamera 30°: 39°/22°/14°
+  (34°: 42/24/15, obere Bildkante bei y ≈ 110 → Bumper noch sichtbar; 38°: y ≈ 198; 45°: y ≈ 275). **Befund Helligkeit:** Von oben spiegeln Lack und
+  Metall die helle Deckenleuchte der PMREM-Umgebung, der Bloom macht daraus einen Schleier (Test: ohne Umgebung oder ohne Bloom kein Schleier).
+  In der Probe `scene.environmentIntensity = 0.35` und die Raumleuchte hinter den Spieler (P 170/1060/760). Für die normale Querkamera („Feld zu
+  hell“) ist das der wahrscheinliche Hebel – noch nicht geändert (Nutzer wollte erst den Winkel klären).
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
