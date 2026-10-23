@@ -34,6 +34,8 @@ try {                                       // Hintergrund wie die Seite, damit 
   if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) scene.background = new THREE.Color(bg);
 } catch (_) {}
 const camera = new THREE.PerspectiveCamera(34, 1, 10, 6000);
+// 0.91: Haken für die Echt-Optik (echt.js, nur mit „?echt“): eigener Zeichenweg, Arbeit je Bild, Größenwechsel, Zusatz in der fps-Anzeige
+const echtHaken = { render: null, jedesBild: null, groesse: null, text: '' };
 
 // Umgebung für Spiegelungen: dunkler Raum mit ein paar hellen Leuchtflächen (selbst gebaut, keine fremde Bilddatei)
 {
@@ -93,7 +95,7 @@ const bodenTeile = [0, 1].map(k => {
   });
   const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H / 2), mat);
   m.rotation.x = -Math.PI / 2; m.position.z = (k - 0.5) * H / 2; m.receiveShadow = true; scene.add(m);
-  return { c, g: c.getContext('2d'), t };
+  return { c, g: c.getContext('2d'), t, m };
 });
 const bodenHaelfte = k => {                     // Hälfte k aus der 2D-Zeichnung übernehmen und zum Hochladen markieren
   const b = bodenTeile[k], h = b.c.height;
@@ -565,7 +567,7 @@ function setzeKopf(hb) {                      // oberer Teil mit Bild, Höhe hb 
 }
 
 // ---------- Kamera einpassen: ganzer Tisch sichtbar, möglichst groß ----------
-const NEIG = 50 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben; 0.54: 50° statt 60°, mehr von vorn)
+let NEIG = 50 * Math.PI / 180;              // Blickwinkel von der Waagrechten (90° = senkrecht von oben; 0.54: 50° statt 60°, mehr von vorn)
 let bw = 0, bh = 0;
 function einpassen() {
   // 0.68: Ränder der Bühne (Statusleiste oben, Home-Leiste unten) freilassen
@@ -574,6 +576,7 @@ function einpassen() {
   const w = stage.clientWidth, h = stage.clientHeight - pt - pb;
   bw = w; bh = h;
   renderer.setSize(w, h, false);
+  if (echtHaken.groesse) echtHaken.groesse();
   camera.aspect = w / h;
   const ecken = [];
   for (const x of [4, W - 4]) for (const y of [0, H + 6]) for (const hh of [0, 14]) ecken.push(P(x, y, hh));   // Spielfeld; Gehäuse darf angeschnitten sein
@@ -607,6 +610,7 @@ function einpassen() {
 }
 window.addEventListener('resize', einpassen);
 einpassen();
+echtHaken.neigung = grad => { NEIG = grad * Math.PI / 180; einpassen(); };   // 0.91: Blickwinkel umschalten (nur Echt-Probe)
 
 // ---------- Tipp → Tischkoordinaten (für Abzug und Kanone) ----------
 const ray = new THREE.Raycaster(), ebene = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), treffer = new THREE.Vector3();
@@ -633,6 +637,7 @@ let langsam = 0, flott = 0, probe = false;
 const gesperrt = new Set();                                    // Stufen, die nach einem Versuch nicht flüssig liefen
 function stufeSetzen(i) {
   stufe = i; renderer.setPixelRatio(Math.min(STUFEN[i], GERAET_DPR)); renderer.setSize(bw, bh, false);
+  if (echtHaken.groesse) echtHaken.groesse();
 }
 function messeFps(jetzt) {
   fZaehler++;
@@ -655,7 +660,7 @@ function messeFps(jetzt) {
       }
     }
   }
-  fpsAnz.textContent = `${Math.round(fps)} fps · ${Math.min(STUFEN[stufe], GERAET_DPR)}× ${sonne.castShadow ? '' : '· ohne Schatten'}`;
+  fpsAnz.textContent = `${Math.round(fps)} fps · ${Math.min(STUFEN[stufe], GERAET_DPR)}× ${sonne.castShadow ? '' : '· ohne Schatten'}${echtHaken.text}`;
 }
 
 // ---------- Schleife ----------
@@ -701,7 +706,16 @@ function bild(jetzt) {
   });
   for (let i = bs.length; i < kugeln.length; i++) kugeln[i].visible = false;
 
-  renderer.render(scene, camera);
+  if (echtHaken.jedesBild) echtHaken.jedesBild(uhrDt);
+  if (echtHaken.render) echtHaken.render(); else renderer.render(scene, camera);
   requestAnimationFrame(bild);
 }
 requestAnimationFrame(bild);
+
+// ---------- Echt-Optik (0.91, Probe – nur mit „?echt“) ----------
+// Leuchten (Bloom), Kugel spiegelt den Tisch live, Klarlack-Boden, Lichtinseln, zweiter Schatten. Ein Knopf schaltet live um.
+if (/[?&]echt\b/.test(location.search)) {
+  import('./echt.js' + new URL(import.meta.url).search)
+    .then(m => m.starte({ THREE, scene, renderer, camera, Z, kugeln, kugelMat, bodenTeile, hemi, sonne, akzentL, akzentR, haken: echtHaken }))
+    .catch(e => console.warn('Echt-Optik nicht geladen:', e));
+}

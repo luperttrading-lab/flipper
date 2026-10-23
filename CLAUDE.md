@@ -423,6 +423,19 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 0.90 (Video 0.89: 85 % neue Bilder ≈ 51 fps effektiv, Abschuss lückenlos; Aussetzer v. a. beim Hochprobieren der Auflösung;
   Screenshot-Vergleich 1,25× / 2×: Unterschied nur an Drähten/Pfosten zu sehen – Boden ist eigene Textur): **Standard 1,5×**, `STUFEN`
   = [1,5, 1,25, 1] – 2× wird nicht mehr versucht (Nutzerentscheidung).
+- Stand 0.91 – **Echt-Probe** (Nutzer: „Animationen, die aussehen wie echt gespielt … kleines Stück zum Entscheiden“; T2-Nachbau mit
+  Originalname/-grafik scheidet aus, Seite öffentlich). Nur mit **`?echt`** (`…/flipper/?echt`), normale App unverändert. `echt.js` (ES-Modul,
+  von `drei.js` per `import()` geladen) ändert nur die Darstellung: **Bloom** (`lib/jsm/…`: EffectComposer, RenderPass, UnrealBloomPass,
+  OutputPass aus three r170, Importe auf `../../three.module.min.js` umgeschrieben, kein Import-Map nötig), **Kugel spiegelt den Tisch live**
+  (CubeCamera 128 px an der vordersten Kugel, Ebene 1 = nur Teile mit Radius ≥ 6 + Lichter; Phong-Chrom mit AddOperation; drei Raumlicht-
+  Flächen nur in der Spiegelung), **Klarlack-Boden** (MeshPhysical, clearcoat 1; per `onBeforeCompile` leuchten nur helle Texturstellen
+  selbst: Faktor 0,06…1,5 nach max(r,g,b)), **Lichtinseln** als `lightMap` (Schleudern, Gassen, Seitenwände, Bumper; Stärke 11 × Grundlicht),
+  Raumlicht gedämpft (hemi ×0,25, Sonne ×0,5), **zweites Licht** (SpotLight rechts vorn) mit PCFSoft-Schatten, Schatten nur 1× je Bild
+  (`autoUpdate` aus), **Kontaktschatten**, **Blitzer** (PointLight an Schleuder/Bumper/Jackpot), **Bewegungsunschärfe** (3 Geisterkugeln ab
+  0,7 R Weg je Bild). Bei < 50 fps zuerst weniger Würfelseiten je Bild (6 → 3 → 2, Anzeige „Spiegel n/6“), danach senkt drei.js die Auflösung.
+  Knöpfe oben rechts: **ECHT an/aus** (live umschalten, Taste E) und **BLICK 35°/50°** (Taste B; 35° = Spielerblick, Standard der Probe).
+  Haken in drei.js: `echtHaken` (render, jedesBild, groesse, text, neigung), `NEIG` jetzt `let`, `bodenTeile[k].m`. Sandbox: nur
+  Software-Rendering (1–4 fps), **Leistung auf dem iPhone ungemessen** – Rückmeldung mit fps-Anzeige abwarten. Sim 30/30 OK.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
