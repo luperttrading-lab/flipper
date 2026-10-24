@@ -132,6 +132,14 @@ function band(spek, gesamt = 1, tauFaktor = 1, ab = 0) {
     s.connect(f1).connect(f2).connect(g).connect(mech); s.start(t, Math.random() * 1.5, att + tau * 8 + 0.03);
   }
 }
+// Vorschlag aus Gemini (Nutzer, 24.10.) „Bumper / Laser-Knall“: 0,25 s weißes Rauschen, Tiefpass fällt 2500 → 100 Hz, Lautstärke fällt 60 dB
+// in 0,25 s – Original legt dafür bei jedem Aufruf einen neuen AudioContext an, hier über den gemeinsamen Kanal; v gleicht die Lautheit an
+function gemini(v) {
+  const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = rausch; f.type = 'lowpass'; f.frequency.setValueAtTime(2500, t); f.frequency.exponentialRampToValueAtTime(100, t + 0.25);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(v * 0.001, t + 0.25);
+  s.connect(f).connect(g).connect(mech); s.start(t, Math.random() * 1.5, 0.25);
+}
 // Pegel so verschoben, dass jede Tabelle mit gesamt = 1 etwa −20 dB RMS (30-ms-Fenster) ergibt = alter Flipperschlag; gesamt regelt die Lautstärke.
 const FLIPPER_V = [[63, 23.8, 3.97], [127, 16.2, 23.76], [252, 13.5, 19.19], [500, -18.2, 54], [1000, -2.3, 15.54], [2000, 6.4, 0.3], [4000, -7.1, 7.86], [8000, -17.5, 10.42]];
 const BUMPER_V = [[63, 10.2, 80], [127, 14.8, 80], [252, 1.3, 34.68], [500, 8.6, 12.76], [1000, -15.1, 44.64], [2000, 2, 1.51], [4000, -6.2, 8.9], [8000, -15, 10.13]];
@@ -165,6 +173,7 @@ const G = [
     B: ['B – Knall', 'scharf und tief', () => { stoss(0.9, 0.004, 'highpass', 2500); schlag(1, 120, 40, 0.045); stoss(0.5, 0.025, 'lowpass', 900); }],
     C: ['C – Pock', 'kürzer, mittig', () => { stoss(1, 0.01, 'bandpass', 1600, 1.5); schlag(0.7, 150, 60, 0.03); }],
     V: ['V – nach Aufnahme', 'gemessene Schlag-Serie', () => band(BUMPER_V, 1.25)],
+    G: ['G – Gemini-Vorschlag', 'Rauschen, Tiefpass fällt (gleich laut wie V)', () => gemini(0.73)],
   } },
   { id: 'schleuder', name: 'Schleuder', wozu: 'Die Dreiecke über den Flippern.', v: {
     A: ['A – alt', 'helles Zischen + Ton', () => { rauschen(0.04, 0.45, 3500, 1500, 3); ton('square', 220, 110, 0.05, 0.18); }],
@@ -222,11 +231,13 @@ const G = [
     A: ['A – alt', 'Zischen nach oben', () => { const st = 0.8; rauschen(0.35, 0.25 + 0.35 * st, 400, 3000 + 3000 * st, 0.8); ton('sine', 180, 420 + 400 * st, 0.3, 0.3); }],
     B: ['B – Kolben', 'mechanisch', () => { schlag(0.9, 140, 50, 0.03); stoss(0.6, 0.004, 'bandpass', 2500); stoss(0.5, 0.06, 'lowpass', 600); }],
     V: ['V – nach Aufnahme', 'Kolben, tiefer Schlag', () => { band(TIEF_V, 0.9); band(KLICK_V, 0.3); }],
+    G: ['G – Gemini-Vorschlag', 'Rauschen, Tiefpass fällt (gleich laut wie V)', () => gemini(0.39)],
   } },
   { id: 'kanone', name: 'Kanone', wozu: 'Kanonenschuss, Kickback.', v: {
     A: ['A – alt', 'Knall mit Nachhall', () => { rauschen(0.25, 0.7, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.6); }],
     B: ['B – schwerer', 'alt + Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.5); schlag(1, 70, 30, 0.08); stoss(0.6, 0.03, 'lowpass', 900); }],
     V: ['V – nach Aufnahme', 'alt + gemessener Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.4); band(TIEF_V, 0.8, 1.6); }],
+    G: ['G – Gemini-Vorschlag', 'Rauschen, Tiefpass fällt (gleich laut wie V)', () => gemini(0.51)],
   } },
   { id: 'loch', name: 'Schädel-Loch', wozu: 'Kugel fällt in den Schädel.', v: {
     A: ['A – alt', 'tiefes Brummen', () => { ton('sawtooth', 110, 55, 0.6, 0.25); ton('sine', 220, 110, 0.4, 0.2); }],
