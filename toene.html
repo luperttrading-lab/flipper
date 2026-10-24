@@ -151,6 +151,8 @@ const G = [
     C: ['C – hart', 'trockenes Klacken', () => { stoss(0.8, 0.003, 'bandpass', 3200, 1); stoss(0.6, 0.018, 'lowpass', 900); schlag(0.6, 130, 55, 0.022); }],
     D: ['D – schwer', 'tief, viel Wucht', () => { schlag(1, 70, 38, 0.06); stoss(0.7, 0.022, 'lowpass', 1100); stoss(0.4, 0.004, 'bandpass', 2400); }],
     V: ['V – nach Aufnahme', 'gemessener Flipperschlag', () => band(FLIPPER_V, 1)],
+    // Vorschlag aus Gemini (Nutzer, 24.10.): weißes Rauschen 30 ms, Zeitkonstante 10 ms, ungefiltert – hier gleich laut (dB(A)) wie V zum Vergleich
+    G: ['G – Gemini-Vorschlag', 'weißes Rauschen, ungefiltert', () => stoss(0.54, 0.01, 'highpass', 20, 0.7)],
   } },
   { id: 'flipperLos', name: 'Flipper loslassen', wozu: 'Wenn der Flipper zurückfällt.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
