@@ -641,3 +641,14 @@ Layout-Vorlage. Abweichungen zu unserem Stand 0.17:
   800 Hz, Bass-lastig). Wir haben keine Musik. Mechanische Schläge sind sehr kurze Breitband-Klicks (30–50 ms, bis
   über 5 kHz). Vor dem Jackpot kommt ein **ansteigender Sirenen-Sweep** (~2,5 s, Obertöne von 1.000 auf 2.400 Hz).
   Die Sprachausgabe lässt sich nicht trennen und wäre ohnehin geschützt.
+
+## Aus dem YouTube-Video (Bildschirmaufnahmen des Nutzers, 24.10., 11 s + 16 s, echter Automat im Multiball, Spielersicht)
+
+Ton nur gemessen, nicht verwendet. Werkzeuge im Scratchpad (`analyse/vid_onsets.py`, `vid_zuordnung.py`, `vid_flipper.py`).
+- **Klangfarbe nicht verwertbar** [Wahrscheinlich Aufnahmekette]: Kerbe bei ~800–900 Hz und −15…−30 dB über 1 kHz auch in den
+  Anschlägen selbst (nicht nur in der Musik) – mechanische Klicks sind physikalisch breitbandiger. Tiefen der Anschläge gehen in der
+  Musik unter. V-Tabellen (Raum-/Kontaktmikrofon, archive.org) bleiben die Grundlage.
+- **Bild und Ton um ~90 ms versetzt** (Ton später): Flipper-hoch im Bild → Klick +90…110 ms, in allen Fällen.
+- **Lauteste Mechanik = Flipperschlag** (+26…28 dB über der Musik im Band 2,5–10 kHz); Flipper-Klick im Median +10–12 dB (1–2 kHz).
+- **Bumper-Serie** im Abstand 85 / 100 / 90 ms – bestätigt die ~93 ms aus 0.95. Im Multiball ~3,4 hörbare Anschläge/s.
+- **Grundlicht-Einbrüche** ~0,1–0,13 s bei starken Treffern (wie unser Lichteinbruch aus 0.23).
