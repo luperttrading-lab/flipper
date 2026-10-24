@@ -140,6 +140,15 @@ function gemini(v) {
   g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(v * 0.001, t + 0.25);
   s.connect(f).connect(g).connect(mech); s.start(t, Math.random() * 1.5, 0.25);
 }
+// Vorschlag aus Gemini (Nutzer, 24.10.) „Synth-Bass“: Sägezahn 110 Hz (A), Tiefpass Q 5 fällt 800 → 200 Hz in 0,15 s, Lautstärke fällt 57 dB in 0,2 s.
+// Ein Ton (Lautsprecher, kein Gehäusehall) – deshalb über master wie ton(); v gleicht die Lautheit an
+function geminiBass(v, ab = 0) {
+  const t = ac.currentTime + ab, o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t);
+  f.type = 'lowpass'; f.frequency.setValueAtTime(800, t); f.frequency.linearRampToValueAtTime(200, t + 0.15); f.Q.value = 5;
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(v / 700, t + 0.2);
+  o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 0.2);
+}
 // Pegel so verschoben, dass jede Tabelle mit gesamt = 1 etwa −20 dB RMS (30-ms-Fenster) ergibt = alter Flipperschlag; gesamt regelt die Lautstärke.
 const FLIPPER_V = [[63, 23.8, 3.97], [127, 16.2, 23.76], [252, 13.5, 19.19], [500, -18.2, 54], [1000, -2.3, 15.54], [2000, 6.4, 0.3], [4000, -7.1, 7.86], [8000, -17.5, 10.42]];
 const BUMPER_V = [[63, 10.2, 80], [127, 14.8, 80], [252, 1.3, 34.68], [500, 8.6, 12.76], [1000, -15.1, 44.64], [2000, 2, 1.51], [4000, -6.2, 8.9], [8000, -15, 10.13]];
@@ -180,6 +189,8 @@ const G = [
     B: ['B – Gummi-Schnalzen', 'Spule + Gummi', () => { schlag(1, 110, 40, 0.045); stoss(0.8, 0.014, 'bandpass', 1100, 1.2); stoss(0.4, 0.003, 'highpass', 3000); }],
     C: ['C – dumpf', 'weicher Schlag', () => { stoss(1, 0.02, 'lowpass', 2000); schlag(0.8, 80, 40, 0.05); }],
     V: ['V – nach Aufnahme', 'gemessener tiefer Schlag', () => band(SCHLEUDER_V, 1.25)],
+    G: ['G – Gemini Synth-Bass', 'Sägezahn 110 Hz, Filter fällt (gleich laut wie V)', () => geminiBass(0.66)],
+    H: ['H – V + Gemini-Bass', 'Mechanik + Ton aus dem Lautsprecher', () => { band(SCHLEUDER_V, 1.25); geminiBass(0.35); }],
   } },
   { id: 'wand', name: 'Kugel an Führung', wozu: 'Anschlag an Blechen und Pfosten (leise, je nach Wucht).', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
@@ -243,6 +254,7 @@ const G = [
     A: ['A – alt', 'tiefes Brummen', () => { ton('sawtooth', 110, 55, 0.6, 0.25); ton('sine', 220, 110, 0.4, 0.2); }],
     B: ['B – Plumps + Brummen', '', () => { schlag(0.8, 95, 48, 0.06); stoss(0.4, 0.02, 'lowpass', 600); ton('sawtooth', 110, 55, 0.6, 0.15); }],
     V: ['V – nach Aufnahme', 'Kugel fällt ins Loch', () => { band(GUMMI_V, 0.5); band(TIEF_V, 0.8, 1, 0.05); ton('sawtooth', 110, 55, 0.6, 0.12); }],
+    G: ['G – mit Gemini-Bass', 'Mechanik wie V, Brummton durch Gemini-Bass ersetzt (gleich laut)', () => { band(GUMMI_V, 0.5); band(TIEF_V, 0.8, 1, 0.05); geminiBass(0.15); }],
   } },
   { id: 'auswurf', name: 'Auswurf', wozu: 'Schädel/Mulde wirft die Kugel aus.', v: {
     A: ['A – alt', 'dumpfer Stoß', () => { rauschen(0.08, 0.5, 800, 300, 1.5); ton('sine', 90, 50, 0.12, 0.4); }],
