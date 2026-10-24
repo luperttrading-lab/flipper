@@ -149,6 +149,15 @@ function geminiBass(v, ab = 0) {
   g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(v / 700, t + 0.2);
   o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 0.2);
 }
+// Vorschlag aus Gemini (Nutzer, 24.10.) „Kanonen-Abschuss“: Dreieck 180 → 30 Hz in 0,4 s + Rauschen, Tiefpass 1200 → 80 Hz in 0,5 s,
+// beide fallen 60 dB – Aufbau wie unser alter Kanonenton (A), nur länger und mit Dreieck statt Sinus; Lautsprecher-Ton → master
+function geminiKanone(v) {
+  const t = ac.currentTime, o = ac.createOscillator(), og = ac.createGain(), s = ac.createBufferSource(), f = ac.createBiquadFilter(), ng = ac.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.4);
+  og.gain.setValueAtTime(v, t); og.gain.exponentialRampToValueAtTime(v * 0.001, t + 0.4); o.connect(og).connect(master); o.start(t); o.stop(t + 0.4);
+  s.buffer = rausch; f.type = 'lowpass'; f.frequency.setValueAtTime(1200, t); f.frequency.exponentialRampToValueAtTime(80, t + 0.5);
+  ng.gain.setValueAtTime(v * 0.8, t); ng.gain.exponentialRampToValueAtTime(v * 0.0008, t + 0.5); s.connect(f).connect(ng).connect(master); s.start(t, Math.random() * 1.5, 0.5);
+}
 // Pegel so verschoben, dass jede Tabelle mit gesamt = 1 etwa −20 dB RMS (30-ms-Fenster) ergibt = alter Flipperschlag; gesamt regelt die Lautstärke.
 const FLIPPER_V = [[63, 23.8, 3.97], [127, 16.2, 23.76], [252, 13.5, 19.19], [500, -18.2, 54], [1000, -2.3, 15.54], [2000, 6.4, 0.3], [4000, -7.1, 7.86], [8000, -17.5, 10.42]];
 const BUMPER_V = [[63, 10.2, 80], [127, 14.8, 80], [252, 1.3, 34.68], [500, 8.6, 12.76], [1000, -15.1, 44.64], [2000, 2, 1.51], [4000, -6.2, 8.9], [8000, -15, 10.13]];
@@ -248,7 +257,9 @@ const G = [
     A: ['A – alt', 'Knall mit Nachhall', () => { rauschen(0.25, 0.7, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.6); }],
     B: ['B – schwerer', 'alt + Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.5); schlag(1, 70, 30, 0.08); stoss(0.6, 0.03, 'lowpass', 900); }],
     V: ['V – nach Aufnahme', 'alt + gemessener Spulenschlag', () => { rauschen(0.25, 0.6, 1200, 120, 0.7); ton('sine', 120, 35, 0.35, 0.4); band(TIEF_V, 0.8, 1.6); }],
-    G: ['G – Gemini-Vorschlag', 'Rauschen, Tiefpass fällt (gleich laut wie V)', () => gemini(0.51)],
+    G: ['G – Gemini Laser-Knall', 'Rauschen, Tiefpass fällt (gleich laut wie V)', () => gemini(0.51)],
+    H: ['H – Gemini Kanonenschuss', 'Dreieck + Rauschen, beide fallen (gleich laut wie V)', () => geminiKanone(0.79)],
+    I: ['I – V mit Gemini-Schuss', 'Spulenschlag wie V, Knall von Gemini statt des alten (gleich laut)', () => { geminiKanone(0.74); band(TIEF_V, 0.8, 1.6); }],
   } },
   { id: 'loch', name: 'Schädel-Loch', wozu: 'Kugel fällt in den Schädel.', v: {
     A: ['A – alt', 'tiefes Brummen', () => { ton('sawtooth', 110, 55, 0.6, 0.25); ton('sine', 220, 110, 0.4, 0.2); }],
