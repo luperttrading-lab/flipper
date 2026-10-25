@@ -42,6 +42,13 @@ Die Nachbauten sind darauf geeicht, dass dieselbe Messung dieselben Werte liefer
   <label><input type="checkbox" id="hall" checked> Gehäuse-Nachhall (nur neue Varianten)</label>
 </div>
 <main id="liste"></main>
+<section class="karte" id="musik-karte">
+  <h2>Musik-Probe – Weg B: eigene FM-Synthese (nur Probe, nicht in der App)</h2>
+  <div class="wozu">Der echte Automat von 1991 spielt seine Musik mit einem Yamaha-FM-Chip (YM2151) plus 8-Bit-Schlagzeug, mono. Diese Stücke sind
+  eigene Erfindungen in diesem Klangstil – keine Melodien des Originals oder des Films. Je Spielzustand ein Stück; „Multiball“ ist die Schleife,
+  die heute schon in der App läuft, hier durch denselben Chip-Bus. Ein Stück läuft, bis du ein anderes oder „Stopp“ antippst.</div>
+  <div class="varianten" id="musik"></div>
+</section>
 <footer><div class="innen"><div id="auswahl"></div><button id="kopie" type="button">Kopieren</button></div></footer>
 
 <script>
@@ -322,4 +329,104 @@ document.getElementById('szene').addEventListener('click', () => {
   s(4600, 'rollen'); s(4800, 'flipperAn'); s(5000, 'wand'); s(5100, 'flipperLos'); s(5500, 'rampe'); s(6200, 'loch'); s(7000, 'auswurf');
   s(7600, 'rollen'); s(8300, 'klack'); s(8800, 'abfluss');
 });
+
+// ---------- Musik-Probe (Weg B): 2-Operator-FM-Stimmen + 8-Bit-Schlagzeug durch einen „Chip-Bus“ (8-Bit-Quantisierung, 90 Hz–7 kHz) ----------
+let musikBus = null, musikTimer = null, musikName = null;
+function chipBus() {
+  if (musikBus && musikBus.context === ac) return musikBus;
+  const q = ac.createWaveShaper(), n = 65536, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.round(x * 127) / 127; }   // 8 Bit wie der DAC
+  q.curve = c; q.oversample = '2x';
+  const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+  const g = ac.createGain(); g.gain.value = 0.55;
+  musikBus = ac.createGain(); musikBus.connect(q).connect(hp).connect(lp).connect(g).connect(master);
+  return musikBus;
+}
+const N = m => 440 * Math.pow(2, (m - 69) / 12);   // MIDI-Nummer → Hz
+// FM-Stimme: Träger + Modulator (Verhältnis ratio, Hub index·f, Hub fällt mit Zeitkonstante abfall auf rest) – „halt“ = Ton steht bis dauer
+function fmTon(f, t, dauer, p) {
+  const bus = chipBus(), c = ac.createOscillator(), m = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
+  c.frequency.value = f; m.frequency.value = f * p.ratio;
+  mg.gain.setValueAtTime(f * p.index, t); mg.gain.setTargetAtTime(f * p.index * (p.rest ?? 0.12), t, p.abfall ?? 0.08);
+  m.connect(mg).connect(c.frequency);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(p.vol, t + 0.004);
+  if (p.halt) { g.gain.setValueAtTime(p.vol, t + dauer - 0.03); g.gain.linearRampToValueAtTime(0, t + dauer); }
+  else g.gain.setTargetAtTime(0, t + 0.004, p.aus ?? dauer / 3);
+  c.connect(g).connect(bus); c.start(t); m.start(t); c.stop(t + dauer + 0.05); m.stop(t + dauer + 0.05);
+}
+const BASS = { ratio: 1, index: 2.6, abfall: 0.07, vol: 0.5, aus: 0.09 };          // geschlagener FM-Bass
+const LEAD = { ratio: 2, index: 5, abfall: 0.12, vol: 0.22, aus: 0.18 };           // metallische Leadstimme
+const CLANK = { ratio: 3.53, index: 9, abfall: 0.03, vol: 0.28, aus: 0.05 };        // unharmonischer Metallschlag
+const BELL = { ratio: 3.5, index: 2.2, abfall: 0.5, vol: 0.14, aus: 0.6 };          // Glocke (Ruhezustand)
+const BRASS = { ratio: 1, index: 1.8, abfall: 0.3, rest: 0.5, vol: 0.2, halt: true };   // Bläser-Akkord (Jingle)
+function drum(art, t, vol = 1) {
+  const bus = chipBus();
+  if (art === 'kick' || art === 'thump') {
+    const o = ac.createOscillator(), g = ac.createGain(), tief = art === 'thump';
+    o.frequency.setValueAtTime(tief ? 95 : 130, t); o.frequency.exponentialRampToValueAtTime(tief ? 32 : 42, t + (tief ? 0.16 : 0.1));
+    g.gain.setValueAtTime((tief ? 0.7 : 0.5) * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + (tief ? 0.3 : 0.16));
+    o.connect(g).connect(bus); o.start(t); o.stop(t + 0.32); return;
+  }
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), hat = art === 'hat';
+  s.buffer = rausch; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 6000 : 1800; f.Q.value = 0.8;
+  g.gain.setValueAtTime((hat ? 0.09 : 0.22) * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + (hat ? 0.03 : 0.12));
+  s.connect(f).connect(g).connect(bus); s.start(t, Math.random() * 1.5, 0.15);
+}
+// Ablauf in Achteln: bpmFn(sek) erlaubt Beschleunigen, schritt(k, t, sek, achtel) setzt die Töne, ende (s) stoppt
+function musikStart(name, bpmFn, schritt, ende) {
+  musikStop(); starte(); musikName = name;
+  let naechste = ac.currentTime + 0.06, k = 0; const t0 = naechste;
+  musikTimer = setInterval(() => {
+    if (!ac || ac.state !== 'running') return;
+    while (naechste < ac.currentTime + 0.15) {
+      const sek = naechste - t0; if (ende && sek >= ende) { musikStop(); return; }
+      const achtel = 30 / bpmFn(sek); schritt(k, naechste, sek, achtel); naechste += achtel; k++;
+    }
+  }, 40);
+  zeigeMusik();
+}
+function musikStop() { if (musikTimer) clearInterval(musikTimer); musikTimer = null; musikName = null; zeigeMusik(); }
+// Hauptspiel: e-Moll, 112 BPM, zweitaktiger Bass-Riff, alle 4 Takte ein fünftöniges Metall-Motiv, Schlagzeug gerade
+const HAUPT_BASS = [40, 40, 52, 40, 43, 40, 38, 40, 40, 40, 52, 40, 43, 45, 47, 43];
+const HAUPT_LEAD = { 16: [64, 2], 18: [67, 2], 20: [69, 2], 22: [71, 2], 24: [74, 4], 28: [71, 3] };
+const MUSIK = {
+  ruhe: ['Ruhezustand', 'kein Dauerlied: alle 4 s ein tiefer Doppelschlag, ab und zu eine Glocke', () => musikStart('ruhe', () => 60, (k, t) => {
+    if (k % 8 === 0) { drum('thump', t, 1); drum('thump', t + 0.17, 0.8); }
+    if (k % 24 === 12) fmTon(N(76), t, 1.4, BELL);
+  })],
+  haupt: ['Hauptspiel', 'e-Moll, 112 BPM, FM-Bass + Metall-Motiv', () => musikStart('haupt', () => 112, (k, t, sek, a) => {
+    fmTon(N(HAUPT_BASS[k % 16]), t, a * 0.9, BASS);
+    const l = HAUPT_LEAD[k % 32]; if (l) fmTon(N(l[0]), t, a * l[1], LEAD);
+    if (k % 4 === 0) drum('kick', t); if (k % 8 === 4) drum('snare', t); drum('hat', t, k % 2 ? 0.6 : 1);
+    if (k % 16 === 14) fmTon(N(52), t, 0.12, CLANK);
+  })],
+  multi: ['Multiball (App)', 'die heutige a-Moll-Schleife, 132 BPM, durch den Chip-Bus', () => musikStart('multi', () => 132, (k, t, sek, a) => {
+    const GRUND = [55, 55, 43.65, 49], MUSTER = [1, 1, 2, 1, 1, 1.5, 1, 2], f = GRUND[Math.floor(k / 8) % 4] * MUSTER[k % 8];
+    const o = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); lp.type = 'lowpass'; lp.frequency.setValueAtTime(700, t); lp.frequency.exponentialRampToValueAtTime(180, t + a);
+    g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.001, t + a * 0.95); o.connect(lp).connect(g).connect(chipBus()); o.start(t); o.stop(t + a);
+    if (k % 2 === 0) drum('kick', t, 0.9); if (k === 2 || k % 8 === 2 || k % 8 === 6) drum('snare', t, 0.7);
+  })],
+  hurry: ['Hurry Up (20 s)', 'hetzend, 150 → 190 BPM, Tick je Viertel', () => musikStart('hurry', sek => 150 + 2 * sek, (k, t, sek, a) => {
+    fmTon(N([40, 40, 41, 41][k % 4]), t, a * 0.9, BASS);
+    if (k % 2 === 0) fmTon(N([64, 65, 64, 62][(k / 2) % 4]), t, a * 1.6, LEAD);
+    if (k % 4 === 0) { drum('kick', t); fmTon(N(88), t, 0.05, { ratio: 7, index: 3, abfall: 0.01, vol: 0.12, aus: 0.02 }); }
+    drum('hat', t, 0.8);
+  }, 20)],
+  kanone: ['Kanone (7 s)', 'Puls je Viertel, Tonhöhe steigt je Sekunde', () => musikStart('kanone', () => 120, (k, t, sek) => {
+    if (k % 2 === 0) { fmTon(N(57 + Math.floor(sek)), t, 0.22, { ratio: 2, index: 4, abfall: 0.05, vol: 0.2, aus: 0.07 }); fmTon(N(33), t, 0.3, BASS); }
+    if (k % 2 === 1 && sek > 4) drum('hat', t, 0.7);
+  }, 7)],
+  jackpot: ['Jackpot-Jingle', 'drei FM-Bläser-Akkorde aufwärts, 1,5 s', () => { musikStop(); starte(); const t = ac.currentTime + 0.05;
+    [[0, [64, 67, 71], 0.24], [0.25, [67, 71, 74], 0.24], [0.5, [69, 72, 76], 0.9]].forEach(([ab, akk, d]) => { akk.forEach(m => fmTon(N(m), t + ab, d, BRASS)); drum('kick', t + ab); });
+    drum('snare', t + 0.5); drum('snare', t + 0.62, 0.7); }],
+  stop: ['■ Stopp', '', () => musikStop()],
+};
+const musikBox = document.getElementById('musik');
+for (const [k, [name, text, fn]] of Object.entries(MUSIK)) {
+  const b = document.createElement('button'); b.type = 'button'; b.dataset.m = k; b.innerHTML = `<b>${name}</b>${text || '&nbsp;'}`;
+  b.addEventListener('click', () => { try { fn(); } catch (e) { console.warn(e); } }); musikBox.appendChild(b);
+}
+function zeigeMusik() { for (const b of document.querySelectorAll('#musik button')) b.classList.toggle('gewaehlt', b.dataset.m === musikName); }
 </script>

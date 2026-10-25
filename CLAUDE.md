@@ -666,3 +666,34 @@ Ton nur gemessen, nicht verwendet. Werkzeuge im Scratchpad (`analyse/vid_onsets.
   in toene.html. Da CC0, dürften die Aufnahmen selbst in Repo/App – nur nach Zustimmung des Nutzers.
 - Gesperrt aus dem Container: Freesound, Sonniss, Pixabay, Zapsplat, VPForums, github.com-Webseiten (raw.githubusercontent geht), YouTube.
   archive.org hat zu T2 nur die Spielmusik (geschützt).
+- **Zweite Suche 25.10. (Workflow, 20 Agenten; Rohdaten `scratchpad/quellen2/`, Ergebnis `scratchpad/quellen2_ergebnis.json`):**
+  - **Frei und echt:** USC/Sunset-Editorial „SSE Library: GAMES“ auf archive.org (CC0 laut IA-Metadaten des Hochladers, Urheber-Widmung nicht
+    selbst gelesen → vor Repo-Aufnahme auf freesound.org/people/craigsmith prüfen): zwei Flipper-Spielsequenzen 70,8 s / 61,7 s, 48 kHz mono
+    24 bit, ohne Musik, [Vermutung] elektromechanischer Automat (`archive.org/download/SSE_Library_GAMES/ARCADE/…`). BigSoundBank CC0
+    „Metal ball, bounce #1–4“ (s2242–2245, Studio) = Eichvorlage für Kugel-an-Blech. BigSoundBank 2675 = nur Spielhallen-Atmo.
+  - **Nur messen (Lizenz unklar/eingeschränkt):** **Fleep Sound Package** komplett in `github.com/jlaamanen/vpx-freewpc-template`
+    (`TableTemplate_work/sounds/`, 244 WAV, Flipper/Bumper/Schleuder/Ziele/Rollen/Abschuss/Auswerfer, Nahaufnahmen eines WPC-Geräts) –
+    **keine Lizenz**, lokaler Klon `scratchpad/quellen2/git/`; Sounds of Changes „Truck Stop“ Bally 1988 (CC BY 4.0, aber ROM-Musik läuft mit);
+    Commons „Pinball-multi-ball.webm“ White Water 1993 (CC BY-SA, Download aus dem Container 429); conservethesound.de „Flipper“ (keine Lizenz);
+    BBC RemArc (nicht kommerziell). Freesound CC0 (450270 Gottlieb Bronco Flipper, 812331 Kontaktmikro, 172266 EM) nur vom Nutzer im Browser ladbar.
+  - **Negativ geprüft:** Sonniss-GDC-Spiegel auf archive.org (19.433 Dateien, 0 Flipper), OpenGameArt (nur Grafik/Musik), SoundBible, pdsounds,
+    Europeana (nur Truck Stop), BBC („pinball“ 0 Treffer), Emilia Pinball/Vector Pinball/Nova Pinball (synthetisch, GPL), MPF-Beispiele (Herkunft unklar).
+  - **T2-Ton (Textquellen, nichts geladen):** WPC-Soundboard A-12738 = 6809 + **YM2151 FM** (Musik) + 8-Bit-DAC (Samples) + HC55536 CVSD
+    (Sprache), **mono**; Musik/Sound **Chris Granner** (Eigenkomposition, **kein Fiedel-Thema** im Gerät [Wahrscheinlich]); Stimme Arnold laut
+    Wikipedia, laut Granner-Podcast 2025 Imitator Fred Young [Wahrscheinlich, aus zweiter Hand]. Zustände (Regelblatt 1991 funet.fi, L8.4-ROM-
+    Handbuch auf o.pinside.com, PinMAME sounds.dat t2_l8 = 195 Kommandos ohne Namen): Attract = kein Dauerlied, periodischer tiefer Doppelschlag
+    + Sprachzeile; Skill Shot „Take your best shot“/„Nice shot“/„You missed“; Kanone: Aufzieh-Geräusch, „Fire at will“-Fenster mit eigener
+    Schussmusik; eigener Multiball-Loop; „Get the Jackpot“/„Get the Super Jackpot“ + Jubelthema (kehrt bei der Rekord-Eingabe wieder [Vermutung,
+    nur TV Tropes]); Hurry-Up = hektische Melodie (Genesis-Ableitung) + „Let's go“/„Run“; Video Mode eigene Musik; Database-Hintergrundton,
+    „Big points“/„Get out!“; Extra Ball Jingle + 10× Klatsch; High Score „Grand Champion“/„Top Marksmen“-Musik + „You are superior“;
+    Game-over-Musik läuft durch Match. **Alles davon geschützt** (Kompositionen, ROM-Aufnahmen, Stimme/Zitate/Marken) – nur die Struktur ist frei.
+    PinSound-Ordnung music/jingle/sfx/single/voice (music loopt, single beendet sie, jingle überdeckt, voice einzeln) = gutes Muster für `sfx`.
+  - **Musik-Wege:** (A) freie Musik: incompetech/Kevin MacLeod CC BY 4.0 (Katalog pieces.json, z. B. Mechanolith), OpenGameArt CC0
+    (T&T Cyberpunk Pack 1+2, Dark Things Loop 32 s nahtlos, Junkala 5 Chiptunes C64-Stil), Kenney Music Jingles CC0 (85 Kurzjingles),
+    Of Far Different Nature itch.io CC BY (kurze Loops, ungeprüft); FreePD ist geschlossen; FMA/ccMixter meist NC/ND. (B) **eigene FM-Synthese**
+    (empfohlen): YM2151-Kern als WASM `tetorica-fm2612` (npm, BSD-3, ymfm von Aaron Giles, ~60 KB, AudioWorklet ohne SharedArrayBuffer –
+    iPhone-Last ungemessen) oder eigener 2-/4-Op-FM in Web Audio; libymfm.wasm scheidet aus (SharedArrayBuffer/COOP). (C) KI-Musik: Udio
+    unbrauchbar (kein Download, Udio besitzt Output), Suno free nur „personal and non-commercial“ (öffentliche Seite = Graubereich),
+    MusicGen-Gewichte CC BY-NC. **Musik-Probe** in `toene.html` (Karte unten, 2-Op-FM + 8-Bit-Bus): Ruhezustand/Hauptspiel/Multiball/Hurry Up/
+    Kanone/Jackpot-Jingle – eigene Erfindungen, nicht im Original-Stil kopiert; gemessen Hauptspiel −6,6 dB(A) unter dem Bumper (Handy).
+
