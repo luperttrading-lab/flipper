@@ -581,6 +581,10 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   `localStorage` `flipper.klang` ({fl, mu}); Tipp auf einen Knopf spielt eine Probe (Flipper) bzw. meldet den Modus. `sfx.musikStand` (Modus:Zustand:Flipper)
   zum Prüfen. `<meta charset="utf-8">` ergänzt (lokaler Testserver zeigte Umlaute falsch; GitHub Pages sendet utf-8 ohnehin). Geprüft: alle Zustände live
   durchgeschaltet ohne Fehler, Auswahl bleibt nach Neuladen, Sim 30/30.
+- Stand 1.05 (Nutzer sah auf dem Startbild keine Auswahl; Wunsch: Geheimgriff „3–4 s gedrückt halten“): **3 s auf das Startbild drücken** öffnet die
+  Klang-Probe (`klang-offen`, Feld mit dunklem Grund und Titel über dem Bild); der Klick nach dem Halten startet nicht (`langGedrueckt`), ein normaler
+  Tipp aufs Bild startet wie bisher und schließt das Feld. Auf dem Pausenschirm (Tipp auf die Anzeige) ist das Feld immer sichtbar. `.start` ohne
+  Textmarkierung/Kontextmenü beim Halten. Geprüft: kurzer Tipp/1,2 s Halten startet, 3,3 s Halten öffnet ohne Start, Knöpfe starten nicht, Sim 30/30.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

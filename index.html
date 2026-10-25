@@ -144,6 +144,12 @@
   /* 1.04: Klang-Probe auf dem Pausenschirm (Flipper V/W/X, Musik aus/Multiball/alle) – bis der Nutzer gewählt hat */
   .klang { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .start.splash > .klang { display: none; }
+  /* 1.05: auf dem Startbild erst nach 3 s Halten (Geheimgriff), dann mit dunklem Grund über dem Bild */
+  .start.splash.klang-offen > .klang { display: flex; bottom: calc(env(safe-area-inset-bottom, 0px) + 13%); padding: 12px 14px 10px; margin: 0 auto;
+    width: max-content; background: rgba(8, 14, 24, .9); border: 1px solid #24395a; border-radius: 14px; z-index: 2; }
+  .klang-titel { display: none; font-size: 12px; color: rgba(232, 238, 245, .6); }
+  .start.splash.klang-offen .klang-titel { display: block; }
+  .start { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .klang-zeile { display: flex; align-items: center; gap: 6px; }
   .klang-zeile span { width: 54px; margin-right: 4px; text-align: right; font-size: 13px; color: rgba(232, 238, 245, .7); }
   .klang-zeile button { min-width: 44px; padding: 7px 11px; font: 600 14px system-ui, sans-serif; color: #e8eef5;
@@ -185,6 +191,7 @@
   </div>
   <span id="start-text">Pause – antippen</span>
   <div class="klang" id="klang">
+    <div class="klang-titel">Klang-Probe · danach Bild antippen zum Starten</div>
     <div class="klang-zeile"><span>Flipper</span><button type="button" id="kl-fl-V">V</button><button type="button" id="kl-fl-W">W</button><button type="button" id="kl-fl-X">X</button></div>
     <div class="klang-zeile"><span>Musik</span><button type="button" id="kl-mu-aus">Aus</button><button type="button" id="kl-mu-multi">Multiball</button><button type="button" id="kl-mu-alle">Alle</button></div>
   </div>
@@ -200,7 +207,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '1.04';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '1.05';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -288,7 +295,18 @@ const sfx = (() => {
   // 'running', spielt aber nichts mehr).
   const startEl = document.getElementById('start');
   let frisch = true;
+  // 1.05: Geheimgriff – 3 s auf das Startbild drücken öffnet die Klang-Probe (Flipper V/W/X, Musik); der Klick danach startet nicht
+  let haltTimer = null, langGedrueckt = false;
+  const haltAus = () => { if (haltTimer) { clearTimeout(haltTimer); haltTimer = null; } };
+  startEl.addEventListener('pointerdown', e => {
+    if (e.target.closest && e.target.closest('#klang, .ver, .splash-ver')) return;
+    haltAus();
+    haltTimer = setTimeout(() => { haltTimer = null; langGedrueckt = true; startEl.classList.add('klang-offen'); }, 3000);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => startEl.addEventListener(ev, haltAus));
   startEl.addEventListener('click', () => {
+    if (langGedrueckt) { langGedrueckt = false; return; }
+    startEl.classList.remove('klang-offen');
     if (an) {
       try { const p = medien.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
       if (frisch) { neu(); frisch = false; }
