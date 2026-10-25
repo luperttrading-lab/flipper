@@ -652,3 +652,17 @@ Ton nur gemessen, nicht verwendet. Werkzeuge im Scratchpad (`analyse/vid_onsets.
 - **Lauteste Mechanik = Flipperschlag** (+26…28 dB über der Musik im Band 2,5–10 kHz); Flipper-Klick im Median +10–12 dB (1–2 kHz).
 - **Bumper-Serie** im Abstand 85 / 100 / 90 ms – bestätigt die ~93 ms aus 0.95. Im Multiball ~3,4 hörbare Anschläge/s.
 - **Grundlicht-Einbrüche** ~0,1–0,13 s bei starken Treffern (wie unser Lichteinbruch aus 0.23).
+
+## Tonquellen (Stand 25.10.)
+
+- **BigSoundBank** (Joseph Sardin, **CC0/gemeinfrei**, seit Oktober 2026): `3607` Stern „Lord of the Rings“ (2003) **Flipperschläge, Glas ab,
+  ohne Kugel/Musik, nah** (5,8 s) · `3604` LOTR Spielgeräusche (54 s) · `3611` Bally „Theater of Magic“ (1995, WPC wie T2) Spielgeräusche (28 s) ·
+  `3599` Flipper-Messe (Raum, 2 min). Abruf über die öffentlichen Abspiel-MP3s (`/UPLOAD/mp3/<id>.mp3`, 320 kbit/s, 48 kHz); der WAV-Download
+  hat einen Bot-Schutz mit Wartezeit – nicht umgehen. Durchgehendes Brummband 1,4–2,5 kHz in allen drei (Aufnahmeort) → bei Messungen ausblenden.
+- **Gemessen an 3607** (`scratchpad/analyse/bsb_flipper.py`, Tabellen per `eichen.py` → toene.html `FLIPPER_N`, `FLIPPER_LOS_N`): Schlag nah am
+  offenen Gerät **hell** (Spitze 1–4 kHz, 63/127 Hz −18/−13 dB) – anders als unser `FLIPPER_V` (Spitze 127 Hz). [Wahrscheinlich] hört der Spieler
+  durch Spielfeld, Glas und Gehäuse dunkler. **Abprall:** auf den Schlag folgen Nachschläge bei +30/70/100 ms (−5/−11/−12 dB); Zurückfallen
+  15,6 dB leiser als der Schlag, Spitze 250–500 Hz, Nachschläge +35/65/106 ms (−3/−5/−10 dB). Varianten W/X (Flipper drücken) und W (loslassen)
+  in toene.html. Da CC0, dürften die Aufnahmen selbst in Repo/App – nur nach Zustimmung des Nutzers.
+- Gesperrt aus dem Container: Freesound, Sonniss, Pixabay, Zapsplat, VPForums, github.com-Webseiten (raw.githubusercontent geht), YouTube.
+  archive.org hat zu T2 nur die Spielmusik (geschützt).

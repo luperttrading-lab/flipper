@@ -167,6 +167,12 @@ const GUMMI_V = [[63, 14.6, 3.97], [127, 13.1, 12.6], [252, 13.6, 30.03], [500, 
 const KLICK_V = [[252, 6.9, 6.53], [500, 11.4, 3.77], [1000, 9.4, 2.44], [2000, 10.6, 2.4], [4000, 8.8, 3.57], [8000, -2.3, 4.89]];
 // 0.97: dunkler Klick für Anschläge und Ziele (Höhen ab 2 kHz um 8/13/16 dB gesenkt)
 const KLICK_D = [[252, 8.9, 6.53], [500, 12.4, 3.77], [1000, 7.4, 2.44], [2000, 2.6, 2.4], [4000, -4.2, 3.57], [8000, -18.3, 4.89]];
+// 25.10.: geeicht auf eine CC0-Nahaufnahme (BigSoundBank 3607, Stern „Lord of the Rings“ 2003, Glas ab, ohne Kugel/Musik):
+// Schlag hell (Spitze 1–4 kHz), Zurückfallen dunkler; beide mit Abprall-Nachschlägen (gemessen: +30/70/100 ms, −5/−11/−12 dB bzw. +35/65/106 ms, −3/−5/−10 dB)
+const FLIPPER_N = [[63, -16.0, 3.97], [127, -24.3, 46.29], [252, 0.0, 1.75], [500, -19.5, 16.66], [1000, -11.4, 3.08], [2000, -20.1, 26.83], [4000, -22.8, 8.08], [8000, -29.1, 15.99]];
+const FLIPPER_LOS_N = [[63, -0.5, 3.97], [127, -16.7, 29.29], [252, 0.0, 7.98], [500, -11.1, 5.15], [1000, -18.1, 18.39], [2000, -30.7, 13.91], [4000, -30.1, 8.49]];
+const ABPRALL_AN = [[0.030, -5], [0.070, -11], [0.100, -12]], ABPRALL_LOS = [[0.035, -3], [0.065, -5], [0.106, -10]];
+function abprall(tab, g, folge, tauF = 0.8) { band(tab, g); for (const [ab, db] of folge) band(tab, g * Math.pow(10, db / 20), tauF, ab); }
 const STAHL_V = [[1000, 9.2, 2.89], [2000, 10.8, 1.23], [4000, 11.9, 2.16], [8000, 3.5, 2.76]];
 
 // ---------- Geräusche und Varianten ----------
@@ -179,12 +185,15 @@ const G = [
     V: ['V – nach Aufnahme', 'gemessener Flipperschlag', () => band(FLIPPER_V, 1)],
     // Vorschlag aus Gemini (Nutzer, 24.10.): weißes Rauschen 30 ms, Zeitkonstante 10 ms, ungefiltert – hier gleich laut (dB(A)) wie V zum Vergleich
     G: ['G – Gemini-Vorschlag', 'weißes Rauschen, ungefiltert', () => stoss(0.54, 0.01, 'highpass', 20, 0.7)],
+    W: ['W – V mit Abprall', 'wie V, plus Nachschläge des Flipperarms (gemessen)', () => abprall(FLIPPER_V, 1.07, ABPRALL_AN)],
+    X: ['X – Nahaufnahme', 'hell wie direkt am offenen Gerät, mit Abprall', () => abprall(FLIPPER_N, 6.1, ABPRALL_AN)],
   } },
   { id: 'flipperLos', name: 'Flipper loslassen', wozu: 'Wenn der Flipper zurückfällt.', v: {
     A: ['A – aus', 'wie bisher still', () => {}],
     B: ['B – leises Klacken', '', () => { stoss(0.35, 0.003, 'bandpass', 2200); schlag(0.25, 100, 50, 0.015); }],
     C: ['C – dumpf', '', () => { stoss(0.4, 0.012, 'lowpass', 700); }],
     V: ['V – nach Aufnahme', 'derselbe Schlag, leiser, kürzer', () => band(FLIPPER_V, 0.35, 0.7)],
+    W: ['W – Nahaufnahme', 'dumpfer Rückfall mit Abprall, 15 dB unter dem Schlag (gemessen)', () => abprall(FLIPPER_LOS_N, 1.2, ABPRALL_LOS)],
   } },
   { id: 'bumper', name: 'Pop-Bumper', wozu: 'Die drei Pilze oben – oft mehrmals schnell hintereinander.', v: {
     A: ['A – alt', 'Knall + Ton', () => { const v = 1; rauschen(0.035, 0.7, 5000 * v, 1800 * v, 0.9); ton('sine', 170 * v, 70, 0.07, 0.5); ton('square', 95 * v, 60, 0.04, 0.12); }],
