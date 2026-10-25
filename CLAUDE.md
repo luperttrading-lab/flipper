@@ -572,6 +572,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   (ab 55 fps, ≤ 2,5 fps Verlust) holt heraus, was das Gerät schafft. **Schrift auf den Einsätzen mit Kontur** (`einsatzTexturen`: dunkle Kontur
   0,2 · Schriftgröße in der Glut-Textur, 0,14 in der Grund-Textur) – beleuchtete Einsätze (MULTIBALL, 500K …) waren vom Leuchten überstrahlt.
   Offen/nächster Hebel: Grundlicht-Lampen (6 PointLights, −10 %) reduzieren oder einbacken.
+- Stand 1.04 (Nutzer: „V, W und X als Knopf … inklusive Hintergrundmusik, im Flipper einstellbar, bis wir es festgelegt haben“): **Klang-Probe auf dem
+  Pausenschirm** (`#klang`, über „Ton an · Version“; im Startbild ausgeblendet): **Flipper V/W/X** (V = bisher, W = V + Abprall, X = Nahaufnahme hell +
+  Abprall; Loslassen bei W/X = `FLIPPER_LOS_N` mit Abprall; Tabellen wie toene.html) und **Musik Aus / Multiball (bisher) / Alle**. „Alle“ = FM-Musik
+  je Spielzustand aus der toene.html-Probe (`fmSchalte`, `STUECK`, Chip-Bus): Game over → `ruhe` (Doppelschlag + Glocke), Multiball → `multi`,
+  geladene Kanone → `kanone` (Ton steigt bis zum Selbstschuss), Hurry Up → `hurry` (150 → 190 BPM), Payback → `payback` (Hauptspiel 132 BPM), sonst
+  `haupt` (e-Moll 112 BPM); Pause = still; `sfx.multiball()` spielt dann den FM-Jingle statt der Fanfare (Zustandsmusik pausiert 1,5 s). Auswahl in
+  `localStorage` `flipper.klang` ({fl, mu}); Tipp auf einen Knopf spielt eine Probe (Flipper) bzw. meldet den Modus. `sfx.musikStand` (Modus:Zustand:Flipper)
+  zum Prüfen. `<meta charset="utf-8">` ergänzt (lokaler Testserver zeigte Umlaute falsch; GitHub Pages sendet utf-8 ohnehin). Geprüft: alle Zustände live
+  durchgeschaltet ohne Fehler, Auswahl bleibt nach Neuladen, Sim 30/30.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
