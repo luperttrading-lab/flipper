@@ -194,6 +194,7 @@
     <div class="klang-titel">Klang-Probe · danach Bild antippen zum Starten</div>
     <div class="klang-zeile"><span>Flipper</span><button type="button" id="kl-fl-V">V</button><button type="button" id="kl-fl-W">W</button><button type="button" id="kl-fl-X">X</button></div>
     <div class="klang-zeile"><span>Musik</span><button type="button" id="kl-mu-aus">Aus</button><button type="button" id="kl-mu-multi">Multiball</button><button type="button" id="kl-mu-alle">Alle</button></div>
+    <div class="klang-zeile"><span>Stil</span><button type="button" id="kl-st-rock">Rock</button><button type="button" id="kl-st-funk">Funk</button><button type="button" id="kl-st-action">Action</button><button type="button" id="kl-st-ruhig">1.06</button></div>
   </div>
   <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
@@ -207,7 +208,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '1.06';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '1.07';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -218,17 +219,20 @@ const sfx = (() => {
   const zeige = () => { tonEl.textContent = an ? 'Ton an' : 'Ton aus'; };
   zeige();
   // 1.04: Klang-Probe (Pausenschirm) – Flipper V/W/X, Musik aus / nur Multiball (bisher) / alle Spielzustände (FM-Probe aus toene.html)
-  let flipperArt = 'V', musikModus = 'multi';
+  let flipperArt = 'V', musikModus = 'multi', musikStil = 'rock';
+  const STILE = ['rock', 'funk', 'action', 'ruhig'];
   try {
     const k = JSON.parse(localStorage.getItem('flipper.klang') || '{}');
     if (['V', 'W', 'X'].includes(k.fl)) flipperArt = k.fl;
     if (['aus', 'multi', 'alle'].includes(k.mu)) musikModus = k.mu;
+    if (STILE.includes(k.st)) musikStil = k.st;
   } catch (_) {}
   const klangZeige = () => {
     for (const a of ['V', 'W', 'X']) document.getElementById('kl-fl-' + a).classList.toggle('an', flipperArt === a);
     for (const m of ['aus', 'multi', 'alle']) document.getElementById('kl-mu-' + m).classList.toggle('an', musikModus === m);
+    for (const m of STILE) document.getElementById('kl-st-' + m).classList.toggle('an', musikStil === m);
   };
-  const klangMerken = () => { klangZeige(); try { localStorage.setItem('flipper.klang', JSON.stringify({ fl: flipperArt, mu: musikModus })); } catch (_) {} };
+  const klangMerken = () => { klangZeige(); try { localStorage.setItem('flipper.klang', JSON.stringify({ fl: flipperArt, mu: musikModus, st: musikStil })); } catch (_) {} };
   for (const a of ['V', 'W', 'X']) document.getElementById('kl-fl-' + a).addEventListener('click', e => {
     e.stopPropagation(); flipperArt = a; klangMerken(); unlock();
     setTimeout(() => { api.flipper(); setTimeout(() => api.flipperAus(), 280); }, 60);     // Probe: drücken + loslassen
@@ -236,6 +240,13 @@ const sfx = (() => {
   const MUSIK_TEXT = { aus: 'Musik aus', multi: 'Musik nur im Multiball (wie bisher)', alle: 'Musik in allen Spielzuständen (Probe)' };
   for (const m of ['aus', 'multi', 'alle']) document.getElementById('kl-mu-' + m).addEventListener('click', e => {
     e.stopPropagation(); musikModus = m; klangMerken(); window.showInfo && window.showInfo(MUSIK_TEXT[m], 2);
+  });
+  const STIL_TEXT = { rock: 'Musik: Rock (152 BPM)', funk: 'Musik: Funk (116 BPM)', action: 'Musik: Action (140 BPM)', ruhig: 'Musik: Stil 1.06' };
+  let probeBis = 0;
+  for (const m of STILE) document.getElementById('kl-st-' + m).addEventListener('click', e => {
+    e.stopPropagation(); musikStil = m; klangMerken(); unlock(); window.showInfo && window.showInfo(STIL_TEXT[m], 2);
+    probeBis = performance.now() + 12000;      // 1.07: 12 s Hörprobe des Stils (Multiball-Fassung), auch auf Start-/Pausenschirm
+    fmSchalte(null); fmSchalte('multi');
   });
   klangZeige();
 
@@ -423,6 +434,22 @@ const sfx = (() => {
     chip = ac.createGain(); chip.connect(q).connect(hp).connect(lp).connect(g).connect(master);
     return chip;
   }
+  // 1.07: „klarer“ Bus für die neuen Stile – kein 8-Bit-Raster (klang nach Videospiel-Chip), sondern sanfte Sättigung + Kompressor
+  // (Druck wie aus einem Automaten-Lautsprecher); der alte Stil 1.06 läuft weiter über den Chip-Bus
+  let klar = null;
+  function klarBus() {
+    if (klar && klar.context === ac) return klar;
+    const sat = ac.createWaveShaper(), n = 4096, c = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
+    sat.curve = c;
+    const k = ac.createDynamicsCompressor(); k.threshold.value = -20; k.ratio.value = 4; k.attack.value = 0.004; k.release.value = 0.12; k.knee.value = 8;
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 38;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 11000;
+    const g = ac.createGain(); g.gain.value = KLAR_PEGEL;
+    klar = ac.createGain(); klar.connect(sat).connect(k).connect(hp).connect(lp).connect(g).connect(master);
+    return klar;
+  }
+  const ziel = () => musikStil === 'ruhig' ? chipBus() : klarBus();
   const N = m => 440 * Math.pow(2, (m - 69) / 12);   // MIDI-Nummer → Hz
   function fmTon(f, t, dauer, p) {                    // Träger + Modulator; Hub fällt mit Zeitkonstante abfall auf rest
     const c = ac.createOscillator(), m = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
@@ -432,7 +459,7 @@ const sfx = (() => {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(p.vol, t + 0.004);
     if (p.halt) { g.gain.setValueAtTime(p.vol, t + dauer - 0.03); g.gain.linearRampToValueAtTime(0, t + dauer); }
     else g.gain.setTargetAtTime(0, t + 0.004, p.aus ?? dauer / 3);
-    c.connect(g).connect(chipBus()); c.start(t); m.start(t); c.stop(t + dauer + 0.05); m.stop(t + dauer + 0.05);
+    c.connect(g).connect(ziel()); c.start(t); m.start(t); c.stop(t + dauer + 0.05); m.stop(t + dauer + 0.05);
   }
   const BASS = { ratio: 1, index: 2.6, abfall: 0.07, vol: 0.5, aus: 0.09 }, LEAD = { ratio: 2, index: 5, abfall: 0.12, vol: 0.22, aus: 0.18 };
   const CLANK = { ratio: 3.53, index: 9, abfall: 0.03, vol: 0.28, aus: 0.05 }, BELL = { ratio: 3.5, index: 2.2, abfall: 0.5, vol: 0.14, aus: 0.6 };
@@ -442,12 +469,12 @@ const sfx = (() => {
       const o = ac.createOscillator(), g = ac.createGain(), tief = art === 'thump';
       o.frequency.setValueAtTime(tief ? 95 : 130, t); o.frequency.exponentialRampToValueAtTime(tief ? 32 : 42, t + (tief ? 0.16 : 0.1));
       g.gain.setValueAtTime((tief ? 0.7 : 0.5) * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + (tief ? 0.3 : 0.16));
-      o.connect(g).connect(chipBus()); o.start(t); o.stop(t + 0.32); return;
+      o.connect(g).connect(ziel()); o.start(t); o.stop(t + 0.32); return;
     }
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), hat = art === 'hat';
     s.buffer = rausch; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 6000 : 1800; f.Q.value = 0.8;
     g.gain.setValueAtTime((hat ? 0.09 : 0.22) * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + (hat ? 0.03 : 0.12));
-    s.connect(f).connect(g).connect(chipBus()); s.start(t, Math.random() * 1.5, 0.15);
+    s.connect(f).connect(g).connect(ziel()); s.start(t, Math.random() * 1.5, 0.15);
   }
   function jingle() {                                 // Jackpot: drei FM-Bläser-Akkorde aufwärts; die Zustandsmusik pausiert so lange
     const t = ac.currentTime + 0.05;
@@ -461,6 +488,7 @@ const sfx = (() => {
   const AKK = {   // Basston (MIDI) und Akkordtöne fürs Arpeggio
     Am: [45, 57, 60, 64], F: [41, 57, 60, 65], C: [48, 55, 60, 64], G: [43, 55, 59, 62], E: [40, 56, 59, 64], Dm: [50, 57, 62, 65],
     Em: [40, 55, 59, 64], D: [50, 54, 57, 62], B: [47, 54, 59, 63],
+    A: [45, 57, 61, 64], 'C#m': [49, 56, 61, 64], Bb: [46, 58, 62, 65], A7: [45, 55, 61, 64], Bm: [47, 54, 59, 62],
   };
   const BASSFIG = { treib: [0, 0, 12, 0, 0, 7, 0, 12], synk: [0, null, 0, 12, null, 0, 12, 7], halb: [0, null, null, null, 7, null, 12, null],
     ruhig: [0, null, 12, null, 0, null, 7, null] };
@@ -500,12 +528,144 @@ const sfx = (() => {
       mel: '64 - - 67 - 71 - .  69 - 67 - 66 - 64 -  67 - - 72 - 71 - 69  66 - - - 62 - . .  64 - - 67 - 71 - 76  74 - 71 - 74 - 76 -  72 - 71 - 69 - 67 -  66 - - - 63 - 66 -' },
     { akk: ['C', 'D', 'Em', 'Em'], bass: 'halb', trommel: 'halb', arp: true },
   ], 2);
+  // ── 1.07 (Nutzer: 1.06 „passt nicht zu einem Flipper“, Original „peppiger, ganz anderer Sound“): drei neue Stile im Geist früher-90er-
+  // Automaten-Musik (FM-Bass, Bläser-Stöße, schnelles Schlagzeug mit Körper, Dur/Mixolydisch statt Moll) – eigene Kompositionen.
+  // Form je Stil: Intro 4 · A 8 · B (Refrain) 8 · A' 8 (Melodie mit Oktave) · Bruch 4 (Begleitung, Trommelwirbel), dann ab A.
+  const KLAR_PEGEL = 0.36;   // gemessen: mit 0,5 Ø −25 dB, 3 dB über Stil 1.06 → 0,36
+  const SLAP = { ratio: 1, index: 4.5, abfall: 0.035, rest: 0.18, vol: 0.42, aus: 0.1 }, POP = { ratio: 1, index: 7, abfall: 0.02, rest: 0.2, vol: 0.26, aus: 0.06 };
+  const RBASS = { ratio: 1, index: 1.8, abfall: 0.15, rest: 0.45, vol: 0.38, aus: 0.12 };
+  const GIT = { ratio: 1, index: 5.5, abfall: 0.5, rest: 0.55, vol: 0.06, aus: 0.25 }, GITKURZ = { ratio: 1, index: 4, abfall: 0.05, rest: 0.4, vol: 0.05, aus: 0.035 };
+  const STAB = { ratio: 1, index: 3, abfall: 0.06, rest: 0.35, vol: 0.1, aus: 0.07 };
+  const HORN = { ratio: 1, index: 2.4, abfall: 0.12, rest: 0.6, vol: 0.15, halt: true };
+  const ARP16 = { ratio: 2, index: 1.4, abfall: 0.05, rest: 0.3, vol: 0.055, aus: 0.05 };
+  function rausch2(t, dauer, typ, freq, q, vol, abkl) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = rausch; f.type = typ; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + abkl);
+    s.connect(f).connect(g).connect(klarBus()); s.start(t, Math.random() * 1.5, dauer);
+  }
+  function ton2(t, f0, f1, dauer, vol, typ = 'sine') {
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = typ;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dauer * 0.6);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dauer);
+    o.connect(g).connect(klarBus()); o.start(t); o.stop(t + dauer + 0.02);
+  }
+  function drum2(art, t, vol = 1) {              // Schlagzeug mit Körper: Kick mit Anschlag-Klick, Snare = Ton + Rauschen, Klatschen, Becken
+    if (art === 'kick') { ton2(t, 160, 46, 0.22, 0.85 * vol); rausch2(t, 0.01, 'highpass', 3500, 0.7, 0.12 * vol, 0.008); }
+    else if (art === 'snare') { ton2(t, 210, 165, 0.09, 0.32 * vol, 'triangle'); rausch2(t, 0.2, 'bandpass', 2600, 0.6, 0.38 * vol, 0.16); }
+    else if (art === 'clap') { for (const d of [0, 0.011, 0.022]) rausch2(t + d, 0.03, 'bandpass', 1400, 1.2, 0.3 * vol, 0.02); rausch2(t + 0.033, 0.15, 'bandpass', 1400, 1.2, 0.26 * vol, 0.12); }
+    else if (art === 'hat') rausch2(t, 0.04, 'highpass', 8000, 0.7, 0.09 * vol, 0.03);
+    else if (art === 'ohat') rausch2(t, 0.25, 'highpass', 7500, 0.7, 0.08 * vol, 0.2);
+    else if (art === 'crash') rausch2(t, 1.2, 'highpass', 4500, 0.5, 0.16 * vol, 1.1);
+    else if (art === 'tom') ton2(t, 180 * vol, 90 * vol, 0.18, 0.45);
+  }
+  const wurzel = (akk, basis) => basis + (((akk[0] - basis) % 12) + 12) % 12;
+  const STILE_DEF = {
+    rock: { bpm: 152, song: songBauen([
+      { akk: ['E', 'E', 'D', 'A'], bass: 'treib', trommel: 'intro' },
+      { akk: ['E', 'D', 'A', 'E', 'E', 'D', 'B', 'B'], bass: 'treib', trommel: 'voll',
+        mel: '71 - 71 68 - 71 - 76  74 - 73 71 - 69 - .  69 - 73 76 - 73 - 69  71 - - - 68 - 64 -  71 - 71 68 - 71 - 76  78 - 76 74 - 73 - 74  75 - 71 - 78 - 75 -  71 - - - . . 71 73' },
+      { akk: ['A', 'E', 'C#m', 'B', 'A', 'E', 'B', 'E'], bass: 'treib', trommel: 'voll',
+        mel: '76 - - 76 - 73 - 76  76 - 75 - 71 - 68 -  73 - - 73 - 76 - 80  78 - - - 75 - 78 -  81 - - 81 - 80 - 78  76 - 75 - 76 - 80 -  78 - 76 - 75 - 71 -  76 - - - . . . .' },
+      { akk: ['E', 'D', 'A', 'E', 'E', 'D', 'B', 'B'], bass: 'treib', trommel: 'voll', oktave: 12,
+        mel: '71 - 71 68 - 71 - 76  74 - 73 71 - 69 - .  69 - 73 76 - 73 - 69  71 - - - 68 - 64 -  71 - 71 68 - 71 - 76  78 - 76 74 - 73 - 74  75 - 71 - 78 - 75 -  71 - - - . . 71 73' },
+      { akk: ['C#m', 'A', 'E', 'B'], bass: 'halb', trommel: 'bruch' },
+    ], 4),
+      bass(sch, t, a) { const r = wurzel(sch.akk, 40), e = sch.e;
+        if (sch.trommel === 'bruch') { if (e === 0 || e === 4) fmTon(N(r), t, a * 3.5, RBASS); return; }
+        fmTon(N(r + (e === 6 ? 12 : e === 7 ? 7 : 0)), t, a * 0.85, RBASS); },
+      comp(sch, t, a) { const r = wurzel(sch.akk, 40) + 12, e = sch.e, ak = [0, 7, 12];
+        if (sch.trommel === 'intro' && sch.takt < 2) return;
+        if (e === 0 || e === 3 || (sch.trommel === 'bruch' && e === 4)) ak.forEach(i => fmTon(N(r + i), t, a * 2.6, GIT));
+        else if (sch.trommel !== 'bruch') ak.slice(0, 2).forEach(i => fmTon(N(r + i), t, a * 0.5, GITKURZ)); },
+      drums(sch, t, a) { const e = sch.e, tr = sch.trommel;
+        if (tr === 'bruch') {
+          if (sch.takt === 3) { drum2('snare', t, 0.35 + 0.08 * e); drum2('snare', t + a / 2, 0.4 + 0.08 * e); }
+          else { if (e === 0) drum2('kick', t); if (e === 4) drum2('snare', t, 0.6); drum2('hat', t, 0.6); }
+          return;
+        }
+        if (e === 0 || e === 3 || (e === 4 && tr === 'voll')) drum2('kick', t);
+        if ((e === 2 || e === 6) && (tr === 'voll' || sch.takt >= 2)) drum2('snare', t);
+        drum2(e === 7 && tr === 'voll' ? 'ohat' : 'hat', t, e % 2 ? 0.7 : 1);
+        if (sch.fill && tr === 'voll' && e >= 6) drum2('tom', t + a / 2, e === 6 ? 1.2 : 0.8); },
+      lead: HORN },
+    funk: { bpm: 116, song: songBauen([
+      { akk: ['Dm', 'G', 'Dm', 'G'], bass: 'treib', trommel: 'intro' },
+      { akk: ['Dm', 'G', 'Dm', 'G', 'Dm', 'G', 'Bb', 'A7'], bass: 'treib', trommel: 'voll',
+        mel: '74 - 77 - 74 72 - .  . . 71 74 - 71 67 -  74 - 77 - 79 - 77 74  - - . . 71 72 74 -  81 - - 79 - 77 - 74  79 - - 77 - 74 - 71  74 - 72 - 70 - 69 -  73 - - - 76 . 73 .' },
+      { akk: ['Bb', 'C', 'Dm', 'Dm', 'Bb', 'C', 'A7', 'A7'], bass: 'treib', trommel: 'voll',
+        mel: '77 - - - 74 - 77 -  79 - - - 76 - 79 -  81 - 81 - 79 77 - 74  77 - - - . . . .  77 - 79 - 81 - 82 -  84 - 82 - 81 - 79 -  81 - - 79 - 76 - 73  76 - - - 73 . 76 .' },
+      { akk: ['Dm', 'G', 'Dm', 'G', 'Dm', 'G', 'Bb', 'A7'], bass: 'treib', trommel: 'voll', oktave: -12,
+        mel: '74 - 77 - 74 72 - .  . . 71 74 - 71 67 -  74 - 77 - 79 - 77 74  - - . . 71 72 74 -  81 - - 79 - 77 - 74  79 - - 77 - 74 - 71  74 - 72 - 70 - 69 -  73 - - - 76 . 73 .' },
+      { akk: ['Bb', 'C', 'A7', 'A7'], bass: 'halb', trommel: 'bruch' },
+    ], 4),
+      bass(sch, t, a) { const r = wurzel(sch.akk, 36), e = sch.e, h = a / 2;
+        const MUSTER = [[0, 'S'], null, [12, 'P'], [0, 'S'], null, [0, 'S'], [12, 'P'], null, [0, 'S'], null, [10, 'P'], [12, 'P'], null, [7, 'S'], [12, 'P'], [10, 'S']];
+        if (sch.trommel === 'bruch') { if (e === 0) fmTon(N(r), t, a * 3, SLAP); if (e === 6 && sch.takt === 3) fmTon(N(r + 12), t, a, POP); return; }
+        for (const j of [0, 1]) { const m = MUSTER[e * 2 + j]; if (m) fmTon(N(r + m[0]), t + j * h, h * 0.9, m[1] === 'P' ? POP : SLAP); } },
+      comp(sch, t, a) { const e = sch.e;
+        if (sch.trommel === 'intro' && sch.takt < 2) return;
+        if (e === 1 || e === 3 || (e === 6 && sch.takt % 2)) sch.akk.slice(1).forEach(m => fmTon(N(m), t + a / 2, a * 0.45, STAB)); },
+      drums(sch, t, a) { const e = sch.e, tr = sch.trommel, h = a / 2;
+        if (tr === 'bruch') { drum2('hat', t, 0.7); drum2('hat', t + h, 0.4); if (e === 2 || e === 6) drum2('clap', t); if (sch.takt === 3 && e >= 4) drum2('snare', t + h, 0.5 + 0.1 * e); return; }
+        if (e === 0 || e === 5 || (e === 3 && sch.takt % 2)) drum2('kick', t);
+        if ((e === 2 || e === 6) && (tr === 'voll' || sch.takt >= 1)) { drum2('snare', t, 0.8); drum2('clap', t, 0.7); }
+        drum2('hat', t, 0.9); drum2(e === 3 || e === 7 ? 'ohat' : 'hat', t + h, 0.5);
+        if (sch.fill && tr === 'voll' && e === 7) drum2('snare', t + h, 0.6); },
+      lead: { ...HORN, vol: 0.14 } },
+    action: { bpm: 140, song: songBauen([
+      { akk: ['G', 'D', 'C', 'D'], bass: 'treib', trommel: 'intro' },
+      { akk: ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D'], bass: 'treib', trommel: 'voll',
+        mel: '67 - 71 - 74 - 79 -  78 - 74 - 69 - 74 -  76 - - 74 - 71 - 67  72 - - - 76 - 72 -  67 - 71 - 74 - 79 -  81 - 78 - 74 - 78 -  79 - 76 - 72 - 76 -  74 - - - 78 - 81 -' },
+      { akk: ['C', 'D', 'Bm', 'Em', 'C', 'D', 'G', 'G'], bass: 'treib', trommel: 'voll',
+        mel: '84 - - 83 - 81 - 79  81 - - - 78 - 74 -  78 - - 79 - 81 - 83  79 - - - 76 - 79 -  84 - 83 - 81 - 79 -  81 - 79 - 78 - 81 -  79 - - - - - 74 -  79 - - - . . 74 78' },
+      { akk: ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'D'], bass: 'treib', trommel: 'voll', oktave: 12,
+        mel: '67 - 71 - 74 - 79 -  78 - 74 - 69 - 74 -  76 - - 74 - 71 - 67  72 - - - 76 - 72 -  67 - 71 - 74 - 79 -  81 - 78 - 74 - 78 -  79 - 76 - 72 - 76 -  74 - - - 78 - 81 -' },
+      { akk: ['Em', 'C', 'D', 'D'], bass: 'halb', trommel: 'bruch' },
+    ], 4),
+      bass(sch, t, a) { const r = wurzel(sch.akk, 36), e = sch.e;
+        if (sch.trommel === 'bruch') { if (e % 4 === 0) fmTon(N(r), t, a * 1.8, RBASS); return; }
+        fmTon(N(r + (e % 2 ? 12 : 0)), t, a * 0.7, e % 2 ? POP : SLAP); },      // Disco-Oktaven
+      comp(sch, t, a) { if (sch.trommel === 'intro' && sch.takt < 1) return;
+        const folge = [sch.akk[1], sch.akk[2], sch.akk[3], sch.akk[2]];
+        for (const j of [0, 1]) fmTon(N(folge[(sch.e * 2 + j) % 4] + 12), t + j * a / 2, a * 0.4, ARP16);
+        if (sch.e === 0 && sch.trommel !== 'intro') sch.akk.slice(1).forEach(m => fmTon(N(m), t, a * 0.6, STAB)); },
+      drums(sch, t, a) { const e = sch.e, tr = sch.trommel;
+        if (tr === 'bruch') {
+          if (e % 2 === 0) drum2('kick', t, 0.7);
+          if (sch.takt >= 2) { drum2('snare', t, 0.3 + 0.05 * e + 0.2 * (sch.takt - 2)); if (sch.takt === 3) drum2('snare', t + a / 2, 0.5 + 0.06 * e); }
+          return;
+        }
+        if (e % 2 === 0) drum2('kick', t);
+        if ((e === 2 || e === 6) && (tr === 'voll' || sch.takt >= 2)) drum2('clap', t);
+        drum2(e % 2 ? 'ohat' : 'hat', t, e % 2 ? 0.8 : 0.5);
+        if (sch.fill && tr === 'voll' && e >= 5) drum2('tom', t, 1.3 - 0.15 * (e - 5)); },
+      lead: HORN },
+  };
+  const stilSchritt = (stil, voll) => (k, t, a) => {
+    const S = STILE_DEF[stil], song = S.song, n = song.schritte.length;
+    const i = k < n ? k : song.ab * 8 + (k - n) % (n - song.ab * 8), sch = song.schritte[i];
+    S.bass(sch, t, a); S.comp(sch, t, a); S.drums(sch, t, a);
+    if (sch.becken && sch.trommel === 'voll') drum2('crash', t, voll ? 1 : 0.6);
+    if (sch.lead) {
+      const [m, d] = sch.lead, p = { ...S.lead, vol: S.lead.vol * (voll ? 1 : 0.8) };
+      fmTon(N(m), t, a * d * 0.92, p);
+      if (sch.oktave && voll) fmTon(N(m + sch.oktave), t, a * d * 0.9, { ...p, vol: p.vol * 0.5 });
+    }
+  };
+  const STIL_SCHRITT = {};
+  for (const st of ['rock', 'funk', 'action']) STIL_SCHRITT[st] = { voll: stilSchritt(st, true), ruhig: stilSchritt(st, false) };
+  const stilStueck = z => {                   // Hauptspiel etwas langsamer/leiser, Multiball/Payback volle Fassung
+    if (musikStil === 'ruhig') return null;
+    const voll = z !== 'haupt';
+    return { bpm: STILE_DEF[musikStil].bpm - (voll ? 0 : 8), schritt: STIL_SCHRITT[musikStil][voll ? 'voll' : 'ruhig'] };
+  };
   const ARP = { ratio: 3, index: 1.6, abfall: 0.08, vol: 0.06, aus: 0.07 };
   function becken(t, vol = 1) {
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
     s.buffer = rausch; f.type = 'highpass'; f.frequency.value = 5200;
     g.gain.setValueAtTime(0.1 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-    s.connect(f).connect(g).connect(chipBus()); s.start(t, Math.random() * 1.0, 0.75);
+    s.connect(f).connect(g).connect(ziel()); s.start(t, Math.random() * 1.0, 0.75);
   }
   const songSchritt = (song, leadVol) => (k, t, a) => {
     const n = song.schritte.length, i = k < n ? k : song.ab * 8 + (k - n) % (n - song.ab * 8), sch = song.schritte[i];
@@ -528,11 +688,12 @@ const sfx = (() => {
     if (sch.fill && tr !== 'intro') drum('snare', t, 0.4 + 0.15 * (e - 4));   // Fill: lauter werdende Schläge am Gruppenende
     if (sch.fill && e === 7 && tr === 'intro') { drum('snare', t, 0.7); drum('snare', t + a / 2, 0.9); }
   };
+  const ALT = { haupt: songSchritt(HAUPT_SONG, 0.16), payback: songSchritt(HAUPT_SONG, 0.18), multi: songSchritt(MULTI_SONG, 0.2) };
   const STUECK = {   // je Spielzustand: Tempo (BPM) und ein Achtel-Schritt
     ruhe: { bpm: () => 60, schritt: (k, t) => { if (k % 8 === 0) { drum('thump', t, 1); drum('thump', t + 0.17, 0.8); } if (k % 24 === 12) fmTon(N(76), t, 1.4, BELL); } },
-    haupt: { bpm: () => 112, schritt: songSchritt(HAUPT_SONG, 0.16) },
-    payback: { bpm: () => 132, schritt: songSchritt(HAUPT_SONG, 0.18) },
-    multi: { bpm: () => 132, schritt: songSchritt(MULTI_SONG, 0.2) },
+    haupt: { bpm: () => stilStueck('haupt')?.bpm ?? 112, schritt: (k, t, a) => (stilStueck('haupt')?.schritt ?? ALT.haupt)(k, t, a) },
+    payback: { bpm: () => stilStueck('payback')?.bpm ?? 132, schritt: (k, t, a) => (stilStueck('payback')?.schritt ?? ALT.payback)(k, t, a) },
+    multi: { bpm: () => stilStueck('multi')?.bpm ?? 132, schritt: (k, t, a) => (stilStueck('multi')?.schritt ?? ALT.multi)(k, t, a) },
     hurry: { bpm: () => 150 + 40 * Math.min(1, Math.max(0, 1 - (fmInfo.hurryRest ?? 20) / 20)), schritt: (k, t, a) => {   // 150 → 190 BPM bis zum Ende
       fmTon(N([40, 40, 41, 41][k % 4]), t, a * 0.9, BASS);
       if (k % 2 === 0) fmTon(N([64, 65, 64, 62][(k / 2) % 4]), t, a * 1.6, LEAD);
@@ -604,6 +765,7 @@ const sfx = (() => {
     // 1.04: Musik je Spielzustand (null = still, ruhe, haupt, multi, hurry, kanone, payback); Modus vom Pausenschirm
     musikZustand(z, info) {
       fmInfo = info || {};
+      if (performance.now() < probeBis) { api.musik(false); fmSchalte(z || 'multi'); return; }   // 1.07: Stil-Hörprobe
       if (!an || musikModus === 'aus') { api.musik(false); fmSchalte(null); return; }
       if (musikModus === 'multi') { api.musik(false); fmSchalte(z === 'multi' ? 'multi' : null); return; }   // 1.06: neues Multiball-Stück auch im Standardmodus
       api.musik(false); fmSchalte(z);

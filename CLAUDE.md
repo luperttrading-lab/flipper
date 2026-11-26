@@ -592,6 +592,15 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   A' 8 · Breakdown 8 (halbes Tempo-Gefühl), dann ab A (≈ 1:05 bis zur Wiederholung). **Hauptspiel/Payback** (e-Moll 112/132 BPM): Intro 2 · A 8 ·
   B 8 · A' 8 · Breakdown 4. **Standardmodus „Multiball“ spielt jetzt das neue Multiball-Stück** (alte Sägezahn-Schleife `api.musik` bleibt im Code,
   wird nicht mehr gestartet). Aufnahme im Browser (MediaRecorder): mittlerer Pegel −26…−30 dB, keine Fehler. Nicht am Handy gehört.
+- Stand 1.07 (Nutzer zu 1.06: „passt nicht zu einem Flipper“, Original „peppiger, ganz anderer Sound“): **drei neue Stile**, wählbar in der
+  Klang-Probe (Zeile „Stil“: Rock / Funk / Action / 1.06; `flipper.klang.st`, Standard Rock; Tipp auf einen Stil = 12 s Hörprobe der Multiball-
+  Fassung, auch auf Start-/Pausenschirm, `probeBis`). Eigene Kompositionen im Geist früher-90er-Automaten (kein Original nachgebaut): **klarer Bus**
+  `klarBus()` (tanh-Sättigung + Kompressor + 38 Hz–11 kHz, `KLAR_PEGEL` 0,36) statt 8-Bit-Chip-Bus; Schlagzeug `drum2` mit Körper (Kick mit
+  Klick, Snare Ton+Rauschen, Klatschen, offene Hi-Hat, Becken, Toms). **Rock** E-Dur/mixolydisch 152 BPM: Achtel-Bass mit Oktave, FM-Powerchords
+  (Schlag auf 1 und 2-und, sonst kurz gedämpft), Bläser-Melodie. **Funk** d-dorisch 116 BPM: Slap-Bass in Sechzehnteln (SLAP/POP), synkopierte
+  Bläser-Stöße, Klatschen + Snare, offene Hi-Hat. **Action** G-Dur 140 BPM: Disco-Oktavbass, Sechzehntel-Arpeggio, Stöße auf der 1, Klatschen.
+  Form je Stil: Intro 4 · A 8 · Refrain 8 · A' 8 (Oktave) · Bruch 4 (Wirbel), dann ab A. Hauptspiel = 8 BPM langsamer, Melodie leiser, ohne
+  Oktave; Multiball/Payback volle Fassung. Hurry Up/Kanone/Ruhe unverändert. Geprüft: Browser-Aufnahme ohne Fehler, Sim 30/30. Nicht am Handy gehört.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
