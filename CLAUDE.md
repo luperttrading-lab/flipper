@@ -585,6 +585,13 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Klang-Probe (`klang-offen`, Feld mit dunklem Grund und Titel über dem Bild); der Klick nach dem Halten startet nicht (`langGedrueckt`), ein normaler
   Tipp aufs Bild startet wie bisher und schließt das Feld. Auf dem Pausenschirm (Tipp auf die Anzeige) ist das Feld immer sichtbar. `.start` ohne
   Textmarkierung/Kontextmenü beim Halten. Geprüft: kurzer Tipp/1,2 s Halten startet, 3,3 s Halten öffnet ohne Start, Knöpfe starten nicht, Sim 30/30.
+- Stand 1.06 (Nutzer: Musik „langweilig und monoton“): **zwei neue eigene Stücke mit Form** statt 1–2-Takt-Schleifen. `songBauen(abschnitte, schleifeAb)`
+  baut aus Abschnitten (Akkordfolge je Takt aus `AKK`, Bassfigur aus `BASSFIG`, Trommelart intro/leicht/voll/halb, Melodie als Text: Zahl = MIDI-Ton,
+  „-“ halten, „.“ Pause, je Achtel) eine Schrittliste; `songSchritt` spielt Bass, Melodie (A' mit Oktavverdopplung), Akkord-Arpeggio (`ARP`), Fills im
+  4. Takt jeder Gruppe, Becken zu Abschnittsbeginn. **Multiball** (a-Moll, 132 BPM): Intro 4 · A 8 (Am F C G Am F E E) · B 8 (Dm Am Dm E F G Am Am) ·
+  A' 8 · Breakdown 8 (halbes Tempo-Gefühl), dann ab A (≈ 1:05 bis zur Wiederholung). **Hauptspiel/Payback** (e-Moll 112/132 BPM): Intro 2 · A 8 ·
+  B 8 · A' 8 · Breakdown 4. **Standardmodus „Multiball“ spielt jetzt das neue Multiball-Stück** (alte Sägezahn-Schleife `api.musik` bleibt im Code,
+  wird nicht mehr gestartet). Aufnahme im Browser (MediaRecorder): mittlerer Pegel −26…−30 dB, keine Fehler. Nicht am Handy gehört.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

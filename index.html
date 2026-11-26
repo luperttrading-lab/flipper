@@ -207,7 +207,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '1.05';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '1.06';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -454,25 +454,85 @@ const sfx = (() => {
     [[0, [64, 67, 71], 0.24], [0.25, [67, 71, 74], 0.24], [0.5, [69, 72, 76], 0.9]].forEach(([ab, akk, d]) => { akk.forEach(m => fmTon(N(m), t + ab, d, BRASS)); drum('kick', t + ab); });
     drum('snare', t + 0.5); drum('snare', t + 0.62, 0.7); fmRuheBis = t + 1.5;
   }
-  const HAUPT_BASS = [40, 40, 52, 40, 43, 40, 38, 40, 40, 40, 52, 40, 43, 45, 47, 43];
-  const HAUPT_LEAD = { 16: [64, 2], 18: [67, 2], 20: [69, 2], 22: [71, 2], 24: [74, 4], 28: [71, 3] };
-  const haupt = (k, t, a) => {
-    fmTon(N(HAUPT_BASS[k % 16]), t, a * 0.9, BASS);
-    const l = HAUPT_LEAD[k % 32]; if (l) fmTon(N(l[0]), t, a * l[1], LEAD);
-    if (k % 4 === 0) drum('kick', t); if (k % 8 === 4) drum('snare', t); drum('hat', t, k % 2 ? 0.6 : 1);
-    if (k % 16 === 14) fmTon(N(52), t, 0.12, CLANK);
+  // 1.06 (Nutzer: Musik „langweilig und monoton“): zwei eigene Stücke mit richtiger Form statt einer 1–2-Takt-Schleife –
+  // Intro, A (Strophe), B (Refrain), A' (mit Begleit-Arpeggio), Breakdown (halbes Tempo-Gefühl), dann wieder ab A. Melodie, Wechselbass,
+  // Akkord-Arpeggio, Fills am Ende jeder 4-Takt-Gruppe, Becken zu Beginn jedes Abschnitts. Eigene Komposition, nicht dem Original nachgebaut.
+  // Notation je Achtel: Zahl = neuer Ton (MIDI), „-“ = halten, „.“ = Pause.
+  const AKK = {   // Basston (MIDI) und Akkordtöne fürs Arpeggio
+    Am: [45, 57, 60, 64], F: [41, 57, 60, 65], C: [48, 55, 60, 64], G: [43, 55, 59, 62], E: [40, 56, 59, 64], Dm: [50, 57, 62, 65],
+    Em: [40, 55, 59, 64], D: [50, 54, 57, 62], B: [47, 54, 59, 63],
+  };
+  const BASSFIG = { treib: [0, 0, 12, 0, 0, 7, 0, 12], synk: [0, null, 0, 12, null, 0, 12, 7], halb: [0, null, null, null, 7, null, 12, null],
+    ruhig: [0, null, 12, null, 0, null, 7, null] };
+  function songBauen(abschnitte, schleifeAb) {
+    const schritte = [];
+    for (const ab of abschnitte) {
+      const mel = (ab.mel || '').split(/\s+/).filter(Boolean), start = schritte.length;
+      ab.akk.forEach((a, takt) => { for (let e = 0; e < 8; e++) {
+        const fig = BASSFIG[ab.bass][e];
+        schritte.push({ akk: AKK[a], bass: fig === null ? null : AKK[a][0] + fig, e, takt, trommel: ab.trommel, arp: ab.arp,
+          fill: takt % 4 === 3 && e >= 4, becken: takt === 0 && e === 0, lead: null, oktave: ab.oktave || 0 });
+      } });
+      mel.forEach((tok, n) => { if (/^\d+$/.test(tok)) {
+        let d = 1; while (mel[n + d] === '-') d++;
+        if (schritte[start + n]) schritte[start + n].lead = [+tok, d];
+      } });
+    }
+    return { schritte, ab: schleifeAb };
+  }
+  const MULTI_SONG = songBauen([
+    { akk: ['Am', 'Am', 'Am', 'Am'], bass: 'treib', trommel: 'intro' },
+    { akk: ['Am', 'F', 'C', 'G', 'Am', 'F', 'E', 'E'], bass: 'treib', trommel: 'voll',
+      mel: '69 - 72 - 76 - 74 72  72 - 69 - 65 - 69 -  67 - 72 - 76 - 79 -  79 - 77 76 74 - 71 -  69 - 72 - 76 - 81 -  77 - 76 - 72 - 69 -  68 - 71 - 74 - 76 -  76 - - - 75 . 76 .' },
+    { akk: ['Dm', 'Am', 'Dm', 'E', 'F', 'G', 'Am', 'Am'], bass: 'synk', trommel: 'voll',
+      mel: '74 - - 77 - 76 74 -  72 - - 76 - 74 72 -  74 - 77 - 81 - 79 77  76 - - - 71 - 68 -  72 - 74 - 76 - 77 -  79 - 77 - 76 - 74 -  76 - - - 72 - 76 -  81 - - - - - . .' },
+    { akk: ['Am', 'F', 'C', 'G', 'Am', 'F', 'E', 'E'], bass: 'treib', trommel: 'voll', arp: true, oktave: 12,
+      mel: '69 - 72 - 76 - 74 72  72 - 69 - 65 - 69 -  67 - 72 - 76 - 79 -  79 - 77 76 74 - 71 -  69 - 72 - 76 - 81 -  77 - 76 - 72 - 69 -  68 - 71 - 74 - 76 -  76 - - - 75 . 76 .' },
+    { akk: ['F', 'G', 'Em', 'Am', 'F', 'G', 'E', 'E'], bass: 'halb', trommel: 'halb', arp: true },
+  ], 4);
+  const HAUPT_SONG = songBauen([
+    { akk: ['Em', 'Em'], bass: 'ruhig', trommel: 'intro' },
+    { akk: ['Em', 'Em', 'C', 'D', 'Em', 'Em', 'C', 'B'], bass: 'ruhig', trommel: 'leicht',
+      mel: '64 - - 67 - 71 - .  69 - 67 - 66 - 64 -  67 - - 72 - 71 - 69  66 - - - 62 - . .  64 - - 67 - 71 - 76  74 - 71 - 74 - 76 -  72 - 71 - 69 - 67 -  66 - - - 63 - 66 -' },
+    { akk: ['Am', 'C', 'G', 'D', 'Em', 'C', 'B', 'B'], bass: 'synk', trommel: 'voll',
+      mel: '69 - 72 - 76 - 74 -  72 - - - 67 - 72 -  71 - - 74 - 71 67 -  69 - - - 66 - 62 -  67 - 71 - 76 - 79 -  76 - 72 - 76 - 79 -  78 - - - 75 - 71 -  75 - - - . . . .' },
+    { akk: ['Em', 'Em', 'C', 'D', 'Em', 'Em', 'C', 'B'], bass: 'ruhig', trommel: 'voll', arp: true,
+      mel: '64 - - 67 - 71 - .  69 - 67 - 66 - 64 -  67 - - 72 - 71 - 69  66 - - - 62 - . .  64 - - 67 - 71 - 76  74 - 71 - 74 - 76 -  72 - 71 - 69 - 67 -  66 - - - 63 - 66 -' },
+    { akk: ['C', 'D', 'Em', 'Em'], bass: 'halb', trommel: 'halb', arp: true },
+  ], 2);
+  const ARP = { ratio: 3, index: 1.6, abfall: 0.08, vol: 0.06, aus: 0.07 };
+  function becken(t, vol = 1) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = rausch; f.type = 'highpass'; f.frequency.value = 5200;
+    g.gain.setValueAtTime(0.1 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    s.connect(f).connect(g).connect(chipBus()); s.start(t, Math.random() * 1.0, 0.75);
+  }
+  const songSchritt = (song, leadVol) => (k, t, a) => {
+    const n = song.schritte.length, i = k < n ? k : song.ab * 8 + (k - n) % (n - song.ab * 8), sch = song.schritte[i];
+    if (sch.bass !== null) fmTon(N(sch.bass), t, a * (sch.trommel === 'halb' ? 1.8 : 0.9), BASS);
+    if (sch.lead) {
+      const [m, d] = sch.lead, p = { ...LEAD, vol: leadVol };
+      fmTon(N(m), t, a * d * 0.95, p);
+      if (sch.oktave) fmTon(N(m + sch.oktave), t, a * d * 0.9, { ...LEAD, vol: leadVol * 0.45, index: 3 });
+    }
+    if (sch.arp) fmTon(N(sch.akk[1 + (sch.e % 3)] + 12), t, a * 0.8, ARP);
+    const e = sch.e, tr = sch.trommel;
+    if (sch.becken && tr !== 'intro') becken(t);
+    if (tr === 'intro') { if (e % 4 === 0) drum('kick', t, 0.8); if (sch.takt >= 2) drum('hat', t, 0.5); }
+    else if (tr === 'halb') { if (e === 0 || e === 3) drum('kick', t); if (e === 4) drum('snare', t); if (e % 2 === 0) drum('hat', t, 0.7); }
+    else {
+      if (tr === 'voll' ? e % 2 === 0 : e % 4 === 0) drum('kick', t, 0.9);
+      if (e === 2 || e === 6) drum('snare', t, tr === 'leicht' ? 0.6 : 0.8);
+      drum('hat', t, e % 2 ? 0.5 : 0.9);
+    }
+    if (sch.fill && tr !== 'intro') drum('snare', t, 0.4 + 0.15 * (e - 4));   // Fill: lauter werdende Schläge am Gruppenende
+    if (sch.fill && e === 7 && tr === 'intro') { drum('snare', t, 0.7); drum('snare', t + a / 2, 0.9); }
   };
   const STUECK = {   // je Spielzustand: Tempo (BPM) und ein Achtel-Schritt
     ruhe: { bpm: () => 60, schritt: (k, t) => { if (k % 8 === 0) { drum('thump', t, 1); drum('thump', t + 0.17, 0.8); } if (k % 24 === 12) fmTon(N(76), t, 1.4, BELL); } },
-    haupt: { bpm: () => 112, schritt: haupt },
-    payback: { bpm: () => 132, schritt: haupt },
-    multi: { bpm: () => 132, schritt: (k, t, a) => {
-      const GRUND = [55, 55, 43.65, 49], MUSTER = [1, 1, 2, 1, 1, 1.5, 1, 2], f = GRUND[Math.floor(k / 8) % 4] * MUSTER[k % 8];
-      const o = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
-      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); lp.type = 'lowpass'; lp.frequency.setValueAtTime(700, t); lp.frequency.exponentialRampToValueAtTime(180, t + a);
-      g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.001, t + a * 0.95); o.connect(lp).connect(g).connect(chipBus()); o.start(t); o.stop(t + a);
-      if (k % 2 === 0) drum('kick', t, 0.9); if (k % 8 === 2 || k % 8 === 6) drum('snare', t, 0.7);
-    } },
+    haupt: { bpm: () => 112, schritt: songSchritt(HAUPT_SONG, 0.16) },
+    payback: { bpm: () => 132, schritt: songSchritt(HAUPT_SONG, 0.18) },
+    multi: { bpm: () => 132, schritt: songSchritt(MULTI_SONG, 0.2) },
     hurry: { bpm: () => 150 + 40 * Math.min(1, Math.max(0, 1 - (fmInfo.hurryRest ?? 20) / 20)), schritt: (k, t, a) => {   // 150 → 190 BPM bis zum Ende
       fmTon(N([40, 40, 41, 41][k % 4]), t, a * 0.9, BASS);
       if (k % 2 === 0) fmTon(N([64, 65, 64, 62][(k / 2) % 4]), t, a * 1.6, LEAD);
@@ -545,7 +605,7 @@ const sfx = (() => {
     musikZustand(z, info) {
       fmInfo = info || {};
       if (!an || musikModus === 'aus') { api.musik(false); fmSchalte(null); return; }
-      if (musikModus === 'multi') { fmSchalte(null); api.musik(z === 'multi'); return; }
+      if (musikModus === 'multi') { api.musik(false); fmSchalte(z === 'multi' ? 'multi' : null); return; }   // 1.06: neues Multiball-Stück auch im Standardmodus
       api.musik(false); fmSchalte(z);
     },
     get musikStand() { return musikModus + ':' + (fmZust || (musikTimer ? 'alt' : '-')) + ':' + flipperArt; },
