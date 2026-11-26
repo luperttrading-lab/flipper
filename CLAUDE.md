@@ -604,6 +604,12 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
 - Stand 1.08 (Nutzer: nach dem Intro „zu fidelig“): Melodie der Stile Rock/Funk/Action **eine Oktave tiefer**, **ohne Oktav-Verdopplung**,
   Klang `HORN` als ausklingender Stoß statt gehaltenem Ton (gehalten klang geigenartig), **Teil A ohne Melodie** (nur Groove/Riff; Melodie erst
   im Refrain und in A', `sch.nr` = Abschnittsnummer aus `songBauen`), Action-Arpeggio Achtel statt Sechzehntel und eine Oktave tiefer.
+- Stand 1.09 (Nutzer: „Bau die Rock-Variante ein“): **Rock ist fest** – Stil-Zeile in der Klang-Probe entfernt (Funk/Action/1.06 bleiben als
+  Code: `STILE_DEF`, `songSchritt`; zum Zurückholen `musikStil` ändern). Rock jetzt auch für die übrigen Zustände (`ROCK_ZUST`, klarer Bus):
+  **Ruhe** 60 BPM (alle 8 s ausklingender E-Powerchord + Becken, dazwischen tiefer Doppelschlag), **Hurry Up** 152 → 184 BPM (Powerchord-Riff,
+  je Takt einen Halbton höher E–F–F#–G, Signal-Stoß alle 2 Takte), **Kanone** 120 BPM (gedämpftes Riff, steigt je Sekunde einen Halbton, ab 4 s
+  Trommelwirbel), **Jackpot-Jingle** `jingleRock` (Powerchords E–G–A + Becken + Snare-Fill, Musik pausiert 1,6 s). Musik-Modus unverändert
+  (Standard „Multiball“ = Musik nur im Multiball; „Alle“ = alle Zustände). Browser-Aufnahme aller Zustände ohne Fehler, Sim 30/30.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht

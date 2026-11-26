@@ -194,7 +194,6 @@
     <div class="klang-titel">Klang-Probe · danach Bild antippen zum Starten</div>
     <div class="klang-zeile"><span>Flipper</span><button type="button" id="kl-fl-V">V</button><button type="button" id="kl-fl-W">W</button><button type="button" id="kl-fl-X">X</button></div>
     <div class="klang-zeile"><span>Musik</span><button type="button" id="kl-mu-aus">Aus</button><button type="button" id="kl-mu-multi">Multiball</button><button type="button" id="kl-mu-alle">Alle</button></div>
-    <div class="klang-zeile"><span>Stil</span><button type="button" id="kl-st-rock">Rock</button><button type="button" id="kl-st-funk">Funk</button><button type="button" id="kl-st-action">Action</button><button type="button" id="kl-st-ruhig">1.06</button></div>
   </div>
   <div class="start-leiste">
     <button class="ver" id="ton" type="button">Ton an</button>
@@ -208,7 +207,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '1.08';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '1.09';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -225,12 +224,10 @@ const sfx = (() => {
     const k = JSON.parse(localStorage.getItem('flipper.klang') || '{}');
     if (['V', 'W', 'X'].includes(k.fl)) flipperArt = k.fl;
     if (['aus', 'multi', 'alle'].includes(k.mu)) musikModus = k.mu;
-    if (STILE.includes(k.st)) musikStil = k.st;
   } catch (_) {}
   const klangZeige = () => {
     for (const a of ['V', 'W', 'X']) document.getElementById('kl-fl-' + a).classList.toggle('an', flipperArt === a);
     for (const m of ['aus', 'multi', 'alle']) document.getElementById('kl-mu-' + m).classList.toggle('an', musikModus === m);
-    for (const m of STILE) document.getElementById('kl-st-' + m).classList.toggle('an', musikStil === m);
   };
   const klangMerken = () => { klangZeige(); try { localStorage.setItem('flipper.klang', JSON.stringify({ fl: flipperArt, mu: musikModus, st: musikStil })); } catch (_) {} };
   for (const a of ['V', 'W', 'X']) document.getElementById('kl-fl-' + a).addEventListener('click', e => {
@@ -241,13 +238,7 @@ const sfx = (() => {
   for (const m of ['aus', 'multi', 'alle']) document.getElementById('kl-mu-' + m).addEventListener('click', e => {
     e.stopPropagation(); musikModus = m; klangMerken(); window.showInfo && window.showInfo(MUSIK_TEXT[m], 2);
   });
-  const STIL_TEXT = { rock: 'Musik: Rock (152 BPM)', funk: 'Musik: Funk (116 BPM)', action: 'Musik: Action (140 BPM)', ruhig: 'Musik: Stil 1.06' };
-  let probeBis = 0;
-  for (const m of STILE) document.getElementById('kl-st-' + m).addEventListener('click', e => {
-    e.stopPropagation(); musikStil = m; klangMerken(); unlock(); window.showInfo && window.showInfo(STIL_TEXT[m], 2);
-    probeBis = performance.now() + 12000;      // 1.07: 12 s Hörprobe des Stils (Multiball-Fassung), auch auf Start-/Pausenschirm
-    fmSchalte(null); fmSchalte('multi');
-  });
+  // 1.09: Nutzer hat Rock gewählt – Stil fest (Funk/Action/1.06 bleiben als Code in STILE_DEF bzw. songSchritt, ohne Auswahlknopf)
   klangZeige();
 
   // iOS erlaubt Ton erst nach einer Berührung: Kontext beim ersten Antippen starten
@@ -691,18 +682,48 @@ const sfx = (() => {
     if (sch.fill && e === 7 && tr === 'intro') { drum('snare', t, 0.7); drum('snare', t + a / 2, 0.9); }
   };
   const ALT = { haupt: songSchritt(HAUPT_SONG, 0.16), payback: songSchritt(HAUPT_SONG, 0.18), multi: songSchritt(MULTI_SONG, 0.2) };
+  // 1.09: Rock auch für Ruhe, Hurry Up, Kanone und Jackpot (gleicher Klang: klarer Bus, Powerchords, drum2)
+  const PC = (r, t, d, p = GIT) => [0, 7, 12].forEach(i => fmTon(N(r + i), t, d, p));      // Powerchord
+  const ROCK_ZUST = {
+    ruhe: { bpm: () => 60, schritt: (k, t, a) => {      // Ruhezustand: alle 8 s ein ausklingender E-Powerchord, dazwischen ein tiefer Doppelschlag
+      if (k % 16 === 0) { PC(52, t, 3.5); drum2('kick', t, 0.8); drum2('crash', t, 0.35); }
+      if (k % 16 === 8) { drum2('kick', t, 0.7); drum2('kick', t + 0.17, 0.5); }
+    } },
+    hurry: { bpm: () => 152 + 32 * Math.min(1, Math.max(0, 1 - (fmInfo.hurryRest ?? 20) / 20)), schritt: (k, t, a) => {   // 152 → 184 BPM
+      const e = k % 8, r = 40 + Math.floor(k / 8) % 4;     // je Takt einen Halbton höher: E – F – F# – G, dann von vorn
+      fmTon(N(r), t, a * 0.85, RBASS);
+      if (e === 0) PC(r + 12, t, a * 1.8); else PC(r + 12, t, a * 0.45, GITKURZ);
+      if (e === 0 || e === 3 || e === 4) drum2('kick', t);
+      if (e === 2 || e === 6) drum2('snare', t);
+      drum2('hat', t, e % 2 ? 0.6 : 1);
+      if (e === 0 && k % 16 === 0) fmTon(N(r + 24), t, a * 1.5, HORN);   // Signal-Stoß alle 2 Takte
+    } },
+    kanone: { bpm: () => 120, schritt: (k, t, a) => {   // gedämpftes Riff, steigt je Sekunde einen Halbton, ab 4 s Trommelwirbel bis zum Schuss
+      const sek = Math.max(0, Math.min(6, 7 - (fmInfo.kanoneRest ?? 7))), r = 40 + Math.floor(sek);
+      PC(r + 12, t, a * 0.45, GITKURZ);
+      if (k % 2 === 0) { fmTon(N(r), t, a * 1.8, RBASS); drum2('kick', t, 0.8); }
+      if (sek > 4) { drum2('snare', t, 0.3 + 0.12 * (sek - 4)); drum2('snare', t + a / 2, 0.3 + 0.12 * (sek - 4)); }
+      else drum2('hat', t, 0.6);
+    } },
+  };
+  function jingleRock() {                              // Jackpot: drei Powerchords E – G – A mit Becken, die Zustandsmusik pausiert so lange
+    const t = ac.currentTime + 0.05;
+    [[0, 52, 0.22], [0.22, 55, 0.22], [0.44, 57, 1.1]].forEach(([ab, r, d]) => { PC(r, t + ab, d); fmTon(N(r - 12), t + ab, d, RBASS); drum2('kick', t + ab); });
+    drum2('crash', t + 0.44); fmTon(N(69), t + 0.44, 0.9, HORN); fmTon(N(76), t + 0.44, 0.9, { ...HORN, vol: 0.12 });
+    [0.12, 0.17, 0.32, 0.37].forEach(d => drum2('snare', t + d, 0.6)); fmRuheBis = t + 1.6;
+  }
   const STUECK = {   // je Spielzustand: Tempo (BPM) und ein Achtel-Schritt
-    ruhe: { bpm: () => 60, schritt: (k, t) => { if (k % 8 === 0) { drum('thump', t, 1); drum('thump', t + 0.17, 0.8); } if (k % 24 === 12) fmTon(N(76), t, 1.4, BELL); } },
+    ruhe: musikStil === 'rock' ? ROCK_ZUST.ruhe : { bpm: () => 60, schritt: (k, t) => { if (k % 8 === 0) { drum('thump', t, 1); drum('thump', t + 0.17, 0.8); } if (k % 24 === 12) fmTon(N(76), t, 1.4, BELL); } },
     haupt: { bpm: () => stilStueck('haupt')?.bpm ?? 112, schritt: (k, t, a) => (stilStueck('haupt')?.schritt ?? ALT.haupt)(k, t, a) },
     payback: { bpm: () => stilStueck('payback')?.bpm ?? 132, schritt: (k, t, a) => (stilStueck('payback')?.schritt ?? ALT.payback)(k, t, a) },
     multi: { bpm: () => stilStueck('multi')?.bpm ?? 132, schritt: (k, t, a) => (stilStueck('multi')?.schritt ?? ALT.multi)(k, t, a) },
-    hurry: { bpm: () => 150 + 40 * Math.min(1, Math.max(0, 1 - (fmInfo.hurryRest ?? 20) / 20)), schritt: (k, t, a) => {   // 150 → 190 BPM bis zum Ende
+    hurry: musikStil === 'rock' ? ROCK_ZUST.hurry : { bpm: () => 150 + 40 * Math.min(1, Math.max(0, 1 - (fmInfo.hurryRest ?? 20) / 20)), schritt: (k, t, a) => {   // 150 → 190 BPM bis zum Ende
       fmTon(N([40, 40, 41, 41][k % 4]), t, a * 0.9, BASS);
       if (k % 2 === 0) fmTon(N([64, 65, 64, 62][(k / 2) % 4]), t, a * 1.6, LEAD);
       if (k % 4 === 0) { drum('kick', t); fmTon(N(88), t, 0.05, { ratio: 7, index: 3, abfall: 0.01, vol: 0.12, aus: 0.02 }); }
       drum('hat', t, 0.8);
     } },
-    kanone: { bpm: () => 120, schritt: (k, t) => {   // Puls je Viertel, Tonhöhe steigt je Sekunde bis zum Selbstschuss
+    kanone: musikStil === 'rock' ? ROCK_ZUST.kanone : { bpm: () => 120, schritt: (k, t) => {   // Puls je Viertel, Tonhöhe steigt je Sekunde bis zum Selbstschuss
       const sek = Math.max(0, Math.min(6, 7 - (fmInfo.kanoneRest ?? 7)));
       if (k % 2 === 0) { fmTon(N(57 + Math.floor(sek)), t, 0.22, { ratio: 2, index: 4, abfall: 0.05, vol: 0.2, aus: 0.07 }); fmTon(N(33), t, 0.3, BASS); }
       if (k % 2 === 1 && sek > 4) drum('hat', t, 0.7);
@@ -754,7 +775,7 @@ const sfx = (() => {
     rollen() {},                                                               // Rollgeräusch und Drahtrampe: vom Nutzer „aus“ gewählt
     // Multiball/Jackpot: kurze Fanfare
     multiball() { spiele(() => {
-      if (musikModus === 'alle') { jingle(); return; }     // 1.04: in der Musik-Probe der FM-Jingle statt der Fanfare
+      if (musikModus === 'alle') { if (musikStil === 'rock') jingleRock(); else jingle(); return; }     // 1.04: in der Musik-Probe der FM-Jingle statt der Fanfare
       [523, 659, 784, 1046].forEach((f, i) => ton('square', f, f, 0.14, 0.12, i * 0.1));
       ton('sawtooth', 1046, 1046, 0.4, 0.1, 0.4);
     }); },
@@ -767,7 +788,6 @@ const sfx = (() => {
     // 1.04: Musik je Spielzustand (null = still, ruhe, haupt, multi, hurry, kanone, payback); Modus vom Pausenschirm
     musikZustand(z, info) {
       fmInfo = info || {};
-      if (performance.now() < probeBis) { api.musik(false); fmSchalte(z || 'multi'); return; }   // 1.07: Stil-Hörprobe
       if (!an || musikModus === 'aus') { api.musik(false); fmSchalte(null); return; }
       if (musikModus === 'multi') { api.musik(false); fmSchalte(z === 'multi' ? 'multi' : null); return; }   // 1.06: neues Multiball-Stück auch im Standardmodus
       api.musik(false); fmSchalte(z);
