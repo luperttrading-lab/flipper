@@ -208,7 +208,7 @@
 <div id="stage"><canvas id="c" aria-label="Flippertisch"></canvas></div>
 
 <script>
-const APP_VERSION = '1.07';          // bei JEDER Änderung hochzählen
+const APP_VERSION = '1.08';          // bei JEDER Änderung hochzählen
 </script>
 <script>
 // ---------- Ton (Web Audio, synthetisch, keine Dateien) ----------
@@ -494,12 +494,12 @@ const sfx = (() => {
     ruhig: [0, null, 12, null, 0, null, 7, null] };
   function songBauen(abschnitte, schleifeAb) {
     const schritte = [];
-    for (const ab of abschnitte) {
+    for (const [nr, ab] of abschnitte.entries()) {
       const mel = (ab.mel || '').split(/\s+/).filter(Boolean), start = schritte.length;
       ab.akk.forEach((a, takt) => { for (let e = 0; e < 8; e++) {
         const fig = BASSFIG[ab.bass][e];
         schritte.push({ akk: AKK[a], bass: fig === null ? null : AKK[a][0] + fig, e, takt, trommel: ab.trommel, arp: ab.arp,
-          fill: takt % 4 === 3 && e >= 4, becken: takt === 0 && e === 0, lead: null, oktave: ab.oktave || 0 });
+          fill: takt % 4 === 3 && e >= 4, becken: takt === 0 && e === 0, lead: null, oktave: ab.oktave || 0, nr });
       } });
       mel.forEach((tok, n) => { if (/^\d+$/.test(tok)) {
         let d = 1; while (mel[n + d] === '-') d++;
@@ -536,7 +536,8 @@ const sfx = (() => {
   const RBASS = { ratio: 1, index: 1.8, abfall: 0.15, rest: 0.45, vol: 0.38, aus: 0.12 };
   const GIT = { ratio: 1, index: 5.5, abfall: 0.5, rest: 0.55, vol: 0.06, aus: 0.25 }, GITKURZ = { ratio: 1, index: 4, abfall: 0.05, rest: 0.4, vol: 0.05, aus: 0.035 };
   const STAB = { ratio: 1, index: 3, abfall: 0.06, rest: 0.35, vol: 0.1, aus: 0.07 };
-  const HORN = { ratio: 1, index: 2.4, abfall: 0.12, rest: 0.6, vol: 0.15, halt: true };
+  // 1.08 (Nutzer: nach dem Intro „zu fidelig“): Melodie-Klang wie ein kurzer Bläser-/Synth-Stoß, der ausklingt – vorher gehalten (halt) = geigenartig
+  const HORN = { ratio: 1, index: 3, abfall: 0.07, rest: 0.35, vol: 0.18, aus: 0.2 };
   const ARP16 = { ratio: 2, index: 1.4, abfall: 0.05, rest: 0.3, vol: 0.055, aus: 0.05 };
   function rausch2(t, dauer, typ, freq, q, vol, abkl) {
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
@@ -628,7 +629,7 @@ const sfx = (() => {
         fmTon(N(r + (e % 2 ? 12 : 0)), t, a * 0.7, e % 2 ? POP : SLAP); },      // Disco-Oktaven
       comp(sch, t, a) { if (sch.trommel === 'intro' && sch.takt < 1) return;
         const folge = [sch.akk[1], sch.akk[2], sch.akk[3], sch.akk[2]];
-        for (const j of [0, 1]) fmTon(N(folge[(sch.e * 2 + j) % 4] + 12), t + j * a / 2, a * 0.4, ARP16);
+        fmTon(N(folge[sch.e % 4]), t, a * 0.5, ARP16);      // 1.08: Achtel statt Sechzehntel, eine Oktave tiefer (weniger Gedudel)
         if (sch.e === 0 && sch.trommel !== 'intro') sch.akk.slice(1).forEach(m => fmTon(N(m), t, a * 0.6, STAB)); },
       drums(sch, t, a) { const e = sch.e, tr = sch.trommel;
         if (tr === 'bruch') {
@@ -647,10 +648,11 @@ const sfx = (() => {
     const i = k < n ? k : song.ab * 8 + (k - n) % (n - song.ab * 8), sch = song.schritte[i];
     S.bass(sch, t, a); S.comp(sch, t, a); S.drums(sch, t, a);
     if (sch.becken && sch.trommel === 'voll') drum2('crash', t, voll ? 1 : 0.6);
-    if (sch.lead) {
+    // 1.08: Melodie eine Oktave tiefer, ohne Oktav-Verdopplung, und im ersten Teil (A, Abschnitt 1) gar nicht – dort nur Groove/Riff;
+    // die Melodie kommt erst im Refrain und in A'
+    if (sch.lead && sch.nr !== 1) {
       const [m, d] = sch.lead, p = { ...S.lead, vol: S.lead.vol * (voll ? 1 : 0.8) };
-      fmTon(N(m), t, a * d * 0.92, p);
-      if (sch.oktave && voll) fmTon(N(m + sch.oktave), t, a * d * 0.9, { ...p, vol: p.vol * 0.5 });
+      fmTon(N(m - 12), t, a * d * 0.92, p);
     }
   };
   const STIL_SCHRITT = {};

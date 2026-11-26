@@ -601,6 +601,9 @@ Logos, Bilder oder Filmzitate (Seite ist öffentlich). Festgelegt:
   Bläser-Stöße, Klatschen + Snare, offene Hi-Hat. **Action** G-Dur 140 BPM: Disco-Oktavbass, Sechzehntel-Arpeggio, Stöße auf der 1, Klatschen.
   Form je Stil: Intro 4 · A 8 · Refrain 8 · A' 8 (Oktave) · Bruch 4 (Wirbel), dann ab A. Hauptspiel = 8 BPM langsamer, Melodie leiser, ohne
   Oktave; Multiball/Payback volle Fassung. Hurry Up/Kanone/Ruhe unverändert. Geprüft: Browser-Aufnahme ohne Fehler, Sim 30/30. Nicht am Handy gehört.
+- Stand 1.08 (Nutzer: nach dem Intro „zu fidelig“): Melodie der Stile Rock/Funk/Action **eine Oktave tiefer**, **ohne Oktav-Verdopplung**,
+  Klang `HORN` als ausklingender Stoß statt gehaltenem Ton (gehalten klang geigenartig), **Teil A ohne Melodie** (nur Groove/Riff; Melodie erst
+  im Refrain und in A', `sch.nr` = Abschnittsnummer aus `songBauen`), Action-Arpeggio Achtel statt Sechzehntel und eine Oktave tiefer.
 - Physik-Test: `node tools/sim.js [minuten]` (Node-Simulation mit `window.__TEST__`): Abschuss-Pfad, jedes der 5
   Rundziele per Kanone treffbar (Winkel-Scan), Multiball per Treffer, dann Autoplay (Standard 10 min): Kugel
   verlässt nie den Tisch, bleibt nie hängen. Seit 0.18 auch Schädel-Klappziel → LOAD GUN → Laden, Targetlicht
